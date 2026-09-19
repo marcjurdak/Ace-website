@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ACE Admin</title>
+<link rel="icon" type="image/png" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDEDEC;--fg:#000;--surface:#fff;--muted:#5E5E5C;--line:rgba(0,0,0,.14);--soft:rgba(0,0,0,.05);--studio:#C6C6C4;
+  --ok:#1f7a3f;--warn:#9a6700;--bad:#c0392b;--info:#1d4ed8;
+  --display:"Michroma","Eurostile","Arial Black",sans-serif;--body:"Archivo","Helvetica Neue",Arial,sans-serif;--pad:clamp(16px,4vw,40px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0A0A0A;--fg:#F2F2F2;--surface:#161616;--muted:#A3A3A1;--line:rgba(255,255,255,.16);--soft:rgba(255,255,255,.06);
+  --ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--info:#93c5fd}}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:inherit}
+img{max-width:100%;display:block}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.logo-dark{display:none}
+@media (prefers-color-scheme:dark){.logo-light{display:none}.logo-dark{display:block}}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-transform:uppercase;line-height:1.1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;border:1px solid var(--fg);background:var(--fg);color:var(--bg);font-weight:600;font-size:14px;border-radius:2px;text-decoration:none;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:7px 11px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.fld{display:block;margin-bottom:14px}
+.fld>span{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.fld small{display:block;color:var(--muted);font-size:12.5px;margin-top:6px}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=url],input[type=tel],input[type=search],select,textarea{width:100%;font-size:16px;background:var(--surface);border:1px solid var(--line);border-radius:2px;padding:10px 12px}
+textarea{resize:vertical;min-height:70px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--fg)}
+.err{color:var(--bad);font-size:14px;margin-top:8px;min-height:1px}
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-box{width:min(380px,100%)}
+.login-box img{height:30px;width:auto;margin-bottom:10px}
+.login-box h1{font-size:15px;color:var(--muted);margin-bottom:28px;letter-spacing:.02em}
+.login-box .btn{width:100%;padding:14px}
+.linkbtn{text-decoration:underline;font-size:14px;margin-top:16px;color:var(--muted)}
+/* app */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);padding:12px var(--pad);padding-top:max(12px,env(safe-area-inset-top));display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.top .brand img{height:18px;width:auto}
+.top .brand span{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.top .acts{display:flex;gap:8px;align-items:center}
+.tabs{display:flex;gap:4px;width:100%;overflow-x:auto;scrollbar-width:none;order:3}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 14px;border-radius:40px;font-weight:600;font-size:14px;color:var(--muted);white-space:nowrap;display:flex;gap:7px;align-items:center}
+.tab[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--bad);color:#fff;font-size:12px;display:inline-grid;place-items:center}
+@media(min-width:860px){.tabs{width:auto;order:0}.top .brand{margin-right:18px}.top .acts{margin-left:auto}}
+main{padding:20px var(--pad) 80px;max-width:1100px;margin:0 auto}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.bar h2{font-size:18px;margin-right:auto}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 calc(var(--pad)*-1) 14px;padding:0 var(--pad)}
+.chips::-webkit-scrollbar{display:none}
+.chip{border:1px solid var(--line);padding:7px 12px;border-radius:40px;font-size:13px;font-weight:500;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip b{font-weight:700;margin-left:4px}
+.muted{color:var(--muted)}
+.empty{padding:50px 0;text-align:center;color:var(--muted)}
+/* orders */
+.olist{display:flex;flex-direction:column;gap:10px}
+.order{background:var(--surface);border:1px solid var(--line);border-radius:4px}
+.ohead{width:100%;display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:14px;text-align:left}
+.ohead .l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.onum{font-family:var(--display);font-size:14px}
+.ohead .who{font-weight:600}
+.ohead .meta{font-size:13px;color:var(--muted)}
+.ohead .amt{font-family:var(--display);font-size:15px;text-align:right;align-self:center}
+.pill{font-size:12px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid currentColor}
+.st-new{color:var(--bad)}.st-confirmed{color:var(--info)}.st-out_for_delivery{color:var(--warn)}.st-delivered{color:var(--ok)}.st-cancelled{color:var(--muted)}
+.obody{border-top:1px solid var(--line);padding:14px;display:grid;gap:18px}
+@media(min-width:760px){.obody{grid-template-columns:1.1fr 1fr}}
+.obody h4{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.oitem{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:6px 0}
+.oitem img{width:44px;aspect-ratio:4/5;object-fit:cover;background:var(--studio);border-radius:2px}
+.oitem .v{font-size:13px;color:var(--muted)}
+.otot{display:flex;justify-content:space-between;border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:600}
+.kv{display:grid;grid-template-columns:96px 1fr;gap:6px 10px;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{word-break:break-word}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.stbtns{display:flex;flex-wrap:wrap;gap:6px}
+.stbtns button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+/* products */
+.plist{display:flex;flex-direction:column;gap:8px}
+.prow{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:10px}
+.prow img{width:56px;aspect-ratio:4/5;object-fit:cover;background:var(--studio);border-radius:2px}
+.prow .n{font-weight:600}
+.prow .d{font-size:13px;color:var(--muted)}
+.prow .ctl{display:flex;align-items:center;gap:6px}
+.icon{width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--line);border-radius:2px;font-size:16px}
+.icon:disabled{opacity:.3}
+.hiddenTag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--warn);margin-left:6px}
+/* editor */
+.ed{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.ed-top{position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:12px var(--pad);padding-top:max(12px,env(safe-area-inset-top))}
+.ed-top h2{font-size:15px;margin-right:auto}
+.ed-body{max-width:760px;margin:0 auto;padding:20px var(--pad) 120px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sec{margin-top:26px;padding-top:20px;border-top:1px solid var(--line)}
+.sec h3{font-size:14px;margin-bottom:12px}
+.toggle{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;cursor:pointer}
+.toggle input{width:20px;height:20px;accent-color:var(--fg)}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.color{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px;margin-bottom:12px}
+.color-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+.hexwrap{display:flex;gap:6px;align-items:center}
+.hexwrap input[type=color]{width:44px;height:44px;border:1px solid var(--line);border-radius:2px;background:none;padding:2px}
+.hexwrap input[type=text]{width:100px}
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-top:12px}
+.ph{position:relative;aspect-ratio:4/5;background:var(--studio);border-radius:2px;overflow:hidden}
+.ph img{width:100%;height:100%;object-fit:cover}
+.ph .main{position:absolute;left:4px;top:4px;background:#000;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:2px}
+.ph .tools{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;background:rgba(0,0,0,.6)}
+.ph .tools button{color:#fff;font-size:14px;padding:5px 8px}
+.addph{aspect-ratio:4/5;border:1.5px dashed var(--line);border-radius:2px;display:grid;place-items:center;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;padding:6px}
+.addph input{display:none}
+.uploading{opacity:.5;pointer-events:none}
+.ed-foot{position:fixed;left:0;right:0;bottom:0;z-index:3;background:var(--bg);border-top:1px solid var(--line);padding:12px var(--pad);padding-bottom:max(12px,env(safe-area-inset-bottom));display:flex;gap:10px;justify-content:flex-end}
+.ed-foot .err{margin:0 auto 0 0;align-self:center}
+/* settings */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px;max-width:560px}
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));z-index:80;transform:translate(-50%,150%);opacity:0;transition:transform .3s,opacity .25s;background:var(--fg);color:var(--bg);padding:12px 16px;border-radius:4px;font-weight:600;font-size:14px;max-width:calc(100% - 28px)}
+.toast.on{transform:translate(-50%,0);opacity:1}
+.toast.bad{background:var(--bad);color:#fff}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section class="login" id="vLogin" hidden>
+  <div class="login-box">
+    <img class="logo-light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" src="/logo-word-white.png" alt="ACE">
+    <h1>Admin</h1>
+    <div id="loginForm">
+      <label class="fld"><span>Email</span><input type="email" id="lEmail" autocomplete="username" inputmode="email"></label>
+      <label class="fld"><span>Password</span><input type="password" id="lPass" autocomplete="current-password"></label>
+      <button class="btn" id="lBtn">Sign in</button>
+      <div class="err" id="lErr" aria-live="polite"></div>
+      <button class="linkbtn" id="forgotBtn">Forgot password?</button>
+    </div>
+    <div id="resetForm" hidden>
+      <p class="muted" style="margin-bottom:16px">Choose a new password for your admin account.</p>
+      <label class="fld"><span>New password</span><input type="password" id="rPass" autocomplete="new-password"></label>
+      <button class="btn" id="rBtn">Save new password</button>
+      <div class="err" id="rErr" aria-live="polite"></div>
+    </div>
+    <div id="notAdmin" hidden>
+      <p style="margin-bottom:16px">This account isn't allowed into the ACE admin.</p>
+      <button class="btn ghost" id="naOut">Sign out</button>
+    </div>
+  </div>
+</section>
+
+<!-- APP -->
+<div id="vApp" hidden>
+  <header class="top">
+    <div class="brand"><img class="logo-light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" src="/logo-word-white.png" alt="ACE"><span>Admin</span></div>
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="orders" aria-selected="true">Orders <span class="badge" id="newBadge" hidden>0</span></button>
+      <button class="tab" role="tab" data-tab="products" aria-selected="false">Products</button>
+      <button class="tab" role="tab" data-tab="settings" aria-selected="false">Settings</button>
+    </nav>
+    <div class="acts">
+      <a class="btn ghost sm" href="/" target="_blank" rel="noopener">View site</a>
+      <button class="btn ghost sm" id="outBtn">Sign out</button>
+    </div>
+  </header>
+  <main>
+    <!-- orders -->
+    <section id="tOrders">
+      <div class="bar">
+        <h2>Orders</h2>
+        <input type="search" id="oSearch" placeholder="Search name, phone, order #" style="max-width:260px">
+        <button class="btn ghost sm" id="oRefresh">Refresh</button>
+      </div>
+      <div class="chips" id="oChips"></div>
+      <div class="olist" id="oList"><div class="empty"><span class="spin"></span></div></div>
+    </section>
+    <!-- products -->
+    <section id="tProducts" hidden>
+      <div class="bar">
+        <h2>Products</h2>
+        <button class="btn sm" id="pNew">Add product</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin:-6px 0 14px">Use the arrows to change the order products appear on the site.</p>
+      <div class="plist" id="pList"></div>
+    </section>
+    <!-- settings -->
+    <section id="tSettings" hidden>
+      <div class="bar"><h2>Settings</h2></div>
+      <div class="card">
+        <label class="fld"><span>WhatsApp number for orders</span><input type="tel" id="sWa" inputmode="tel" placeholder="96170123456">
+          <small>Country code first, numbers only, no + or spaces. Example for Lebanon: 96170123456</small></label>
+        <label class="fld"><span>Instagram link</span><input type="url" id="sIg" placeholder="https://instagram.com/yourbrand">
+          <small>Leave empty to hide the Instagram link on the site.</small></label>
+        <button class="btn" id="sSave">Save settings</button>
+        <div class="err" id="sErr"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- PRODUCT EDITOR -->
+<div class="ed" id="ed" hidden role="dialog" aria-modal="true" aria-labelledby="edTitle">
+  <div class="ed-top"><button class="btn ghost sm" id="edClose">Cancel</button><h2 id="edTitle">Product</h2></div>
+  <div class="ed-body">
+    <label class="toggle"><input type="checkbox" id="eActive" checked> Visible on the website</label>
+    <div class="sec" style="border:0;margin-top:14px;padding-top:0">
+      <label class="fld"><span>Name</span><input type="text" id="eName" maxlength="80"></label>
+      <div class="grid2">
+        <label class="fld"><span>Price ($)</span><input type="number" id="ePrice" min="0" step="0.01" inputmode="decimal"></label>
+        <label class="fld"><span>Category</span><select id="eCat"><option value="tops">Tops</option><option value="bottoms">Bottoms</option><option value="accessories">Socks &amp; gloves</option></select></label>
+      </div>
+      <label class="fld"><span>Description</span><textarea id="eDesc" rows="3" maxlength="600"></textarea></label>
+      <label class="fld"><span>Sizes</span><input type="text" id="eSizes" placeholder="S, M, L, XL, XXL">
+        <small>Separate sizes with commas.</small>
+        <div class="presets"><button type="button" class="chip" data-sizes="S, M, L, XL, XXL">S to XXL</button><button type="button" class="chip" data-sizes="S, M, L">S, M, L</button><button type="button" class="chip" data-sizes="One size">One size</button></div>
+      </label>
+    </div>
+    <div class="sec">
+      <h3>Colours and photos</h3>
+      <p class="muted" style="font-size:13px;margin:-4px 0 12px">Each colour needs at least one photo. The first photo is the main one on the site; the second shows when someone hovers or views the back.</p>
+      <div id="eColors"></div>
+      <button type="button" class="btn ghost sm" id="eAddColor">Add colour</button>
+    </div>
+    <div class="sec" id="eDangerSec">
+      <h3>Delete</h3>
+      <p class="muted" style="font-size:13px;margin-bottom:10px">To take a product off the site for a while, untick "Visible on the website" instead. Deleting can't be undone. Past orders keep their details.</p>
+      <button type="button" class="btn danger sm" id="eDelete">Delete this product</button>
+    </div>
+  </div>
+  <div class="ed-foot"><div class="err" id="eErr" aria-live="polite"></div><button class="btn" id="eSave">Save product</button></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+<script src="/config.js"></script>
+<script>
+const db=window.supabase.createClient(window.ACE_CONFIG.SUPABASE_URL,window.ACE_CONFIG.SUPABASE_KEY);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>"$"+(Math.round(Number(n)*100)/100).toLocaleString("en-US");
+const STATUS=[["new","New"],["confirmed","Confirmed"],["out_for_delivery","Out for delivery"],["delivered","Delivered"],["cancelled","Cancelled"]];
+const SL=Object.fromEntries(STATUS);
+const NEXT={new:"confirmed",confirmed:"out_for_delivery",out_for_delivery:"delivered"};
+const NEXT_LABEL={new:"Mark confirmed",confirmed:"Mark out for delivery",out_for_delivery:"Mark delivered"};
+const CATL={tops:"Tops",bottoms:"Bottoms",accessories:"Socks & gloves"};
+let toastT;
+function toast(msg,bad){const t=$("#toast");t.textContent=msg;t.classList.toggle("bad",!!bad);t.classList.add("on");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),2800)}
+function ago(ts){const s=(Date.now()-new Date(ts))/1000;if(s<60)return"just now";if(s<3600)return Math.floor(s/60)+" min ago";if(s<86400)return Math.floor(s/3600)+" h ago";
+  return new Date(ts).toLocaleDateString("en-GB",{day:"numeric",month:"short"})+", "+new Date(ts).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}
+function waNumber(phone,country){let d=String(phone||"").replace(/\D/g,"");if(d.startsWith("00"))d=d.slice(2);
+  if((country||"Lebanon")==="Lebanon"&&!d.startsWith("961")){d=d.replace(/^0/,"");if(d.length<=8)d="961"+d}return d}
+
+/* ---------- auth ---------- */
+let booted=false,recovering=false;
+function show(view){$("#vLogin").hidden=view!=="login";$("#vApp").hidden=view!=="app"}
+function loginMode(m){$("#loginForm").hidden=m!=="login";$("#resetForm").hidden=m!=="reset";$("#notAdmin").hidden=m!=="notadmin"}
+async function route(session){
+  if(recovering){show("login");loginMode("reset");return}
+  if(!session){show("login");loginMode("login");return}
+  const {data:ok,error}=await db.rpc("is_admin");
+  if(error||!ok){show("login");loginMode("notadmin");return}
+  show("app");if(!booted){booted=true;boot()}
+}
+db.auth.onAuthStateChange((ev,session)=>{
+  if(ev==="PASSWORD_RECOVERY"){recovering=true}
+  setTimeout(()=>route(session),0);
+});
+$("#lBtn").onclick=async()=>{
+  const email=$("#lEmail").value.trim(),password=$("#lPass").value;$("#lErr").textContent="";
+  if(!email||!password){$("#lErr").textContent="Enter your email and password.";return}
+  $("#lBtn").disabled=true;
+  const {error}=await db.auth.signInWithPassword({email,password});
+  $("#lBtn").disabled=false;
+  if(error)$("#lErr").textContent=/invalid/i.test(error.message)?"Wrong email or password.":error.message;
+};
+$("#lPass").addEventListener("keydown",e=>{if(e.key==="Enter")$("#lBtn").click()});
+$("#forgotBtn").onclick=async()=>{
+  const email=$("#lEmail").value.trim();if(!email){$("#lErr").textContent="Type your email above first, then tap Forgot password.";return}
+  const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+"/admin"});
+  $("#lErr").textContent=error?error.message:"Check your email for a link to set a new password.";
+};
+$("#rBtn").onclick=async()=>{
+  const password=$("#rPass").value;if(password.length<8){$("#rErr").textContent="Use at least 8 characters.";return}
+  const {error}=await db.auth.updateUser({password});
+  if(error){$("#rErr").textContent=error.message;return}
+  recovering=false;history.replaceState(null,"",location.pathname);toast("Password updated");const {data}=await db.auth.getSession();route(data.session);
+};
+$("#naOut").onclick=()=>db.auth.signOut();
+$("#outBtn").onclick=()=>db.auth.signOut();
+
+/* ---------- tabs ---------- */
+function setTab(t){
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
+  $("#tOrders").hidden=t!=="orders";$("#tProducts").hidden=t!=="products";$("#tSettings").hidden=t!=="settings";
+  if(t==="products")loadProducts();if(t==="settings")loadSettings();if(t==="orders")loadOrders();
+}
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+
+/* ---------- orders ---------- */
+let ORDERS=[],oFilter="new",open=new Set();
+async function loadOrders(quiet){
+  const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(500);
+  if(error){if(!quiet)toast("Couldn't load orders: "+error.message,true);return}
+  ORDERS=data||[];renderOrders();
+}
+function renderChips(){
+  const counts={all:ORDERS.length};STATUS.forEach(([k])=>counts[k]=ORDERS.filter(o=>o.status===k).length);
+  $("#oChips").innerHTML=[...STATUS,["all","All"]].map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${oFilter===k}">${l}<b>${counts[k]}</b></button>`).join("");
+  $("#oChips").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{oFilter=c.dataset.f;renderOrders()});
+  const b=$("#newBadge");b.textContent=counts.new;b.hidden=!counts.new;
+}
+function renderOrders(){
+  renderChips();
+  const q=$("#oSearch").value.trim().toLowerCase().replace(/^#/,"");
+  const list=ORDERS.filter(o=>(oFilter==="all"||o.status===oFilter)&&(!q||[o.order_number,o.first_name,o.last_name,o.phone,o.city,o.email].join(" ").toLowerCase().includes(q)));
+  const el=$("#oList");
+  if(!list.length){el.innerHTML=`<div class="empty">${ORDERS.length?"No orders here.":"No orders yet. They'll appear here as soon as customers check out."}</div>`;return}
+  el.innerHTML=list.map(o=>{
+    const isOpen=open.has(o.id);const items=o.items||[];const count=items.reduce((a,i)=>a+Number(i.qty||0),0);
+    const addr=[o.address1,o.address2,o.city,o.postal_code,o.country].filter(Boolean).join(", ");
+    const wa=waNumber(o.phone,o.country);
+    return `<article class="order" data-id="${o.id}">
+      <button class="ohead" aria-expanded="${isOpen}">
+        <div class="l1"><span class="onum">#${o.order_number}</span><span class="pill st-${o.status}">${SL[o.status]||o.status}</span></div>
+        <div class="amt">${money(o.subtotal)}</div>
+        <div class="who">${esc(o.first_name)} ${esc(o.last_name)}</div>
+        <div class="meta" style="text-align:right">${ago(o.created_at)}</div>
+        <div class="meta" style="grid-column:1/-1">${count} item${count===1?"":"s"} · ${esc(o.city)}</div>
+      </button>
+      ${isOpen?`<div class="obody">
+        <div>
+          <h4>Items</h4>
+          ${items.map(i=>`<div class="oitem">${i.image?`<img src="${esc(i.image)}" alt="">`:"<span></span>"}<div><div>${esc(i.name)}</div><div class="v">${esc(i.color)}, ${esc(i.size)} × ${Number(i.qty)}</div></div><div>${money(Number(i.price)*Number(i.qty))}</div></div>`).join("")}
+          <div class="otot"><span>Subtotal</span><span>${money(o.subtotal)}</span></div>
+          <h4 style="margin-top:18px">Status</h4>
+          <div class="stbtns">${STATUS.map(([k,l])=>`<button class="btn ghost sm" data-st="${k}" aria-pressed="${o.status===k}">${l}</button>`).join("")}</div>
+          ${NEXT[o.status]?`<button class="btn" style="margin-top:10px;width:100%" data-st="${NEXT[o.status]}">${NEXT_LABEL[o.status]}</button>`:""}
+        </div>
+        <div>
+          <h4>Customer</h4>
+          <dl class="kv">
+            <dt>Name</dt><dd>${esc(o.first_name)} ${esc(o.last_name)}${o.company?`<br><span class="muted">${esc(o.company)}</span>`:""}</dd>
+            <dt>Phone</dt><dd>${esc(o.phone)}</dd>
+            ${o.email?`<dt>Email</dt><dd><a href="mailto:${esc(o.email)}">${esc(o.email)}</a>${o.news_opt_in?' <span class="muted">(wants news)</span>':""}</dd>`:""}
+            <dt>Address</dt><dd>${esc(addr)}</dd>
+            ${o.notes?`<dt>Instructions</dt><dd>${esc(o.notes)}</dd>`:""}
+            <dt>Placed</dt><dd>${new Date(o.created_at).toLocaleString("en-GB",{dateStyle:"medium",timeStyle:"short"})}</dd>
+          </dl>
+          <div class="row" style="margin-top:12px">
+            <a class="btn sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>
+            <a class="btn ghost sm" href="tel:${esc(String(o.phone).replace(/[^\d+]/g,""))}">Call</a>
+            ${o.map_link?`<a class="btn ghost sm" href="${esc(o.map_link)}" target="_blank" rel="noopener">Open map</a>`:""}
+          </div>
+          <h4 style="margin-top:18px">Private note</h4>
+          <textarea class="anote" rows="2" placeholder="Only you see this. E.g. paid cash, delivered by Ali">${esc(o.admin_note||"")}</textarea>
+          <div class="row" style="margin-top:8px;justify-content:space-between"><button class="btn ghost sm" data-savenote>Save note</button><button class="btn danger sm" data-del>Delete order</button></div>
+        </div>
+      </div>`:""}
+    </article>`}).join("");
+  el.querySelectorAll(".order").forEach(card=>{
+    const id=card.dataset.id;
+    card.querySelector(".ohead").onclick=()=>{open.has(id)?open.delete(id):open.add(id);renderOrders()};
+    card.querySelectorAll("[data-st]").forEach(b=>b.onclick=()=>setStatus(id,b.dataset.st));
+    const sn=card.querySelector("[data-savenote]");if(sn)sn.onclick=()=>saveNote(id,card.querySelector(".anote").value);
+    const del=card.querySelector("[data-del]");if(del)del.onclick=()=>delOrder(id);
+  });
+}
+async function setStatus(id,st){
+  const o=ORDERS.find(x=>x.id===id);if(!o||o.status===st)return;
+  const prev=o.status;o.status=st;renderOrders();
+  const {error}=await db.from("orders").update({status:st}).eq("id",id);
+  if(error){o.status=prev;renderOrders();toast("Couldn't update: "+error.message,true);return}
+  toast(`Order #${o.order_number}: ${SL[st]}`);
+}
+async function saveNote(id,note){
+  const o=ORDERS.find(x=>x.id===id);const {error}=await db.from("orders").update({admin_note:note}).eq("id",id);
+  if(error){toast("Couldn't save note: "+error.message,true);return}o.admin_note=note;toast("Note saved");
+}
+async function delOrder(id){
+  const o=ORDERS.find(x=>x.id===id);if(!confirm(`Delete order #${o.order_number}? This can't be undone. To keep a record, mark it Cancelled instead.`))return;
+  const {error}=await db.from("orders").delete().eq("id",id);
+  if(error){toast("Couldn't delete: "+error.message,true);return}
+  ORDERS=ORDERS.filter(x=>x.id!==id);renderOrders();toast("Order deleted");
+}
+$("#oSearch").addEventListener("input",renderOrders);
+$("#oRefresh").onclick=()=>loadOrders();
+
+/* ---------- products ---------- */
+let PRODUCTS=[];
+async function loadProducts(){
+  const {data,error}=await db.from("products").select("*").order("position",{ascending:true}).order("created_at",{ascending:true});
+  if(error){toast("Couldn't load products: "+error.message,true);return}
+  PRODUCTS=data||[];renderProducts();
+}
+function renderProducts(){
+  const el=$("#pList");
+  if(!PRODUCTS.length){el.innerHTML=`<div class="empty">No products yet. Tap "Add product" to create your first one.</div>`;return}
+  el.innerHTML=PRODUCTS.map((p,i)=>{const c=(p.colors||[])[0]||{};const img=(c.images||[])[0];
+    const so=(p.colors||[]).filter(x=>x.sold_out).map(x=>x.name);
+    return `<div class="prow" data-i="${i}">
+      ${img?`<img src="${esc(img)}" alt="">`:`<div style="width:56px;aspect-ratio:4/5;background:var(--studio)"></div>`}
+      <button style="text-align:left" data-edit><div class="n">${esc(p.name)}${p.active?"":'<span class="hiddenTag">Hidden</span>'}</div>
+        <div class="d">${money(p.price)} · ${CATL[p.category]||p.category} · ${(p.colors||[]).map(x=>esc(x.name)).join(", ")}</div>
+        ${so.length?`<div class="d" style="color:var(--warn)">Sold out: ${so.map(esc).join(", ")}</div>`:""}</button>
+      <div class="ctl"><button class="icon" data-up aria-label="Move up" ${i===0?"disabled":""}>↑</button><button class="icon" data-down aria-label="Move down" ${i===PRODUCTS.length-1?"disabled":""}>↓</button></div>
+    </div>`}).join("");
+  el.querySelectorAll(".prow").forEach(r=>{const i=+r.dataset.i;
+    r.querySelector("[data-edit]").onclick=()=>openEditor(PRODUCTS[i]);
+    r.querySelector("[data-up]").onclick=()=>move(i,-1);r.querySelector("[data-down]").onclick=()=>move(i,1)});
+}
+async function move(i,d){
+  const j=i+d;if(j<0||j>=PRODUCTS.length)return;
+  [PRODUCTS[i],PRODUCTS[j]]=[PRODUCTS[j],PRODUCTS[i]];PRODUCTS.forEach((p,k)=>p.position=k+1);renderProducts();
+  const res=await Promise.all(PRODUCTS.map(p=>db.from("products").update({position:p.position}).eq("id",p.id)));
+  const bad=res.find(r=>r.error);if(bad){toast("Couldn't reorder: "+bad.error.message,true);loadProducts()}
+}
+$("#pNew").onclick=()=>openEditor(null);
+
+/* ---------- editor ---------- */
+let editing=null,eColors=[];
+function openEditor(p){
+  editing=p;$("#edTitle").textContent=p?"Edit product":"New product";
+  $("#eActive").checked=p?p.active:true;$("#eName").value=p?p.name:"";$("#ePrice").value=p?p.price:"";
+  $("#eCat").value=p?p.category:"tops";$("#eDesc").value=p?p.description:"";$("#eSizes").value=p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL";
+  eColors=p?JSON.parse(JSON.stringify(p.colors||[])):[{name:"Black",hex:"#000000",images:[],sold_out:false}];
+  $("#eDangerSec").hidden=!p;$("#eErr").textContent="";
+  renderColors();$("#ed").hidden=false;document.body.style.overflow="hidden";$("#ed").scrollTop=0;
+}
+function closeEditor(){$("#ed").hidden=true;document.body.style.overflow="";editing=null}
+$("#edClose").onclick=()=>{closeEditor()};
+document.querySelectorAll("[data-sizes]").forEach(b=>b.onclick=()=>{$("#eSizes").value=b.dataset.sizes});
+function renderColors(){
+  const el=$("#eColors");
+  el.innerHTML=eColors.map((c,i)=>`<div class="color" data-i="${i}">
+    <div class="color-top">
+      <label class="fld" style="margin:0"><span>Colour name</span><input type="text" data-k="name" value="${esc(c.name)}" maxlength="40" placeholder="e.g. Black"></label>
+      <div class="hexwrap"><input type="color" data-k="hexpick" value="${/^#[0-9a-f]{6}$/i.test(c.hex||"")?c.hex:"#000000"}" aria-label="Swatch colour"><input type="text" data-k="hex" value="${esc(c.hex||"#000000")}" maxlength="7" aria-label="Swatch hex"></div>
+    </div>
+    <div class="photos">
+      ${(c.images||[]).map((src,k)=>`<div class="ph"><img src="${esc(src)}" alt="">${k===0?'<span class="main">Main</span>':""}
+        <div class="tools"><button type="button" data-left="${k}" aria-label="Move photo left" ${k===0?"disabled":""}>←</button><button type="button" data-rm="${k}" aria-label="Remove photo">✕</button><button type="button" data-right="${k}" aria-label="Move photo right" ${k===c.images.length-1?"disabled":""}>→</button></div></div>`).join("")}
+      ${(c.images||[]).length<6?`<label class="addph"><input type="file" accept="image/*" multiple data-up>+ Add photo</label>`:""}
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:12px;align-items:center">
+      <label class="toggle"><input type="checkbox" data-k="sold_out" ${c.sold_out?"checked":""}> Sold out</label>
+      ${eColors.length>1?`<button type="button" class="btn danger sm" data-rmc>Remove colour</button>`:""}
+    </div>
+  </div>`).join("");
+  el.querySelectorAll(".color").forEach(box=>{
+    const i=+box.dataset.i,c=eColors[i];
+    box.querySelector('[data-k="name"]').oninput=e=>c.name=e.target.value;
+    const pick=box.querySelector('[data-k="hexpick"]'),hex=box.querySelector('[data-k="hex"]');
+    pick.oninput=()=>{c.hex=pick.value;hex.value=pick.value};
+    hex.oninput=()=>{let v=hex.value.trim();if(!v.startsWith("#"))v="#"+v;c.hex=v;if(/^#[0-9a-f]{6}$/i.test(v))pick.value=v};
+    box.querySelector('[data-k="sold_out"]').onchange=e=>c.sold_out=e.target.checked;
+    box.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{c.images.splice(+b.dataset.rm,1);renderColors()});
+    box.querySelectorAll("[data-left]").forEach(b=>b.onclick=()=>{const k=+b.dataset.left;[c.images[k-1],c.images[k]]=[c.images[k],c.images[k-1]];renderColors()});
+    box.querySelectorAll("[data-right]").forEach(b=>b.onclick=()=>{const k=+b.dataset.right;[c.images[k+1],c.images[k]]=[c.images[k],c.images[k+1]];renderColors()});
+    const up=box.querySelector("[data-up]");if(up)up.onchange=()=>uploadPhotos(c,[...up.files],up.closest(".addph"));
+    const rmc=box.querySelector("[data-rmc]");if(rmc)rmc.onclick=()=>{if(confirm(`Remove the colour "${c.name||"this colour"}"?`)){eColors.splice(i,1);renderColors()}};
+  });
+}
+$("#eAddColor").onclick=()=>{eColors.push({name:"",hex:"#ffffff",images:[],sold_out:false});renderColors()};
+function resize(file,max=1600){
+  return new Promise((res,rej)=>{
+    const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+      const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error("Couldn't read this photo")),"image/jpeg",.86)};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("This file isn't a photo we can read. Try a JPG or PNG."))};
+    img.src=url;
+  });
+}
+async function uploadPhotos(c,files,btn){
+  if(!files.length)return;btn.classList.add("uploading");btn.lastChild.textContent=" Uploading…";
+  try{
+    for(const f of files.slice(0,6-(c.images||[]).length)){
+      const blob=await resize(f);
+      const path=`${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`;
+      const {error}=await db.storage.from("product-images").upload(path,blob,{contentType:"image/jpeg",cacheControl:"31536000",upsert:false});
+      if(error)throw error;
+      const {data}=db.storage.from("product-images").getPublicUrl(path);
+      c.images=c.images||[];c.images.push(data.publicUrl);
+    }
+  }catch(e){toast("Upload failed: "+(e.message||e),true)}
+  renderColors();
+}
+$("#eSave").onclick=async()=>{
+  const err=m=>{$("#eErr").textContent=m};err("");
+  const name=$("#eName").value.trim(),price=parseFloat($("#ePrice").value);
+  const sizes=$("#eSizes").value.split(",").map(s=>s.trim()).filter(Boolean);
+  if(!name)return err("Add a product name.");
+  if(!(price>=0))return err("Add a price.");
+  if(!sizes.length)return err("Add at least one size.");
+  const colors=eColors.map(c=>({name:(c.name||"").trim(),hex:/^#[0-9a-f]{6}$/i.test(c.hex||"")?c.hex:"#000000",images:(c.images||[]).filter(Boolean),sold_out:!!c.sold_out}));
+  if(!colors.length)return err("Add at least one colour.");
+  if(colors.some(c=>!c.name))return err("Give every colour a name.");
+  if(new Set(colors.map(c=>c.name.toLowerCase())).size!==colors.length)return err("Two colours have the same name.");
+  if(colors.some(c=>!c.images.length))return err("Every colour needs at least one photo.");
+  const row={name,price,category:$("#eCat").value,description:$("#eDesc").value.trim(),sizes,colors,active:$("#eActive").checked};
+  $("#eSave").disabled=true;
+  let res;
+  if(editing)res=await db.from("products").update(row).eq("id",editing.id).select().single();
+  else{row.position=(PRODUCTS.reduce((m,p)=>Math.max(m,p.position||0),0))+1;res=await db.from("products").insert(row).select().single()}
+  $("#eSave").disabled=false;
+  if(res.error)return err("Couldn't save: "+res.error.message);
+  closeEditor();toast("Product saved");loadProducts();
+};
+$("#eDelete").onclick=async()=>{
+  if(!editing||!confirm(`Delete "${editing.name}" for good? This can't be undone.`))return;
+  const {error}=await db.from("products").delete().eq("id",editing.id);
+  if(error){$("#eErr").textContent="Couldn't delete: "+error.message;return}
+  closeEditor();toast("Product deleted");loadProducts();
+};
+
+/* ---------- settings ---------- */
+async function loadSettings(){
+  const {data,error}=await db.from("settings").select("key,value");
+  if(error){toast("Couldn't load settings: "+error.message,true);return}
+  const m=Object.fromEntries((data||[]).map(r=>[r.key,r.value]));
+  $("#sWa").value=m.whatsapp_number||"";$("#sIg").value=m.instagram_url||"";
+}
+$("#sSave").onclick=async()=>{
+  const wa=$("#sWa").value.replace(/\D/g,""),ig=$("#sIg").value.trim();$("#sErr").textContent="";
+  if(wa&&wa.length<8)return $("#sErr").textContent="That WhatsApp number looks too short. Include the country code.";
+  if(ig&&!/^https?:\/\//i.test(ig))return $("#sErr").textContent="The Instagram link should start with https://";
+  const {error}=await db.from("settings").upsert([{key:"whatsapp_number",value:wa},{key:"instagram_url",value:ig}]);
+  if(error)return $("#sErr").textContent="Couldn't save: "+error.message;
+  $("#sWa").value=wa;toast("Settings saved");
+};
+
+/* ---------- boot ---------- */
+function boot(){
+  loadOrders();
+  setInterval(()=>{if(!document.hidden&&!$("#tOrders").hidden)loadOrders(true)},30000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!$("#tOrders").hidden)loadOrders(true)});
+}
+db.auth.getSession().then(({data})=>route(data.session));
+</script>
+</body>
+</html>
