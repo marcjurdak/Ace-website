@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ACE — Built for athletes</title>
-<meta name="description" content="ACE sportswear for footballers. Tees, shorts, hoodies, socks and winter gloves in black and white.">
+<meta name="description" id="metaDesc" content="ACE sportswear for footballers. Tees, shorts, hoodies, socks and winter gloves in black and white.">
 <meta property="og:title" content="ACE — Built for athletes">
 <meta property="og:description" content="Training and match-day wear for footballers.">
 <meta property="og:image" content="/hero.jpg">
 <meta name="theme-color" content="#000000">
-<link rel="icon" type="image/png" href="/icon.png">
+<link rel="icon" type="image/png" href="/icon.png" id="favicon">
 <link rel="apple-touch-icon" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet" id="fontLink">
+<script src="/content-defaults.js"></script>
 <style>
 :root{
   --studio:#C6C6C4; --studio-deep:#A7A7A5; --ink:#000; --paper:#fff;
@@ -268,37 +269,53 @@ section.co-sec{padding:28px 0 0}
 .co-link{display:block;margin:18px auto 0;text-decoration:underline;font-weight:600}
 #coForm[hidden],#coDone[hidden],.co-summary[hidden],.co-sumbar[hidden]{display:none!important}
 .add:disabled{opacity:.45}
+.no-upper h2,.no-upper .sheet-head h3,.no-upper .pdp h4,.no-upper .co-sec h4,.no-upper .co-done h4{text-transform:none}
+.cta,.add,.wa,.pin-btn{border-radius:var(--radius,2px)}
+.announce{background:var(--fg);color:var(--bg);text-align:center;font-size:13px;font-weight:600;padding:9px var(--pad);position:relative;z-index:21}
+.store-visual.photo img{width:100%;height:100%;object-fit:cover;opacity:1}
+.store-visual.photo span{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.noanim .hero-img,.noanim .hero-copy{opacity:1!important;transform:none!important;filter:none!important;transition:none!important}
+.size.out{opacity:.35;text-decoration:line-through}
+.size:disabled{cursor:not-allowed}
+.co-disc{display:flex;gap:8px;margin:14px 0 4px}
+.co-disc input{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:2px;padding:11px 12px;text-transform:uppercase}
+.co-disc button{border:1px solid var(--line);padding:0 16px;font-weight:600;font-size:14px;border-radius:2px}
+.code-msg{font-size:13px;min-height:18px;color:var(--muted)}
+.code-msg.bad{color:#e0564a}
+.co-row .rm-code{font-size:12px;text-decoration:underline;margin-left:6px;color:var(--muted)}
 </style>
+<style id="themeVars"></style>
 </head>
 <body>
 <script>document.documentElement.classList.add("js")</script>
-<div class="wm" aria-hidden="true"><img class="logo-light" src="/logo-full-black.png" alt=""><img class="logo-dark" src="/logo-full-white.png" alt=""></div>
+<div class="wm" id="wm" aria-hidden="true"><img class="logo-light" data-img="brand.logo_full_light" src="/logo-full-black.png" alt=""><img class="logo-dark" data-img="brand.logo_full_dark" src="/logo-full-white.png" alt=""></div>
+<div class="announce" id="announce" hidden data-c="announcement.text"></div>
 <header class="top">
-  <a href="#" aria-label="ACE home"><img class="logo-light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" src="/logo-word-white.png" alt="ACE"></a>
+  <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
   <button class="bagbtn" id="bagOpen" aria-label="Open bag">Bag <span class="count" id="bagCount">0</span></button>
 </header>
 
 <main>
-<div class="hero">
-  <img class="hero-img" src="/hero.jpg" alt="Two footballers at sunset on a pitch wearing ACE tees, shorts, hoodie and socks, with the ACE logo and the line Built for athletes">
+<div class="hero" data-show="hero.show">
+  <picture><source id="heroMobile" media="(max-width:699px)" srcset=""><img class="hero-img" data-img="hero.image" src="/hero.jpg" alt="Two footballers at sunset on a pitch wearing ACE tees, shorts, hoodie and socks, with the ACE logo and the line Built for athletes"></picture>
   <div class="hero-copy">
-    <p>Training and match-day wear for footballers. Tees, shorts, hoodies, socks and winter gloves in black and white.</p>
-    <a class="cta" href="#shop">Shop the collection</a>
+    <p data-c="hero.text">Training and match-day wear for footballers. Tees, shorts, hoodies, socks and winter gloves in black and white.</p>
+    <a class="cta" href="#shop" data-c="hero.button">Shop the collection</a>
   </div>
 </div>
 
 <section id="shop">
   <div class="sec-head">
-    <h2>The collection</h2>
+    <h2 data-c="collection.title">The collection</h2>
   </div>
   <div class="filters" role="group" aria-label="Filter products" id="filters"></div>
   <div class="grid" id="grid" style="margin-top:22px" aria-busy="true"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
 </section>
 
-<section class="details">
-  <h2>Performance in every detail</h2>
-  <p class="lead">Same mindset, different environment. Every piece carries the ACE mark, from the collar of the tee to the palm of the gloves.</p>
-  <div class="det-grid">
+<section class="details" data-show="details.show">
+  <h2 data-c="details.title">Performance in every detail</h2>
+  <p class="lead" data-c="details.lead">Same mindset, different environment. Every piece carries the ACE mark, from the collar of the tee to the palm of the gloves.</p>
+  <div class="det-grid" id="detGrid">
     <figure class="sq"><img style="object-position:center bottom" src="/tile-tee.jpg" alt="Close-up of the white tee collar with Built for athletes printed inside the neck" loading="lazy"><figcaption><b>The collar</b>Built for athletes, printed inside the neck.</figcaption></figure>
     <figure class="sq"><img src="/tile-gloves.jpg" alt="Black ACE gloves showing the grip pattern on the palm" loading="lazy"><figcaption><b>Grip palms</b>A grip pattern across the palm and fingers.</figcaption></figure>
     <figure class="wide"><img src="/tile-shorts.jpg" alt="Black ACE shorts laid on turf" loading="lazy"><figcaption><b>The shorts</b>Drawstring waist, side pockets, mark on the leg.</figcaption></figure>
@@ -306,23 +323,23 @@ section.co-sec{padding:28px 0 0}
   </div>
 </section>
 
-<section id="store">
+<section id="store" data-show="store.show">
   <div class="store">
-    <div class="store-visual"><img src="/logo-full-black.png" alt=""><span>Store photos coming soon</span></div>
+    <div class="store-visual" id="storeVisual"><img id="storeImg" src="/logo-full-black.png" alt=""><span data-c="store.caption">Store photos coming soon</span></div>
     <div>
-      <h2>The Ace store</h2>
-      <p>Our first store is opening soon. Try every piece on, pick your size and take it straight to the pitch.</p>
-      <a class="cta" href="#" id="storeWa">Ask us on WhatsApp</a>
+      <h2 data-c="store.title">The Ace store</h2>
+      <p data-c="store.text">Our first store is opening soon. Try every piece on, pick your size and take it straight to the pitch.</p>
+      <a class="cta" href="#" id="storeWa" data-c="store.button">Ask us on WhatsApp</a>
     </div>
   </div>
 </section>
 </main>
 
 <footer>
-  <img class="flogo logo-light" src="/logo-full-black.png" alt="ACE, built for athletes">
-  <img class="flogo logo-dark" src="/logo-full-white.png" alt="ACE, built for athletes">
+  <img class="flogo logo-light" data-img="brand.logo_full_light" src="/logo-full-black.png" alt="ACE, built for athletes">
+  <img class="flogo logo-dark" data-img="brand.logo_full_dark" src="/logo-full-white.png" alt="ACE, built for athletes">
   <nav><a href="#shop">Shop</a><a href="#store">Store</a><a href="#" id="footWa">WhatsApp</a><a href="#" id="footIg" hidden>Instagram</a></nav>
-  <small>© 2026 ACE. All rights reserved.</small>
+  <small data-c="footer.copyright">© 2026 ACE. All rights reserved.</small>
 </footer>
 
 <div class="scrim" id="scrim"></div>
@@ -352,7 +369,7 @@ section.co-sec{padding:28px 0 0}
   <div class="sheet-body" id="bagBody" style="flex:1"></div>
   <div class="bag-foot">
     <div class="total"><span>Subtotal</span><b id="bagTotal">$0</b></div>
-    <p>Delivery is confirmed with you on WhatsApp after you check out.</p>
+    <p id="bagNote">Delivery is confirmed with you on WhatsApp after you check out.</p>
     <button class="wa" id="nextBtn">Checkout</button>
   </div>
 </aside>
@@ -360,7 +377,7 @@ section.co-sec{padding:28px 0 0}
 <div class="checkout" id="checkout" role="dialog" aria-modal="true" aria-label="Checkout" aria-hidden="true">
   <header class="co-top">
     <button class="co-back" id="coBack">Back to bag</button>
-    <img class="logo-light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" src="/logo-word-white.png" alt="ACE">
+    <img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE">
     <span class="co-secure">Checkout</span>
   </header>
   <button class="co-sumbar" id="sumToggle" aria-expanded="false" aria-controls="coSummary"><span>Show order summary</span><b id="sumBarTotal">$0</b></button>
@@ -404,28 +421,31 @@ section.co-sec{padding:28px 0 0}
       </section>
       <section class="co-sec">
         <h4>Shipping method</h4>
-        <div class="co-box"><b>Delivery</b><span>Fee and timing confirmed on WhatsApp</span></div>
+        <div class="co-box"><b id="shipName">Delivery</b><span id="shipText">Fee and timing confirmed on WhatsApp</span></div>
       </section>
       <section class="co-sec">
         <h4>Payment</h4>
-        <div class="co-box"><b>Confirmed on WhatsApp</b><span>We'll confirm your payment method with you when we confirm the order.</span></div>
+        <div class="co-box"><b>Confirmed on WhatsApp</b><span id="payText">We'll confirm your payment method with you when we confirm the order.</span></div>
       </section>
       <div class="form-err" id="formErr" aria-live="polite"></div>
-      <button class="wa co-pay" id="waBtn">Complete order on WhatsApp</button>
+      <button class="wa co-pay" id="waBtn" data-c="checkout.button">Complete order on WhatsApp</button>
       <p class="co-fine">Your order is saved, then WhatsApp opens with everything filled in. Just press send.</p>
      </div>
      <div id="coDone" class="co-done" hidden>
-      <h4>Order received</h4>
+      <h4 data-c="checkout.done_title">Order received</h4>
       <p class="co-num" id="doneNum"></p>
-      <p>WhatsApp should have opened with your order. Press send there so we can confirm your delivery and payment.</p>
+      <p data-c="checkout.done_text">WhatsApp should have opened with your order. Press send there so we can confirm your delivery and payment.</p>
       <a class="wa" id="doneWa" target="_blank" rel="noopener">Open WhatsApp</a>
       <button class="co-link" id="doneShop">Back to the shop</button>
      </div>
     </div>
     <aside class="co-summary" id="coSummary"><div class="co-summary-in">
       <div id="coLines"></div>
+      <div class="co-disc"><input id="fCode" placeholder="Discount code" aria-label="Discount code" autocomplete="off" autocapitalize="characters"><button type="button" id="applyCode">Apply</button></div>
+      <div class="code-msg" id="codeMsg" aria-live="polite"></div>
       <div class="co-row"><span>Subtotal</span><span id="coSub">$0</span></div>
-      <div class="co-row"><span>Shipping</span><span class="muted">Confirmed on WhatsApp</span></div>
+      <div class="co-row" id="coDiscRow" hidden><span>Discount <span id="coDiscCode"></span><button type="button" class="rm-code" id="rmCode">Remove</button></span><span id="coDisc"></span></div>
+      <div class="co-row"><span>Shipping</span><span id="coShip" class="muted">Confirmed on WhatsApp</span></div>
       <div class="co-row co-total"><span>Total</span><b id="coTotal">$0</b></div>
     </div></aside>
   </div>
@@ -436,16 +456,55 @@ section.co-sec{padding:28px 0 0}
 <script>
 /* ===== ACE storefront ===== */
 const db=window.supabase.createClient(window.ACE_CONFIG.SUPABASE_URL,window.ACE_CONFIG.SUPABASE_KEY,{auth:{persistSession:false}});
-const SETTINGS={whatsapp_number:"",instagram_url:""};
+const SETTINGS={whatsapp_number:"",instagram_url:"",delivery_fee:"",free_delivery_over:"",delivery_text:"",payment_text:""};
+const PREVIEW=new URLSearchParams(location.search).has("preview");
+let C=window.aceMerge(window.ACE_DEFAULT_CONTENT,{});
+function getPath(o,p){return p.split(".").reduce((a,k)=>a==null?a:a[k],o)}
+function hexOk(h){return /^#[0-9a-f]{6}$/i.test(h||"")}
+function applyContent(c){
+  C=c;const th=c.theme||{};
+  const F=window.ACE_FONTS,fd=F.display[th.font_display]?th.font_display:"Michroma",fb=F.body[th.font_body]?th.font_body:"Archivo";
+  const href=`https://fonts.googleapis.com/css2?family=${F.display[fd]}${fd!==fb?"&family="+F.body[fb]:""}&display=swap`;
+  const fl=document.getElementById("fontLink");if(fl.getAttribute("href")!==href)fl.setAttribute("href",href);
+  const L=v=>hexOk(v)?v:null;
+  document.getElementById("themeVars").textContent=`:root{--display:"${fd}","Eurostile","Arial Black",sans-serif;--body:"${fb}","Helvetica Neue",Arial,sans-serif;--radius:${Math.max(0,Math.min(30,Number(th.button_radius)||0))}px;${L(th.light_bg)?`--bg:${th.light_bg};`:""}${L(th.light_text)?`--fg:${th.light_text};`:""}${L(th.photo_bg)?`--studio:${th.photo_bg};`:""}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){${L(th.dark_bg)?`--bg:${th.dark_bg};`:""}${L(th.dark_text)?`--fg:${th.dark_text};`:""}}}
+:root[data-theme="dark"]{${L(th.dark_bg)?`--bg:${th.dark_bg};`:""}${L(th.dark_text)?`--fg:${th.dark_text};`:""}}
+.wm img{opacity:${Math.max(0,Math.min(30,Number(th.watermark_opacity)||0))/100}}`;
+  const root=document.documentElement;
+  if(th.mode==="light"||th.mode==="dark")root.setAttribute("data-theme",th.mode);else root.removeAttribute("data-theme");
+  root.classList.toggle("no-upper",th.uppercase_titles===false);
+  root.classList.toggle("noanim",th.animations===false);
+  document.getElementById("wm").hidden=th.watermark===false;
+  document.querySelectorAll("[data-c]").forEach(el=>{const v=getPath(c,el.dataset.c);if(typeof v==="string")el.textContent=v});
+  document.querySelectorAll("[data-img]").forEach(el=>{const v=getPath(c,el.dataset.img);if(v&&el.getAttribute("src")!==v)el.setAttribute("src",v)});
+  document.querySelectorAll("[data-show]").forEach(el=>{el.hidden=getPath(c,el.dataset.show)===false});
+  const an=document.getElementById("announce");an.hidden=!(c.announcement&&c.announcement.show&&c.announcement.text);
+  document.getElementById("heroMobile").setAttribute("srcset",(c.hero&&c.hero.image_mobile)||(c.hero&&c.hero.image)||"/hero.jpg");
+  const d=c.details||{};
+  document.getElementById("detGrid").innerHTML=(d.tiles||[]).filter(x=>x&&x.image).map(x=>`<figure class="${x.wide?"wide":"sq"}">${x.image2?`<div class="pair"><img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy"><img src="${esc(x.image2)}" alt="" loading="lazy"></div>`:`<img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy">`}<figcaption><b>${esc(x.title)}</b>${esc(x.text)}</figcaption></figure>`).join("");
+  const st=c.store||{},sv=document.getElementById("storeVisual"),si=document.getElementById("storeImg");
+  if(st.image){sv.classList.add("photo");si.src=st.image;si.alt=st.title||""}else{sv.classList.remove("photo");si.src=(c.brand&&c.brand.logo_full_light)||"/logo-full-black.png";si.alt=""}
+  const seo=c.seo||{};if(seo.title)document.title=seo.title;if(seo.description)document.getElementById("metaDesc").setAttribute("content",seo.description);
+  if(c.brand&&c.brand.favicon)document.getElementById("favicon").setAttribute("href",c.brand.favicon);
+  if(PRODUCTS.length){buildFilters();renderGrid()}else if(gridLoaded){buildGrid()}
+}
+let gridLoaded=false;
+try{const cached=JSON.parse(localStorage.getItem("ace-site")||"null");if(cached&&!PREVIEW)C=window.aceMerge(window.ACE_DEFAULT_CONTENT,cached)}catch(e){}
+
 let PRODUCTS=[];
-const CAT_LABELS={tops:"Tops",bottoms:"Bottoms",accessories:"Socks & gloves"};
+const CAT_KEYS=["tops","bottoms","accessories"];
+const catLabel=k=>(C.collection&&C.collection[k+"_label"])||({all:"All",tops:"Tops",bottoms:"Bottoms",accessories:"Socks & gloves"})[k];
 const $=s=>document.querySelector(s);
-const money=n=>"$"+(Math.round(Number(n)*100)/100);
+const money=n=>{const v=Math.round(Number(n)*100)/100;return "$"+(v%1?v.toFixed(2):v)};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function isDark(hex){const h=(hex||"#000").replace("#","");if(h.length<6)return true;const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000<90}
 function mapProduct(r){
   return {id:r.id,name:r.name,cat:r.category,price:Number(r.price),desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
-    colors:(r.colors||[]).map(c=>({n:c.name,hex:c.hex||"#000000",imgs:(c.images||[]).filter(Boolean),soldOut:!!c.sold_out,dark:isDark(c.hex)})).filter(c=>c.imgs.length)}
+    colors:(r.colors||[]).map(c=>{const stock=c.stock&&typeof c.stock==="object"?c.stock:{};const sz=(r.sizes&&r.sizes.length)?r.sizes:["One size"];
+      const tracked=sz.filter(s=>stock[s]!==undefined&&stock[s]!==null&&stock[s]!=="");
+      const allOut=tracked.length===sz.length&&sz.every(s=>Number(stock[s])<=0);
+      return {n:c.name,hex:c.hex||"#000000",imgs:(c.images||[]).filter(Boolean),soldOut:!!c.sold_out||allOut,dark:isDark(c.hex),stock}}).filter(c=>c.imgs.length)}
 }
 
 /* storage */
@@ -458,8 +517,9 @@ let cat="all";
 const filters=$("#filters");
 function buildFilters(){
   filters.innerHTML="";
-  const cats=["all",...Object.keys(CAT_LABELS).filter(k=>PRODUCTS.some(p=>p.cat===k))];
-  cats.forEach(k=>{const b=document.createElement("button");b.className="chip";b.textContent=k==="all"?"All":CAT_LABELS[k];b.setAttribute("aria-pressed",k===cat);b.onclick=()=>{cat=k;[...filters.children].forEach(c=>c.setAttribute("aria-pressed",c===b));renderGrid()};filters.appendChild(b)});
+  const cats=["all",...CAT_KEYS.filter(k=>PRODUCTS.some(p=>p.cat===k))];
+  if(!cats.includes(cat))cat="all";
+  cats.forEach(k=>{const b=document.createElement("button");b.className="chip";b.textContent=catLabel(k);b.setAttribute("aria-pressed",k===cat);b.onclick=()=>{cat=k;[...filters.children].forEach(c=>c.setAttribute("aria-pressed",c===b));renderGrid()};filters.appendChild(b)});
 }
 const cardColor={};
 const cardEls={};
@@ -475,7 +535,8 @@ function paintCard(p){
 function swatch(x,i,pressed){return `<button class="sw${x.dark?" dark":""}${x.soldOut?" so":""}" style="background:${esc(x.hex)}" aria-label="${esc(x.n)}${x.soldOut?", sold out":""}" aria-pressed="${pressed}" data-i="${i}"></button>`}
 function buildGrid(){
   const g=$("#grid");g.innerHTML="";
-  if(!PRODUCTS.length){g.innerHTML=`<p class="grid-msg">New pieces are coming soon.</p>`;return}
+  gridLoaded=true;Object.keys(cardEls).forEach(k=>delete cardEls[k]);
+  if(!PRODUCTS.length){g.innerHTML=`<p class="grid-msg">${esc((C.collection&&C.collection.empty_text)||"New pieces are coming soon.")}</p>`;return}
   PRODUCTS.forEach(p=>{
     const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;
     el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span></div>
@@ -497,7 +558,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAll()});
 
 /* product sheet */
 let cur={p:null,ci:0,size:null,qty:1,img:0};
-function openPdp(p,ci){cur={p,ci,size:p.sizes.length===1?p.sizes[0]:null,qty:1,img:0};renderPdp();$("#addHint").textContent="";openSheet($("#pdp"))}
+function stockLeft(p,c,size){const v=c.stock?c.stock[size]:undefined;if(v===undefined||v===null||v==="")return Infinity;const inBag=bag.filter(l=>l.id===p.id&&l.color===c.n&&l.size===size).reduce((a,l)=>a+l.qty,0);return Math.max(0,Number(v)-inBag)}
+function sizeOut(p,c,s){const v=c.stock?c.stock[s]:undefined;return v!==undefined&&v!==null&&v!==""&&Number(v)<=0}
+function openPdp(p,ci){cur={p,ci,size:p.sizes.length===1&&!sizeOut(p,p.colors[ci],p.sizes[0])?p.sizes[0]:null,qty:1,img:0};renderPdp();$("#addHint").textContent="";openSheet($("#pdp"))}
 function renderPdp(){
   const {p,ci}=cur,c=p.colors[ci];
   $("#pdpTitle").textContent=p.name;$("#pdpPrice").textContent=money(p.price);$("#pdpDesc").textContent=p.desc;
@@ -508,20 +571,22 @@ function renderPdp(){
   const cs=$("#pdpColors");cs.innerHTML=p.colors.map((x,i)=>swatch(x,i,i===ci)).join("");
   cs.querySelectorAll(".sw").forEach(b=>b.onclick=()=>{cur.ci=+b.dataset.i;cur.img=0;cardColor[p.id]=cur.ci;paintCard(p);renderPdp()});
   const ss=$("#pdpSizes");ss.innerHTML="";
-  p.sizes.forEach(s=>{const b=document.createElement("button");b.className="size";b.textContent=s;b.setAttribute("aria-pressed",s===cur.size);b.onclick=()=>{cur.size=s;$("#addHint").textContent="";renderPdp()};ss.appendChild(b)});
+  if(cur.size&&sizeOut(p,c,cur.size))cur.size=null;
+  p.sizes.forEach(s=>{const b=document.createElement("button");b.className="size";b.textContent=s;const out=sizeOut(p,c,s);if(out){b.classList.add("out");b.disabled=true;b.setAttribute("aria-label",s+", sold out")}b.setAttribute("aria-pressed",s===cur.size);b.onclick=()=>{cur.size=s;cur.qty=Math.max(1,Math.min(cur.qty,stockLeft(p,c,s)));$("#addHint").textContent="";renderPdp()};ss.appendChild(b)});
   $("#qVal").textContent=cur.qty;
   const add=$("#addBtn");add.disabled=c.soldOut;add.textContent=c.soldOut?"Sold out":"Add to bag";
 }
 $("#qMinus").onclick=()=>{cur.qty=Math.max(1,cur.qty-1);$("#qVal").textContent=cur.qty};
-$("#qPlus").onclick=()=>{cur.qty=Math.min(20,cur.qty+1);$("#qVal").textContent=cur.qty};
+$("#qPlus").onclick=()=>{const lim=cur.size?stockLeft(cur.p,cur.p.colors[cur.ci],cur.size):20;if(cur.qty>=Math.min(20,lim)){if(lim<20)$("#addHint").textContent=`Only ${lim} more available in this size.`;return}cur.qty++;$("#qVal").textContent=cur.qty};
 $("#addBtn").onclick=()=>{
   const {p,ci,size,qty}=cur,c=p.colors[ci];
   if(c.soldOut)return;
   if(!size){$("#addHint").textContent="Choose a size to add this to your bag.";return}
-  const key=`${p.id}|${c.n}|${size}`;
-  const ex=bag.find(l=>l.key===key);ex?ex.qty=Math.min(50,ex.qty+qty):bag.push({key,id:p.id,color:c.n,size,qty});
+  const left=stockLeft(p,c,size);if(left<=0){$("#addHint").textContent="You already have all the available pieces in your bag.";return}
+  const key=`${p.id}|${c.n}|${size}`;const qtyOk=Math.min(qty,left);
+  const ex=bag.find(l=>l.key===key);ex?ex.qty=Math.min(50,ex.qty+qtyOk):bag.push({key,id:p.id,color:c.n,size,qty:qtyOk});
   save();closeAll();setTimeout(()=>updateCount(true),120);
-  showToast(`${qty} × ${p.name}, ${c.n}, ${size}`);
+  showToast(`${qtyOk} × ${p.name}, ${c.n}, ${size}`);
 };
 /* toast */
 let toastT;
@@ -555,18 +620,49 @@ function renderBag(){
     <div class="qty"><button aria-label="Decrease">−</button><output>${l.qty}</output><button aria-label="Increase">+</button></div><br><button class="rm">Remove</button></div><div class="lp">${money(p.price*l.qty)}</div>`;
     const [m,pl]=d.querySelectorAll(".qty button");
     m.onclick=()=>{l.qty>1?l.qty--:bag.splice(i,1);save();updateCount();renderBag()};
-    pl.onclick=()=>{l.qty=Math.min(50,l.qty+1);save();updateCount();renderBag()};
+    pl.onclick=()=>{if(stockLeft(p,c,l.size)<=0){showToast("No more available in this size");return}l.qty=Math.min(50,l.qty+1);save();updateCount();renderBag()};
     d.querySelector(".rm").onclick=()=>{bag.splice(i,1);save();updateCount();renderBag()};
     body.appendChild(d)});
   $("#bagTotal").textContent=money(bagTotal());
   $("#nextBtn").disabled=!bag.length;
 }
+let DISC=null;
+const numv=v=>{const n=parseFloat(String(v||"").replace(",","."));return isFinite(n)&&n>=0?n:null};
+function pricing(){
+  const sub=bagTotal();const disc=DISC?Math.min(DISC.amount,sub):0;
+  let fee=numv(SETTINGS.delivery_fee);const free=numv(SETTINGS.free_delivery_over);
+  if(free!==null&&sub-disc>=free)fee=0;
+  return {sub,disc,fee,total:sub-disc+(fee||0)};
+}
+function shipLabel(pr){if(pr.fee===null)return "Confirmed on WhatsApp";return pr.fee===0?"Free":money(pr.fee)}
+function updateShipping(){
+  const fee=numv(SETTINGS.delivery_fee),free=numv(SETTINGS.free_delivery_over);
+  let t=SETTINGS.delivery_text||"";
+  if(fee!==null){t=(fee===0?"Free delivery":`Delivery ${money(fee)}`)+(free!==null&&fee>0?`, free on orders over ${money(free)}`:"")+(SETTINGS.delivery_text?`. ${SETTINGS.delivery_text}`:"")}
+  $("#shipText").textContent=t||"Fee and timing confirmed on WhatsApp";
+  if(SETTINGS.payment_text)$("#payText").textContent=SETTINGS.payment_text;
+  $("#bagNote").textContent=fee===null?"Delivery is confirmed with you on WhatsApp after you check out.":(fee===0?"Free delivery.":`Delivery ${money(fee)}`+(free!==null?`, free on orders over ${money(free)}.`:"."));
+}
+async function applyCode(code){
+  const msg=$("#codeMsg");msg.classList.remove("bad");
+  if(!code){DISC=null;renderSummary();return}
+  msg.textContent="Checking…";
+  const {data,error}=await db.rpc("check_discount",{p_code:code,p_subtotal:bagTotal()});
+  if(error||!data){DISC=null;msg.classList.add("bad");msg.textContent=(error&&error.message)||"This discount code isn't valid.";renderSummary();return}
+  DISC=data;msg.textContent="";renderSummary();
+}
+$("#applyCode").onclick=()=>applyCode($("#fCode").value.trim());
+$("#fCode").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();applyCode($("#fCode").value.trim())}});
+$("#rmCode").onclick=()=>{DISC=null;$("#fCode").value="";$("#codeMsg").textContent="";renderSummary()};
 function renderSummary(){
   $("#coLines").innerHTML=bag.map(l=>{const {p,c}=lineInfo(l);return `<div class="co-line"><div class="co-thumb"><img src="${esc(c.imgs[0])}" alt=""><i>${l.qty}</i></div><div><div class="n">${esc(p.name)}</div><div class="v">${esc(c.n)} / ${esc(l.size)}</div></div><div class="p">${money(p.price*l.qty)}</div></div>`}).join("");
-  const tot=money(bagTotal());$("#coSub").textContent=tot;$("#coTotal").textContent=tot;$("#sumBarTotal").textContent=tot;
+  const pr=pricing();$("#coSub").textContent=money(pr.sub);$("#coTotal").textContent=money(pr.total);$("#sumBarTotal").textContent=money(pr.total);
+  $("#coDiscRow").hidden=!DISC;if(DISC){$("#coDiscCode").textContent=`(${DISC.code})`;$("#coDisc").textContent="−"+money(pr.disc)}
+  const sh=$("#coShip");sh.textContent=shipLabel(pr);sh.classList.toggle("muted",pr.fee===null);
 }
 function openCheckout(){
   cleanBag();if(!bag.length)return;
+  if(DISC)applyCode(DISC.code);
   closeAll();renderSummary();$("#formErr").textContent="";
   $("#coForm").hidden=false;$("#coDone").hidden=true;$("#sumToggle").hidden=false;$("#coSummary").hidden=false;
   const co=$("#checkout");co.classList.add("on");co.setAttribute("aria-hidden","false");co.scrollTop=0;document.body.style.overflow="hidden";
@@ -580,9 +676,9 @@ $("#sumToggle").onclick=()=>{const s=$("#coSummary"),o=!s.classList.contains("op
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#checkout").classList.contains("on"))closeCheckout(true)});
 const val=id=>$("#"+id).value.trim();
 function mapOk(v){return /^https?:\/\/\S+$/i.test(v)&&/(google\.[a-z.]+\/maps|maps\.google|maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)/i.test(v)}
-function orderText(num,lines,subtotal){
+function orderText(num,lines,subtotal,o){
   const addr=[val("fAddr1"),val("fAddr2"),val("fCity"),val("fZip"),val("fCountry")].filter(Boolean).join(", ");
-  let m=`Hi ACE, I'd like to confirm order #${num}:\n${lines.map(l=>`• ${l.qty} × ${l.name}, ${l.color}${l.size==="One size"?"":`, size ${l.size}`}: ${money(l.price*l.qty)}`).join("\n")}\nSubtotal: ${money(subtotal)}\n\nName: ${val("fFirst")} ${val("fLast")}`;
+  let m=`Hi ACE, I'd like to confirm order #${num}:\n${lines.map(l=>`• ${l.qty} × ${l.name}, ${l.color}${l.size==="One size"?"":`, size ${l.size}`}: ${money(l.price*l.qty)}`).join("\n")}\nSubtotal: ${money(subtotal)}${o.discount>0?`\nDiscount (${o.discount_code}): −${money(o.discount)}`:""}\nDelivery: ${numv(SETTINGS.delivery_fee)===null?"to confirm":(Number(o.delivery_fee)===0?"Free":money(o.delivery_fee))}\nTotal: ${money(o.total)}${numv(SETTINGS.delivery_fee)===null?" + delivery":""}\n\nName: ${val("fFirst")} ${val("fLast")}`;
   if(val("fCompany"))m+=`\nCompany: ${val("fCompany")}`;
   m+=`\nPhone: ${val("fPhone")}`;
   if(val("fEmail"))m+=`\nEmail: ${val("fEmail")}`;
@@ -603,11 +699,11 @@ $("#waBtn").addEventListener("click",async()=>{
   let win=null;try{win=window.open("","_blank")}catch(e){}
   const payload={first_name:val("fFirst"),last_name:val("fLast"),company:val("fCompany"),email:val("fEmail"),news_opt_in:$("#fNews").checked,phone:val("fPhone"),
     country:val("fCountry"),address1:val("fAddr1"),address2:val("fAddr2"),city:val("fCity"),postal_code:val("fZip"),map_link:val("fMap"),notes:val("fNotes"),
-    items:bag.map(l=>({product_id:l.id,color:l.color,size:l.size,qty:l.qty}))};
+    items:bag.map(l=>({product_id:l.id,color:l.color,size:l.size,qty:l.qty})),discount_code:DISC?DISC.code:""};
   const {data,error}=await db.rpc("place_order",{p:payload});
-  placing=false;btn.disabled=false;btn.textContent="Complete order on WhatsApp";
+  placing=false;btn.disabled=false;btn.textContent=(C.checkout&&C.checkout.button)||"Complete order on WhatsApp";
   if(error||!data){if(win)win.close();$("#formErr").textContent=(error&&error.message&&!/fetch|network/i.test(error.message)?error.message:"We couldn't place your order. Check your connection and try again.");await loadProducts(true);renderSummary();return}
-  const url=waLink(orderText(data.order_number,data.items,data.subtotal));
+  const url=waLink(orderText(data.order_number,data.items,data.subtotal,data));DISC=null;$("#fCode").value="";
   if(win){try{win.location.href=url}catch(e){}}
   bag=[];save();updateCount();
   $("#doneNum").textContent="#"+data.order_number;$("#doneWa").href=url;
@@ -638,22 +734,43 @@ async function loadProducts(silent){
 async function loadSettings(){
   const {data}=await db.from("settings").select("key,value");
   (data||[]).forEach(r=>{SETTINGS[r.key]=r.value||""});
+  updateShipping();
+}
+async function loadContent(){
+  if(PREVIEW)return;
+  const {data,error}=await db.rpc("get_site");
+  if(error)return;
+  const pub=data&&typeof data==="object"?data:{};
+  try{localStorage.setItem("ace-site",JSON.stringify(pub))}catch(e){}
+  applyContent(window.aceMerge(window.ACE_DEFAULT_CONTENT,pub));
+}
+if(PREVIEW){
+  addEventListener("message",e=>{if(e.origin!==location.origin)return;const d=e.data||{};
+    if(d.type==="ace-content")applyContent(window.aceMerge(window.ACE_DEFAULT_CONTENT,d.content||{}));
+    if(d.type==="ace-scroll"){const el=document.querySelector(d.selector);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}});
+  try{parent.postMessage({type:"ace-ready"},location.origin)}catch(e){}
 }
 /* hero intro */
+applyContent(C);
 (function(){const h=document.querySelector(".hero"),img=h.querySelector(".hero-img");
   const go=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>h.classList.add("in")));
   (img.decode?img.decode():Promise.resolve()).then(go,go);setTimeout(()=>h.classList.add("in"),1500)})();
 /* fade content in and out at the screen edges while scrolling */
+let fadeTick=null;
 function initFade(){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  if(fadeTick)return;
   const sel=".hero, #shop .sec-head, #filters, .card, .details h2, .details .lead, .det-grid figure, .store-visual, .store > div, footer > *";
-  const units=[...document.querySelectorAll(sel)];units.forEach(u=>u.classList.add("fu"));
+  let units=[...document.querySelectorAll(sel)];units.forEach(u=>u.classList.add("fu"));
+  fadeTick=()=>{units=[...document.querySelectorAll(sel)];req()};
   const header=document.querySelector(".top");let ticking=false;
   const clamp=v=>v<0?0:v>1?1:v;
   function tick(){
     ticking=false;
     const T=header.getBoundingClientRect().bottom+12, B=innerHeight-12;
+    const off=document.documentElement.classList.contains("noanim");
     for(const u of units){
+      if(off){u.style.opacity="";u.style.transform="";continue}
       if(u.offsetParent===null)continue;
       const r=u.getBoundingClientRect(), H=Math.min(r.height,320);
       const oTop=clamp((r.bottom-T-.25*H)/(.6*H)), oBot=clamp((B-r.top-.25*H)/(.6*H));
@@ -670,9 +787,10 @@ function initFade(){
 }
 updateCount();setContact();
 (async function init(){
-  try{await Promise.all([loadProducts(),loadSettings()]);buildFilters();buildGrid();renderGrid()}
+  try{await Promise.all([loadProducts(),loadSettings(),loadContent()]);buildFilters();buildGrid();renderGrid()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   setContact();initFade();
+  new MutationObserver(()=>fadeTick&&fadeTick()).observe(document.getElementById("detGrid"),{childList:true});
 })();
 </script>
 </body>
