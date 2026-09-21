@@ -104,12 +104,80 @@ function buildEmail(o, paymentMethod) {
   return { subject, html, text };
 }
 
-async function paymentMethod() {
-  return "Agreed with the customer (cash or transfer, confirmed on WhatsApp)";
+function buildCustomerEmail(o, info) {
+  const items = Array.isArray(o.items) ? o.items : [];
+  const disc = Number(o.discount_amount || 0);
+  const total = o.total != null ? o.total : Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - disc;
+  const when = new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short", timeZone: env("STORE_TIMEZONE") || "Asia/Beirut" });
+  const address = [o.address1, o.address2, o.city, o.postal_code, o.country].filter(Boolean);
+  const link = siteUrl() ? `${siteUrl()}/order?id=${o.id}` : "";
+  const wa = info.whatsapp ? `https://wa.me/${info.whatsapp}` : "";
+  const subject = `Your ACE order #${o.order_number} is confirmed`;
+  const logo = siteUrl() ? `${siteUrl()}/logo-word-white.png` : "";
+  const itemRows = items.map((i) => {
+    const img = absUrl(i.image);
+    return `<tr>
+      <td style="padding:10px 0;border-bottom:1px solid #eee;width:64px;vertical-align:top">${img ? `<img src="${esc(img)}" width="56" height="70" alt="" style="display:block;width:56px;height:70px;object-fit:cover;border-radius:4px;background:#ddd">` : ""}</td>
+      <td style="padding:10px;border-bottom:1px solid #eee;vertical-align:top;font-size:14px;color:#111"><b>${esc(i.name)}</b><br><span style="color:#666">${esc(i.color)} / ${esc(i.size)} · Qty ${Number(i.qty)}</span></td>
+      <td style="padding:10px 0;border-bottom:1px solid #eee;vertical-align:top;text-align:right;font-size:14px;color:#111;white-space:nowrap">${money(Number(i.price) * Number(i.qty))}</td></tr>`;
+  }).join("");
+  const sum = (k, v, bold) => `<tr><td style="padding:4px 0;font-size:${bold ? 16 : 14}px;color:${bold ? "#111" : "#555"};${bold ? "font-weight:700;border-top:1px solid #ddd;padding-top:10px" : ""}">${esc(k)}</td><td style="padding:4px 0;text-align:right;font-size:${bold ? 16 : 14}px;color:#111;${bold ? "font-weight:700;border-top:1px solid #ddd;padding-top:10px" : ""}">${v}</td></tr>`;
+  const html = `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="utf-8"><title>${esc(subject)}</title></head>
+<body style="margin:0;padding:0;background:#EDEDEC;font-family:Arial,Helvetica,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EDEDEC"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:10px;overflow:hidden">
+  <tr><td align="center" style="background:#000;padding:22px 24px">${logo ? `<img src="${esc(logo)}" height="24" alt="ACE" style="height:24px;display:block;margin:0 auto;border:0">` : `<span style="color:#fff;font-size:22px;font-weight:700;letter-spacing:4px">ACE</span>`}</td></tr>
+  <tr><td align="center" style="padding:30px 24px 6px">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td align="center" valign="middle" width="56" height="56" style="width:56px;height:56px;border-radius:28px;background:#000;color:#fff;font-size:28px;line-height:56px;text-align:center">&#10003;</td></tr></table>
+    <h1 style="margin:18px 0 6px;font-size:22px;color:#111">Your order is confirmed</h1>
+    <p style="margin:0;font-size:15px;color:#555">Thank you, ${esc(o.first_name)}. We've received your order and we're preparing it.</p>
+    <p style="margin:14px 0 0;font-size:14px;color:#111"><b>Order #${esc(o.order_number)}</b> · ${esc(when)}</p>
+  </td></tr>
+  <tr><td style="padding:18px 24px 6px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${itemRows}</table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px">
+      ${sum("Subtotal", money(o.subtotal))}
+      ${disc > 0 ? sum(`Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}`, "−" + money(disc)) : ""}
+      ${sum("Delivery", Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : "Free")}
+      ${sum("Total", money(total), true)}
+    </table>
+  </td></tr>
+  <tr><td style="padding:18px 24px">
+    <p style="margin:0 0 4px;font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px">Delivering to</p>
+    <p style="margin:0;font-size:14px;color:#111;line-height:1.5">${esc(o.first_name)} ${esc(o.last_name)}<br>${address.map(esc).join("<br>")}<br>${esc(o.phone)}</p>
+    ${info.payment ? `<p style="margin:16px 0 4px;font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px">Payment</p><p style="margin:0;font-size:14px;color:#111">${esc(info.payment)}</p>` : ""}
+    ${link ? `<p style="margin:22px 0 0"><a href="${esc(link)}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;border-radius:6px">View your order</a></p>` : ""}
+  </td></tr>
+  <tr><td style="padding:16px 24px;background:#fafafa;color:#777;font-size:13px;line-height:1.5">Questions about your order? Just reply to this email${wa ? ` or <a href="${esc(wa)}" style="color:#111">message us on WhatsApp</a>` : ""}.<br>ACE — Built for athletes</td></tr>
+</table></td></tr></table></body></html>`;
+  const text = [
+    `Your order is confirmed`, "", `Thank you, ${o.first_name}. We've received your order and we're preparing it.`, "",
+    `Order #${o.order_number} · ${when}`, "",
+    ...items.map((i) => `- ${i.qty} x ${i.name} (${i.color} / ${i.size}): ${money(Number(i.price) * Number(i.qty))}`), "",
+    `Subtotal: ${money(o.subtotal)}`, disc > 0 ? `Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}: -${money(disc)}` : null,
+    `Delivery: ${Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : "Free"}`, `Total: ${money(total)}`, "",
+    `Delivering to: ${o.first_name} ${o.last_name}, ${address.join(", ")}, ${o.phone}`,
+    info.payment ? `Payment: ${info.payment}` : null, link ? `View your order: ${link}` : null, "",
+    `Questions? Reply to this email${wa ? " or message us on WhatsApp: " + wa : ""}.`, "ACE — Built for athletes",
+  ].filter((l) => l !== null).join("\n");
+  return { subject, html, text };
 }
 
-async function sendEmail({ subject, html, text }, idempotencyKey, replyTo) {
-  const body = { from: env("ORDER_EMAIL_FROM"), to: env("ORDER_NOTIFICATION_EMAIL").split(",").map((s) => s.trim()).filter(Boolean), subject, html, text };
+async function storeInfo() {
+  try {
+    const rows = await sb("settings?select=key,value&key=in.(whatsapp_number,payment_text)");
+    const m = Object.fromEntries((rows || []).map((r) => [r.key, r.value || ""]));
+    return { whatsapp: String(m.whatsapp_number || "").replace(/\D/g, ""), payment: m.payment_text || "" };
+  } catch { return { whatsapp: "", payment: "" }; }
+}
+
+async function paymentMethod() {
+  const info = await storeInfo();
+  return info.payment || "Not set (add a payment note in Admin > Settings)";
+}
+
+async function sendEmail({ subject, html, text }, idempotencyKey, replyTo, to) {
+  const body = { from: env("ORDER_EMAIL_FROM"), to: to || env("ORDER_NOTIFICATION_EMAIL").split(",").map((s) => s.trim()).filter(Boolean), subject, html, text };
   if (replyTo && /^\S+@\S+\.\S+$/.test(replyTo)) body.reply_to = replyTo;
   const r = await fetch(`${RESEND_BASE}/emails`, {
     method: "POST",
@@ -122,42 +190,59 @@ async function sendEmail({ subject, html, text }, idempotencyKey, replyTo) {
 }
 
 // Atomically claim an order so two calls can never send two emails.
-async function claim(id) {
-  const rows = await sb("rpc/claim_order_notification", { method: "POST", body: JSON.stringify({ p_id: id }) });
+async function claim(id, kind = "owner") {
+  const rows = await sb("rpc/claim_order_notification", { method: "POST", body: JSON.stringify({ p_id: id, p_kind: kind }) });
   return Array.isArray(rows) ? rows[0] : null;
 }
+const COLS = {
+  owner: { status: "notification_email_status", sent: "notification_email_sent_at", err: "notification_email_error", att: "notification_email_attempts", id: "notification_email_id" },
+  customer: { status: "customer_email_status", sent: "customer_email_sent_at", err: "customer_email_error", att: "customer_email_attempts", id: "customer_email_id" },
+};
+const validEmail = (e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || "").trim());
 
-async function deliver(order, { manual = false } = {}) {
-  const attempts = Number(order.notification_email_attempts || 0) + 1;
+async function deliver(order, { manual = false, kind = "owner" } = {}) {
+  const c = COLS[kind];
+  const attempts = Number(order[c.att] || 0) + 1;
   try {
-    const email = buildEmail(order, await paymentMethod());
-    const key = manual ? `ace-order-${order.id}-manual-${Date.now()}` : `ace-order-${order.id}`;
-    const emailId = await sendEmail(email, key, order.email);
+    let emailId;
+    if (kind === "customer") {
+      if (!validEmail(order.email)) {
+        await sb(`orders?id=eq.${order.id}`, { method: "PATCH", body: JSON.stringify({ [c.status]: "skipped", [c.err]: "No valid customer email" }) });
+        return { ok: false, status: "skipped", error: "This order has no valid customer email" };
+      }
+      const email = buildCustomerEmail(order, await storeInfo());
+      const ownerReply = env("ORDER_NOTIFICATION_EMAIL").split(",")[0].trim();
+      emailId = await sendEmail(email, manual ? `ace-cust-${order.id}-manual-${Date.now()}` : `ace-cust-${order.id}`, ownerReply, [String(order.email).trim()]);
+    } else {
+      const email = buildEmail(order, await paymentMethod());
+      emailId = await sendEmail(email, manual ? `ace-order-${order.id}-manual-${Date.now()}` : `ace-order-${order.id}`, order.email);
+    }
     await sb(`orders?id=eq.${order.id}`, { method: "PATCH", body: JSON.stringify({
-      notification_email_status: "sent", notification_email_sent_at: new Date().toISOString(),
-      notification_email_error: null, notification_email_attempts: attempts, notification_email_id: emailId }) });
-    log("log", "email sent", { order: order.order_number, manual });
+      [c.status]: "sent", [c.sent]: new Date().toISOString(), [c.err]: null, [c.att]: attempts, [c.id]: emailId }) });
+    log("log", "email sent", { order: order.order_number, kind, manual });
     return { ok: true, status: "sent" };
   } catch (e) {
     const msg = String(e && e.message || e).slice(0, 500);
-    log("error", "email failed", { order: order.order_number, attempt: attempts, error: msg });
+    log("error", "email failed", { order: order.order_number, kind, attempt: attempts, error: msg });
     try {
-      await sb(`orders?id=eq.${order.id}`, { method: "PATCH", body: JSON.stringify({
-        notification_email_status: "failed", notification_email_error: msg, notification_email_attempts: attempts }) });
+      await sb(`orders?id=eq.${order.id}`, { method: "PATCH", body: JSON.stringify({ [c.status]: "failed", [c.err]: msg, [c.att]: attempts }) });
     } catch (e2) { log("error", "could not record failure", { order: order.order_number, error: String(e2.message || e2).slice(0, 200) }); }
     return { ok: false, status: "failed", error: msg };
   }
 }
 
-// Safety net: pick up orders whose first notification never arrived or failed.
+// Safety net: pick up emails that never went out or failed.
 async function sweep(exceptId) {
   const before = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-  const rows = await sb(`orders?select=id&notification_email_sent_at=is.null&notification_email_attempts=lt.4` +
-    `&or=(notification_email_status.eq.pending,notification_email_status.eq.failed)&created_at=lt.${encodeURIComponent(before)}&order=created_at.asc&limit=3`);
-  for (const r of rows || []) {
-    if (r.id === exceptId) continue;
-    const o = await claim(r.id);
-    if (o) await deliver(o);
+  for (const kind of ["owner", "customer"]) {
+    const c = COLS[kind];
+    const rows = await sb(`orders?select=id&${c.sent}=is.null&${c.att}=lt.4` +
+      `&or=(${c.status}.eq.pending,${c.status}.eq.failed)&created_at=lt.${encodeURIComponent(before)}&order=created_at.asc&limit=3`);
+    for (const r of rows || []) {
+      if (r.id === exceptId) continue;
+      const o = await claim(r.id, kind);
+      if (o) await deliver(o, { kind });
+    }
   }
 }
 
@@ -194,8 +279,11 @@ module.exports = async function handler(req, res) {
       if (!UUID.test(id)) return send(400, { error: "Invalid order id" });
       const exists = await sb(`orders?select=id,notification_email_status&id=eq.${id}`);
       if (!exists || !exists.length) { log("warn", "webhook for unknown order", { id }); return send(404, { error: "Order not found" }); }
-      const order = await claim(id);
-      const result = order ? await deliver(order) : { ok: true, status: "already-handled" };
+      const owner = await claim(id, "owner");
+      const r1 = owner ? await deliver(owner, { kind: "owner" }) : { ok: true, status: "already-handled" };
+      const cust = await claim(id, "customer");
+      const r2 = cust ? await deliver(cust, { kind: "customer" }) : { ok: true, status: "already-handled" };
+      const result = { ok: r1.ok && r2.ok !== false, owner: r1.status, customer: r2.status };
       try { await sweep(id); } catch (e) { log("error", "sweep failed", { error: String(e.message || e).slice(0, 200) }); }
       return send(200, result); // 200 even on email failure: the order itself is safe
     }
@@ -219,7 +307,7 @@ module.exports = async function handler(req, res) {
       if (!UUID.test(id)) return send(400, { error: "Invalid order id" });
       const rows = await sb(`orders?select=*&id=eq.${id}`);
       if (!rows || !rows.length) return send(404, { error: "Order not found" });
-      const r = await deliver(rows[0], { manual: true });
+      const r = await deliver(rows[0], { manual: true, kind: body.kind === "customer" ? "customer" : "owner" });
       return send(r.ok ? 200 : 502, r);
     }
     return send(400, { error: "Unknown action" });
