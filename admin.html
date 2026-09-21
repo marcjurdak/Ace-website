@@ -541,6 +541,10 @@ async function pOrder(num){
         ${o.map_link?`<a class="btn ghost sm" style="margin-top:8px" href="${esc(o.map_link)}" target="_blank" rel="noopener">Open map pin</a>`:""}
         ${o.notes?`<div style="margin-top:14px"><span class="lbl">Delivery instructions</span>${esc(o.notes)}</div>`:""}
       </div>
+      <div class="card"><h2>Email notification</h2>
+        <div id="oMail">${mailStatus(o)}</div>
+        <button class="btn ghost sm" id="oMailBtn" style="margin-top:10px">${o.notification_email_status==="sent"?"Send the email again":"Send email now"}</button>
+      </div>
       <div class="card"><h2>Private note</h2>
         <textarea id="oNote" rows="3" placeholder="Only you see this. E.g. paid cash, delivered by Ali">${esc(o.admin_note||"")}</textarea>
         <button class="btn ghost sm" id="oNoteSave" style="margin-top:8px">Save note</button>
@@ -565,6 +569,22 @@ async function pOrder(num){
   $("#oDel").onclick=async()=>{if(!confirm(`Delete order #${o.order_number}? This can't be undone. To keep a record, mark it Cancelled instead.`))return;
     const {error}=await db.from("orders").delete().eq("id",o.id);if(error){toast("Couldn't delete: "+error.message,true);return}ORDERS=ORDERS.filter(x=>x.id!==o.id);toast("Order deleted");go("#/orders")};
   $("#oPrint").onclick=()=>printSlip(o);
+  $("#oMailBtn").onclick=async()=>{const b=$("#oMailBtn");b.disabled=true;b.textContent="Sending…";
+    const r=await callNotify({action:"resend",order_id:o.id});b.disabled=false;
+    if(r.ok){toast("Email sent");await loadOrders();pOrder(num)}else{toast("Email failed: "+(r.error||"unknown error"),true);b.textContent="Try again"}};
+}
+function mailStatus(o){
+  const s=o.notification_email_status||"skipped";
+  if(s==="sent")return `<span class="pill p-paid">Sent</span> <span class="muted" style="font-size:12.5px">${o.notification_email_sent_at?fmtDT(o.notification_email_sent_at):""}</span>`;
+  if(s==="failed")return `<span class="pill p-new">Failed</span><p class="help" style="margin-top:6px">${esc(o.notification_email_error||"")}</p>`;
+  if(s==="pending"||s==="sending")return `<span class="pill p-unpaid">Sending</span> <span class="help" style="display:inline">If this stays for more than a few minutes, press the button below.</span>`;
+  return `<span class="pill p-cancelled">Not sent</span> <span class="help" style="display:inline">This order came in before email notifications were turned on.</span>`;
+}
+async function callNotify(payload){
+  try{const {data}=await db.auth.getSession();const tok=data.session&&data.session.access_token;
+    const r=await fetch("/api/order-notify",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+tok},body:JSON.stringify(payload)});
+    const j=await r.json().catch(()=>({}));return r.ok?{ok:true,...j}:{ok:false,error:j.error||("Error "+r.status)}}
+  catch(e){return{ok:false,error:e.message||String(e)}}
 }
 function hasStock(items){return items.some(i=>{const p=PRODUCTS.find(x=>x.id===i.product_id);const c=p&&(p.colors||[]).find(x=>x.name===i.color);const v=c&&c.stock?c.stock[i.size]:undefined;return v!==undefined&&v!==null&&v!==""})}
 async function restock(items,sign){
@@ -986,7 +1006,11 @@ async function pSettings(){
     </div>
     <div class="card"><h2>Payment</h2><label class="fld"><span>Payment note shown at checkout</span><textarea id="sPt" rows="2">${esc(SETTINGS.payment_text)}</textarea></label></div>
     <div class="row" style="margin-top:12px"><button class="btn" id="sSave">Save settings</button><span class="err" id="sErr"></span></div>
-    <div class="card" style="margin-top:22px"><h2>Staff</h2>
+    <div class="card" style="margin-top:22px"><h2>Order emails</h2>
+      <p class="help" style="margin:-4px 0 10px">Every new order is emailed to you automatically. Use this button to check it works. It sends a sample email and doesn't create an order.</p>
+      <button class="btn ghost sm" id="sTestMail">Send a test email</button><span class="help" id="sTestMsg" style="display:inline;margin-left:8px"></span>
+    </div>
+    <div class="card"><h2>Staff</h2>
       <p class="help" style="margin:-4px 0 10px">People who can open this admin. They also need a login: in Supabase, Authentication, Users, Add user, with the same email.</p>
       ${(admins||[]).map(a=>`<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>${esc(a.email)}${a.email.toLowerCase()===ME.toLowerCase()?' <span class="muted">(you)</span>':""}</span>${a.email.toLowerCase()===ME.toLowerCase()?"":`<button class="btn danger sm" data-rmadmin="${esc(a.email)}">Remove</button>`}</div>`).join("")}
       <div class="row" style="margin-top:10px;flex-wrap:nowrap"><input type="email" id="sNewAdmin" placeholder="email@example.com"><button class="btn ghost sm" id="sAddAdmin">Add</button></div>
@@ -1002,6 +1026,8 @@ async function pSettings(){
   };
   $$("[data-rmadmin]").forEach(b=>b.onclick=async()=>{if(!confirm(`Remove ${b.dataset.rmadmin} from the admin?`))return;const {error}=await db.from("admins").delete().eq("email",b.dataset.rmadmin);if(error)return toast(error.message,true);toast("Removed");pSettings()});
   $("#sAddAdmin").onclick=async()=>{const e=$("#sNewAdmin").value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(e))return toast("Type a valid email",true);const {error}=await db.from("admins").insert({email:e});if(error)return toast(/duplicate/i.test(error.message)?"Already on the list":error.message,true);toast("Added");pSettings()};
+  $("#sTestMail").onclick=async()=>{const b=$("#sTestMail");b.disabled=true;$("#sTestMsg").textContent="Sending…";const r=await callNotify({action:"test"});b.disabled=false;
+    $("#sTestMsg").textContent=r.ok?"Sent. Check your inbox (and spam folder).":"Failed: "+(r.error||"unknown error");$("#sTestMsg").style.color=r.ok?"":"var(--bad)"};
   $("#sPassBtn").onclick=async()=>{const p=$("#sPass").value;if(p.length<8)return toast("Use at least 8 characters",true);const {error}=await db.auth.updateUser({password:p});if(error)return toast(error.message,true);$("#sPass").value="";toast("Password changed")};
 }
 
