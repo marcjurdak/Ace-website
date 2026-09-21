@@ -15,6 +15,42 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet" id="fontLink">
 <script src="/content-defaults.js"></script>
+<script>
+/* ===== ACE attribution: first + last touch (first-party, stays on this site) ===== */
+(function(){
+  try{
+    var KEY="ace-attr",now=new Date(),q=new URLSearchParams(location.search),A={};
+    try{A=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){A={}}
+    var ref=document.referrer||"",refHost="";try{refHost=ref?new URL(ref).hostname:""}catch(e){}
+    var external=refHost&&refHost.replace(/^www\./,"")!==location.hostname.replace(/^www\./,"");
+    var t={};["utm_source","utm_medium","utm_campaign","utm_content","utm_term","fbclid"].forEach(function(k){var v=q.get(k);if(v)t[k]=v.slice(0,300)});
+    var hasParams=Object.keys(t).length>0;
+    if(!hasParams&&external){var h=refHost.replace(/^(www|l|lm|m)\./,"");t.source=/instagram/.test(h)?"instagram":/facebook|fb\./.test(h)?"facebook":/google\./.test(h)?"google":h;t.utm_medium="referral"}
+    if(hasParams||external){
+      t.landing_page=(location.pathname+location.search).slice(0,500);t.referrer=ref.slice(0,500);t.at=now.toISOString();
+      if(!t.utm_source&&t.fbclid)t.utm_source="facebook";
+      var old=A.first_touch&&A.first_touch.at?new Date(A.first_touch.at):null;
+      if(!A.first_touch||(old&&now-old>90*864e5))A.first_touch=t;
+      A.last_touch=t;
+      if(t.fbclid)A.fbc="fb.1."+now.getTime()+"."+t.fbclid;
+      localStorage.setItem(KEY,JSON.stringify(A));
+    }
+  }catch(e){}
+  window.aceAttribution=function(){var A={};try{A=JSON.parse(localStorage.getItem("ace-attr")||"{}")||{}}catch(e){}
+    var m=document.cookie.match(/(?:^|; )_fbp=([^;]+)/);if(m)A.fbp=decodeURIComponent(m[1]);return A};
+})();
+/* ===== ACE consent: nothing non-essential loads before the visitor chooses ===== */
+(function(){
+  var KEY="ace-consent",subs=[],c=null;
+  try{c=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){}
+  window.aceConsent={
+    get:function(){return c},
+    has:function(k){return !!(c&&c[k])},
+    set:function(v){c={analytics:!!v.analytics,marketing:!!v.marketing,v:1,at:new Date().toISOString()};try{localStorage.setItem(KEY,JSON.stringify(c))}catch(e){}subs.forEach(function(f){try{f(c)}catch(e){}})},
+    onChange:function(f){subs.push(f);if(c)try{f(c)}catch(e){}}
+  };
+})();
+</script>
 <style>
 :root{
   --studio:#C6C6C4; --studio-deep:#A7A7A5; --ink:#000; --paper:#fff;
@@ -238,6 +274,12 @@ footer small{color:var(--muted)}
 #coReview[hidden]{display:none!important}
 .co-review [hidden]{display:none!important}
 .rv-box a{color:var(--fg)}
+.consent{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:46;max-width:520px;margin:0 auto;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.18);font-size:14px}
+.consent[hidden]{display:none}
+.consent-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.consent button{padding:10px 14px;font-weight:600;font-size:14px;border-radius:var(--radius,2px)}
+.btn-lite{border:1px solid var(--line)}
+.btn-dark{background:var(--fg);color:var(--bg)}
 .form-err{color:#e0564a;font-size:14px;font-weight:500;margin-top:8px}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;width:min(440px,calc(100% - 28px));display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;background:var(--fg);color:var(--bg);border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,.35);transform:translate(-50%,140%);opacity:0;transition:transform .35s cubic-bezier(.3,.7,.2,1),opacity .25s}
 .toast.on{transform:translate(-50%,0);opacity:1}
@@ -378,10 +420,14 @@ section.co-sec{padding:28px 0 0}
 <footer>
   <img class="flogo logo-light" data-img="brand.logo_full_light" src="/logo-full-black.png" alt="ACE, built for athletes">
   <img class="flogo logo-dark" data-img="brand.logo_full_dark" src="/logo-full-white.png" alt="ACE, built for athletes">
-  <nav><a href="#shop">Shop</a><a href="#store">Store</a><a href="#" id="footWa">WhatsApp</a><a href="#" id="footIg" hidden>Instagram</a></nav>
+  <nav><a href="#shop">Shop</a><a href="#store">Store</a><a href="#" id="footWa">WhatsApp</a><a href="#" id="footIg" hidden>Instagram</a><a href="#" id="cookieSettings">Cookie settings</a></nav>
   <small data-c="footer.copyright">© 2026 ACE. All rights reserved.</small>
 </footer>
 
+<div class="consent" id="consent" role="dialog" aria-live="polite" aria-label="Cookie choices" hidden>
+  <p>We use cookies to measure our ads and improve the website. You can change this any time.</p>
+  <div class="consent-btns"><button type="button" class="btn-lite" id="consentNo">Only necessary</button><button type="button" class="btn-dark" id="consentYes">Accept</button></div>
+</div>
 <div class="scrim" id="scrim"></div>
 <aside class="sheet menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
   <div class="sheet-head"><h3>Shop</h3><button class="x" data-close>Close</button></div>
@@ -755,6 +801,17 @@ function orderText(num,lines,subtotal,o){
   if(val("fNotes"))m+=`\nDelivery instructions: ${val("fNotes")}`;
   return m;
 }
+/* consent banner */
+(function(){
+  const box=$("#consent");const show=()=>{box.hidden=false};
+  if(!window.aceConsent.get())setTimeout(show,1200);
+  $("#consentYes").onclick=()=>{window.aceConsent.set({analytics:true,marketing:true});box.hidden=true};
+  $("#consentNo").onclick=()=>{window.aceConsent.set({analytics:false,marketing:false});box.hidden=true};
+  $("#cookieSettings").onclick=e=>{e.preventDefault();show()};
+})();
+/* one key per checkout: submitting twice can never create two orders */
+function newKey(){return (crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)}))}
+function checkoutKey(){let k=null;try{k=sessionStorage.getItem("ace-ckey")}catch(e){}if(!k){k=newKey();try{sessionStorage.setItem("ace-ckey",k)}catch(e){}}return k}
 let placing=false;
 function validateForm(){
   const missing=[];const bad=id=>$("#"+id).setAttribute("aria-invalid","true");
@@ -796,11 +853,12 @@ $("#confirmBtn").addEventListener("click",async()=>{
   placing=true;const btn=$("#confirmBtn");btn.disabled=true;btn.textContent="Confirming your order…";$("#rvErr").textContent="";
   const payload={first_name:val("fFirst"),last_name:val("fLast"),company:val("fCompany"),email:val("fEmail"),news_opt_in:$("#fNews").checked,phone:val("fPhone"),
     country:val("fCountry"),address1:val("fAddr1"),address2:val("fAddr2"),city:val("fCity"),postal_code:val("fZip"),map_link:val("fMap"),notes:val("fNotes"),
-    items:bag.map(l=>({product_id:l.id,color:l.color,size:l.size,qty:l.qty})),discount_code:DISC?DISC.code:""};
+    items:bag.map(l=>({product_id:l.id,color:l.color,size:l.size,qty:l.qty})),discount_code:DISC?DISC.code:"",
+    checkout_key:checkoutKey(),payment_type:"cash_on_delivery",attribution:window.aceAttribution()};
   const {data,error}=await db.rpc("place_order",{p:payload});
   placing=false;btn.disabled=false;btn.textContent=(C.checkout&&C.checkout.confirm_button)||"Confirm order";
   if(error||!data){$("#rvErr").textContent=(error&&error.message&&!/fetch|network/i.test(error.message)?error.message:"We couldn't place your order. Check your connection and try again.");await loadProducts(true);renderReview();return}
-  DISC=null;$("#fCode").value="";bag=[];save();updateCount();
+  DISC=null;$("#fCode").value="";bag=[];save();updateCount();try{sessionStorage.removeItem("ace-ckey")}catch(e){}
   btn.disabled=true;btn.textContent="Order confirmed ✓";
   location.href="/order?id="+encodeURIComponent(data.order_id);
 });

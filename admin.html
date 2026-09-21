@@ -52,6 +52,7 @@ input[type=range]{width:100%;accent-color:var(--fg)}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap}
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
 .p-new{color:var(--bad);background:var(--badbg)}.p-confirmed{color:var(--info);background:var(--infobg)}.p-out_for_delivery{color:var(--warn);background:var(--warnbg)}.p-delivered{color:var(--ok);background:var(--okbg)}.p-cancelled{color:var(--muted);background:var(--surface2)}
+.p-preparing{color:var(--info);background:var(--infobg)}.p-returned,.p-refunded{color:var(--warn);background:var(--warnbg)}
 .p-unpaid{color:var(--warn);background:var(--warnbg)}.p-paid{color:var(--ok);background:var(--okbg)}.p-refunded{color:var(--muted);background:var(--surface2)}
 .p-active{color:var(--ok);background:var(--okbg)}.p-hidden{color:var(--muted);background:var(--surface2)}.p-scheduled{color:var(--info);background:var(--infobg)}.p-expired,.p-usedup,.p-off{color:var(--muted);background:var(--surface2)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
@@ -271,11 +272,14 @@ const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>{const v=Math.round(Number(n||0)*100)/100;return(v<0?"−$":"$")+Math.abs(v).toLocaleString("en-US",{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})};
-const STATUS=[["new","New"],["confirmed","Confirmed"],["out_for_delivery","Out for delivery"],["delivered","Delivered"],["cancelled","Cancelled"]];
+const STATUS=[["new","Submitted"],["confirmed","Confirmed"],["preparing","Preparing"],["out_for_delivery","Shipped"],["delivered","Delivered"],["cancelled","Cancelled"],["returned","Returned"],["refunded","Refunded"]];
+const PTYPE={cash_on_delivery:"Cash on delivery",omt:"OMT",whish:"Whish",other:"Other"};
+const REASONS={cancelled:["Customer cancelled","No answer from the customer","Fake or test order","Out of stock","Duplicate order","Wrong address / can't deliver","Other"],
+  returned:["Customer refused at delivery","Wrong size","Damaged or defective","Not as expected","Other"]};
 const PAY=[["unpaid","Unpaid"],["paid","Paid"],["refunded","Refunded"]];
 const SL=Object.fromEntries(STATUS),PL=Object.fromEntries(PAY);
-const NEXT={new:"confirmed",confirmed:"out_for_delivery",out_for_delivery:"delivered"};
-const NEXT_LABEL={new:"Confirm order",confirmed:"Mark out for delivery",out_for_delivery:"Mark delivered"};
+const NEXT={new:"confirmed",confirmed:"preparing",preparing:"out_for_delivery",out_for_delivery:"delivered",returned:"refunded"};
+const NEXT_LABEL={new:"Confirm order",confirmed:"Start preparing",preparing:"Mark as shipped",out_for_delivery:"Mark delivered",returned:"Mark refunded"};
 let CATEGORIES=[];
 const catName=s=>(CATEGORIES.find(c=>c.slug===s)||{}).name||s;
 const DAY=86400000;
@@ -320,7 +324,7 @@ async function loadCategories(){const {data,error}=await db.from("categories").s
 async function loadDiscounts(){const {data,error}=await db.from("discounts").select("*").order("created_at",{ascending:false});if(error)throw error;DISCOUNTS=data||[];return DISCOUNTS}
 async function loadSettings(){const {data,error}=await db.from("settings").select("key,value");if(error)throw error;SETTINGS=Object.fromEntries((data||[]).map(r=>[r.key,r.value]));return SETTINGS}
 function updateBadge(){const n=ORDERS.filter(o=>o.status==="new").length;const b=$("#navNew");b.textContent=n;b.hidden=!n}
-const live=o=>o.status!=="cancelled";
+const live=o=>!["cancelled","returned","refunded"].includes(o.status);
 const oTotal=o=>Number(o.total??o.subtotal??0);
 function customers(){
   const m=new Map();
@@ -419,7 +423,7 @@ async function pHome(){
   const top=Object.values(tp).sort((a,b)=>b.qty-a.qty).slice(0,5);
   // to do
   const toConfirm=ORDERS.filter(o=>o.status==="new").length;
-  const toShip=ORDERS.filter(o=>o.status==="confirmed").length;
+  const toShip=ORDERS.filter(o=>["confirmed","preparing","out_for_delivery"].includes(o.status)).length;
   const unpaid=ORDERS.filter(o=>o.status==="delivered"&&o.payment_status==="unpaid").length;
   let low=0,out=0;PRODUCTS.forEach(p=>(p.colors||[]).forEach(c=>Object.values(c.stock||{}).forEach(v=>{if(v===""||v==null)return;v=Number(v);if(v<=0)out++;else if(v<=3)low++})));
   V.innerHTML=`
@@ -491,8 +495,8 @@ async function pOrders(){
   $("#oRange").onchange=e=>{oF.range=e.target.value;draw()};
   $("#oRefresh").onclick=async()=>{await loadOrders();draw();toast("Orders refreshed")};
   $("#oExport").onclick=()=>{
-    const rows=[["Order","Date","Status","Payment","First name","Last name","Company","Phone","Email","Wants news","Country","Address","Apartment","City","Postal code","Map","Instructions","Items","Subtotal","Discount code","Discount","Delivery","Total","Private note"]];
-    ORDERS.forEach(o=>rows.push([o.order_number,new Date(o.created_at).toISOString(),SL[o.status],PL[o.payment_status||"unpaid"],o.first_name,o.last_name,o.company,o.phone,o.email,o.news_opt_in?"yes":"no",o.country,o.address1,o.address2,o.city,o.postal_code,o.map_link,o.notes,
+    const rows=[["Order","Date","Status","Payment","Payment method","Source","Medium","Campaign","Ad/content","Confirmed revenue","Delivered revenue","Refunded","Net revenue","Cancel/return reason","First name","Last name","Company","Phone","Email","Wants news","Country","Address","Apartment","City","Postal code","Map","Instructions","Items","Subtotal","Discount code","Discount","Delivery","Total","Private note"]];
+    ORDERS.forEach(o=>rows.push([o.order_number,new Date(o.created_at).toISOString(),SL[o.status],PL[o.payment_status||"unpaid"],PTYPE[o.payment_type]||"",o.utm_source||((o.attribution||{}).last_touch||{}).source||"",o.utm_medium,o.utm_campaign,o.utm_content,o.confirmed_revenue,o.delivered_revenue,o.refunded_amount,o.net_revenue,o.cancel_reason,o.first_name,o.last_name,o.company,o.phone,o.email,o.news_opt_in?"yes":"no",o.country,o.address1,o.address2,o.city,o.postal_code,o.map_link,o.notes,
       (o.items||[]).map(i=>`${i.qty} x ${i.name} (${i.color}, ${i.size})`).join("; "),o.subtotal,o.discount_code,o.discount_amount,o.delivery_fee,oTotal(o),o.admin_note]));
     csv(rows,`ace-orders-${new Date().toISOString().slice(0,10)}.csv`);
   };
@@ -520,15 +524,16 @@ async function pOrder(num){
         ${Number(o.discount_amount)>0?`<div class="sumrow"><span>Discount <span class="muted">${esc(o.discount_code||"")}</span></span><span>−${money(o.discount_amount)}</span></div>`:""}
         <div class="sumrow"><span>Delivery</span><span class="row"><span class="muted">$</span><input type="number" class="feein" id="oFee" min="0" step="0.5" value="${Number(o.delivery_fee||0)}"><button class="btn ghost sm" id="oFeeSave">Save</button></span></div>
         <div class="sumrow tot"><span>Total</span><span>${money(oTotal(o))}</span></div>
+        <div class="sumrow"><span class="muted">Payment method</span><span>${esc(PTYPE[o.payment_type]||"Cash on delivery")}</span></div>
+        ${o.cancel_reason?`<div class="sumrow"><span class="muted">${o.status==="returned"?"Return":"Cancel"} reason</span><span>${esc(o.cancel_reason)}</span></div>`:""}
+        ${Number(o.refunded_amount)>0?`<div class="sumrow"><span class="muted">Refunded</span><span>−${money(o.refunded_amount)}</span></div>`:""}
         <div style="margin-top:12px"><span class="lbl">Payment status</span><div class="seg" id="oPaySeg">${PAY.map(([k,l])=>`<button data-p="${k}" aria-pressed="${(o.payment_status||"unpaid")===k}">${l}</button>`).join("")}</div></div>
       </div>
       <div class="card"><h2>Fulfillment</h2>
         <div class="seg" id="oStSeg">${STATUS.map(([k,l])=>`<button data-s="${k}" aria-pressed="${o.status===k}">${l}</button>`).join("")}</div>
         ${NEXT[o.status]?`<button class="btn" id="oNext" style="margin-top:12px;width:100%">${NEXT_LABEL[o.status]}</button>`:""}
       </div>
-      <div class="card"><h2>Timeline</h2>
-        <ul class="timeline">${[...(o.events||[])].reverse().map(e=>`<li>${esc(e.text)}<time>${fmtDT(e.at)}</time></li>`).join("")||`<li>Order placed<time>${fmtDT(o.created_at)}</time></li>`}</ul>
-      </div>
+      <div class="card"><h2>History</h2><ul class="timeline" id="oHist"><li class="muted">Loading…</li></ul></div>
     </div>
     <div>
       <div class="card"><h2>Customer</h2>
@@ -541,6 +546,7 @@ async function pOrder(num){
         ${o.map_link?`<a class="btn ghost sm" style="margin-top:8px" href="${esc(o.map_link)}" target="_blank" rel="noopener">Open map pin</a>`:""}
         ${o.notes?`<div style="margin-top:14px"><span class="lbl">Delivery instructions</span>${esc(o.notes)}</div>`:""}
       </div>
+      <div class="card"><h2>Where this order came from</h2>${attrHtml(o)}</div>
       <div class="card"><h2>Emails</h2>
         <div class="row between" style="margin-bottom:6px"><span class="lbl" style="margin:0">To you</span><span>${mailStatus(o,"notification_email")}</span></div>
         <button class="btn ghost sm" data-mail="owner">${o.notification_email_status==="sent"?"Send to me again":"Send to me now"}</button>
@@ -560,11 +566,11 @@ async function pOrder(num){
   </div>`;
   const upd=async(patch,msg)=>{const {data,error}=await db.from("orders").update(patch).eq("id",o.id).select().single();if(error){toast("Couldn't save: "+error.message,true);return false}
     Object.assign(o,data);updateBadge();toast(msg);pOrder(num);return true};
-  const setStatus=async s=>{
-    if(s===o.status)return;
-    if(s==="cancelled"&&hasStock(items)&&confirm("Put the items from this order back in stock?"))await restock(items,+1);
-    upd({status:s},`Order #${o.order_number}: ${SL[s]}`);
-  };
+  const setStatus=s=>{if(s===o.status)return;statusDialog(o,s,async args=>{
+      const {data,error}=await db.rpc("change_order_status",{p_order:o.id,p_status:s,...args});
+      if(error){toast(error.message,true);return false}
+      toast(`Order #${o.order_number}: ${SL[s]}${data&&data.restocked?" · stock restored":""}`);await loadOrders();pOrder(num);return true;
+    })};
   $$("#oStSeg button").forEach(b=>b.onclick=()=>setStatus(b.dataset.s));
   if($("#oNext"))$("#oNext").onclick=()=>setStatus(NEXT[o.status]);
   $$("#oPaySeg button").forEach(b=>b.onclick=()=>{if(b.dataset.p!==(o.payment_status||"unpaid"))upd({payment_status:b.dataset.p},`Payment: ${PL[b.dataset.p]}`)});
@@ -573,6 +579,12 @@ async function pOrder(num){
   $("#oDel").onclick=async()=>{if(!confirm(`Delete order #${o.order_number}? This can't be undone. To keep a record, mark it Cancelled instead.`))return;
     const {error}=await db.from("orders").delete().eq("id",o.id);if(error){toast("Couldn't delete: "+error.message,true);return}ORDERS=ORDERS.filter(x=>x.id!==o.id);toast("Order deleted");go("#/orders")};
   $("#oPrint").onclick=()=>printSlip(o);
+  db.from("order_status_log").select("*").eq("order_id",o.id).order("id",{ascending:false}).then(({data,error})=>{
+    const el=$("#oHist");if(!el)return;if(error){el.innerHTML=`<li class="muted">Couldn't load history.</li>`;return}
+    el.innerHTML=(data||[]).map(l=>`<li>${l.kind==="payment"?`Payment: ${esc(PL[l.from_value]||l.from_value||"")} → <b>${esc(PL[l.to_value]||l.to_value)}</b>`:l.from_value?`${esc(SL[l.from_value]||l.from_value)} → <b>${esc(SL[l.to_value]||l.to_value)}</b>`:`<b>${esc(l.note||"Order placed")}</b>`}
+      ${l.reason?`<div class="muted" style="font-size:12.5px">Reason: ${esc(l.reason)}</div>`:""}${l.from_value&&l.note?`<div class="muted" style="font-size:12.5px">${esc(l.note)}</div>`:""}
+      <time>${fmtDT(l.changed_at)} · ${esc(l.changed_by||"")}</time></li>`).join("")||`<li class="muted">No history yet.</li>`;
+  });
   $$("[data-mail]").forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent="Sending…";
     const r=await callNotify({action:"resend",order_id:o.id,kind:b.dataset.mail});b.disabled=false;
     if(r.ok){toast("Email sent");await loadOrders();pOrder(num)}else{toast("Email failed: "+(r.error||"unknown error"),true);b.textContent="Try again"}});
@@ -590,13 +602,43 @@ async function callNotify(payload){
     const j=await r.json().catch(()=>({}));return r.ok?{ok:true,...j}:{ok:false,error:j.error||("Error "+r.status)}}
   catch(e){return{ok:false,error:e.message||String(e)}}
 }
-function hasStock(items){return items.some(i=>{const p=PRODUCTS.find(x=>x.id===i.product_id);const c=p&&(p.colors||[]).find(x=>x.name===i.color);const v=c&&c.stock?c.stock[i.size]:undefined;return v!==undefined&&v!==null&&v!==""})}
-async function restock(items,sign){
-  if(!PRODUCTS.length)await loadProducts();
-  const touched=new Set();
-  items.forEach(i=>{const p=PRODUCTS.find(x=>x.id===i.product_id);const c=p&&(p.colors||[]).find(x=>x.name===i.color);if(!c||!c.stock)return;const v=c.stock[i.size];if(v===undefined||v===null||v==="")return;c.stock[i.size]=Number(v)+sign*Number(i.qty);touched.add(p)});
-  for(const p of touched){const {error}=await db.from("products").update({colors:p.colors}).eq("id",p.id);if(error)toast("Couldn't restock "+p.name,true)}
-  if(touched.size)toast("Items put back in stock");
+function statusDialog(o,s,run){
+  const needReason=s==="cancelled"||s==="returned";
+  const askRestock=["cancelled","returned","refunded"].includes(s)&&!o.restocked_at;
+  const askPaid=s==="delivered"&&(o.payment_status||"unpaid")==="unpaid";
+  const askAmount=s==="refunded"||s==="returned";
+  if(!needReason&&!askRestock&&!askPaid&&!askAmount){
+    if(["delivered","new"].includes(s)&&!confirm(`Mark order #${o.order_number} as ${SL[s]}?`))return;
+    run({});return;
+  }
+  const total=oTotal(o);
+  const m=modal(`<h2>Mark #${o.order_number} as ${esc(SL[s])}</h2>
+    ${needReason?`<label class="fld"><span>Reason</span><select id="sdReason"><option value="">Choose a reason…</option>${REASONS[s].map(r=>`<option>${esc(r)}</option>`).join("")}</select></label>`:""}
+    ${askAmount?`<label class="fld"><span>Amount refunded to the customer ($)</span><input type="number" id="sdAmt" min="0" max="${total}" step="0.01" value="${total}"><small>Full order total is ${money(total)}. Lower it for a partial refund.</small></label>`:""}
+    <label class="fld"><span>Note (optional)</span><input type="text" id="sdNote" maxlength="300"></label>
+    ${askRestock?`<label class="toggle" style="margin-bottom:10px"><input type="checkbox" id="sdRestock" ${s==="refunded"?"":"checked"}> Put the items back in stock</label>`:""}
+    ${askPaid?`<label class="toggle" style="margin-bottom:10px"><input type="checkbox" id="sdPaid" ${o.payment_type==="cash_on_delivery"||!o.payment_type?"checked":""}> Payment received (mark as paid)</label>`:""}
+    <div class="err" id="sdErr"></div>
+    <div class="row between" style="margin-top:12px"><button class="btn ghost" id="sdCancel">Back</button><button class="btn" id="sdGo">Confirm</button></div>`);
+  $("#sdCancel",m).onclick=()=>m.remove();
+  $("#sdGo",m).onclick=async()=>{
+    const reason=needReason?$("#sdReason",m).value:null;if(needReason&&!reason){$("#sdErr",m).textContent="Choose a reason.";return}
+    const args={p_reason:reason,p_note:$("#sdNote",m).value||null};
+    if(askRestock)args.p_restock=$("#sdRestock",m).checked;
+    if(askPaid)args.p_mark_paid=$("#sdPaid",m).checked;
+    if(askAmount){const a=parseFloat($("#sdAmt",m).value);if(!(a>=0)){$("#sdErr",m).textContent="Enter the refunded amount.";return}args.p_refund_amount=a}
+    $("#sdGo",m).disabled=true;const ok=await run(args);if(ok)m.remove();else $("#sdGo",m).disabled=false;
+  };
+}
+function attrHtml(o){
+  const a=o.attribution||{},f=a.first_touch||{},l=a.last_touch||{};
+  const src=x=>[x.utm_source||x.source,x.utm_medium].filter(Boolean).join(" / ");
+  const has=o.utm_source||o.fbclid||o.referrer||f.landing_page||l.utm_source||l.source;
+  if(!has)return `<p class="muted" style="font-size:13.5px">Direct visit (typed the address, a saved link, or before tracking was added).</p>`;
+  const row=(k,v)=>v?`<dt>${k}</dt><dd>${esc(v)}</dd>`:"";
+  return `<dl class="kv">${row("Source",src(l)||src(f))}${row("Campaign",o.utm_campaign)}${row("Ad / content",o.utm_content)}${row("Term",o.utm_term)}
+    ${row("Instagram/FB click",o.fbclid?"Yes (fbclid)":"")}${row("First visit from",src(f)&&src(f)!==src(l)?src(f)+(f.utm_campaign?" · "+f.utm_campaign:""):"")}
+    ${row("Landing page",o.landing_page)}${row("Came from",o.referrer)}</dl>`;
 }
 function printSlip(o){
   const w=window.open("","_blank");if(!w){toast("Allow pop-ups to print",true);return}
