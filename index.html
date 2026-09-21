@@ -222,6 +222,22 @@ footer small{color:var(--muted)}
 .pin-btn.ghost{background:transparent;color:var(--fg)}
 .pin-btn.done{background:transparent;color:var(--fg)}
 .fld-help{display:block;font-size:12.5px;color:var(--muted);margin-top:6px}
+.co-review{padding-top:28px}
+.co-review h4{font-family:var(--display);font-weight:400;font-size:20px;text-transform:uppercase}
+.no-upper .co-review h4{text-transform:none}
+.rv-sub{color:var(--muted);margin:6px 0 16px}
+.rv-box{border:1px solid var(--line);border-radius:4px;padding:14px;margin-bottom:12px}
+.rv-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.rv-edit{font-size:13px;text-decoration:underline;color:var(--muted)}
+.rv-box p{font-size:15px;line-height:1.55}
+.rv-row{display:flex;justify-content:space-between;font-size:14px;padding:4px 0}
+#rvItems+.rv-row{border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+.rv-tot{font-weight:700;font-size:16px;border-top:1px solid var(--line);margin-top:4px;padding-top:10px}
+.rv-tot b{font-family:var(--display);font-weight:400}
+.co-link{display:block;margin:16px auto 0;text-decoration:underline;font-weight:600}
+#coReview[hidden]{display:none!important}
+.co-review [hidden]{display:none!important}
+.rv-box a{color:var(--fg)}
 .form-err{color:#e0564a;font-size:14px;font-weight:500;margin-top:8px}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));z-index:45;width:min(440px,calc(100% - 28px));display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;background:var(--fg);color:var(--bg);border-radius:4px;box-shadow:0 10px 30px rgba(0,0,0,.35);transform:translate(-50%,140%);opacity:0;transition:transform .35s cubic-bezier(.3,.7,.2,1),opacity .25s}
 .toast.on{transform:translate(-50%,0);opacity:1}
@@ -461,9 +477,24 @@ section.co-sec{padding:28px 0 0}
       </section>
       <div class="form-err" id="formErr" aria-live="polite"></div>
       <button class="wa co-pay" id="waBtn" data-c="checkout.button">Complete order</button>
-      <p class="co-fine">You'll get a confirmation email right after you order.</p>
+      <p class="co-fine">Next, you'll check your order before confirming it.</p>
      </div>
-     <div id="coDone" hidden></div>
+     <div id="coReview" class="co-review" hidden>
+      <h4 data-c="checkout.review_title">Review your order</h4>
+      <p class="rv-sub" data-c="checkout.review_text">Please check everything before you confirm.</p>
+      <div class="rv-box"><div class="rv-head"><b>Items</b><button type="button" class="rv-edit" data-edit="bag">Change</button></div><div id="rvItems"></div>
+        <div class="rv-row"><span>Subtotal</span><span id="rvSub"></span></div>
+        <div class="rv-row" id="rvDiscRow" hidden><span id="rvDiscLbl">Discount</span><span id="rvDisc"></span></div>
+        <div class="rv-row"><span>Delivery</span><span id="rvShip"></span></div>
+        <div class="rv-row rv-tot"><span>Total</span><b id="rvTot"></b></div></div>
+      <div class="rv-box"><div class="rv-head"><b>Contact</b><button type="button" class="rv-edit" data-edit="form">Change</button></div><p id="rvContact"></p></div>
+      <div class="rv-box"><div class="rv-head"><b>Delivery</b><button type="button" class="rv-edit" data-edit="form">Change</button></div><p id="rvAddr"></p></div>
+      <div class="rv-box" id="rvPayBox"><div class="rv-head"><b>Payment</b></div><p id="rvPay"></p></div>
+      <div class="form-err" id="rvErr" aria-live="polite"></div>
+      <button class="wa co-pay" id="confirmBtn" data-c="checkout.confirm_button">Confirm order</button>
+      <button type="button" class="co-link" id="rvBack">Back to my details</button>
+      <p class="co-fine">By confirming, your order is sent to ACE and you'll receive a confirmation email.</p>
+     </div>
     </div>
     <aside class="co-summary" id="coSummary"><div class="co-summary-in">
       <div id="coLines"></div>
@@ -703,7 +734,7 @@ function openCheckout(){
   cleanBag();if(!bag.length)return;
   if(DISC)applyCode(DISC.code);
   closeAll();renderSummary();$("#formErr").textContent="";
-  $("#coForm").hidden=false;$("#coDone").hidden=true;$("#sumToggle").hidden=false;$("#coSummary").hidden=false;
+  showStep("form");
   const co=$("#checkout");co.classList.add("on");co.setAttribute("aria-hidden","false");co.scrollTop=0;document.body.style.overflow="hidden";
   setTimeout(()=>$("#fEmail").focus({preventScroll:true}),350);
 }
@@ -725,23 +756,52 @@ function orderText(num,lines,subtotal,o){
   return m;
 }
 let placing=false;
-$("#waBtn").addEventListener("click",async()=>{
-  if(placing)return;
+function validateForm(){
   const missing=[];const bad=id=>$("#"+id).setAttribute("aria-invalid","true");
   [["fFirst","first name"],["fLast","last name"],["fAddr1","address"],["fCity","city"],["fPhone","phone"]].forEach(([id,n])=>{if(!val(id)){missing.push(n);bad(id)}});
   if(val("fPhone")&&val("fPhone").replace(/\D/g,"").length<7){missing.push("a full phone number");bad("fPhone")}
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val("fEmail"))){missing.push("your email");bad("fEmail")}
   if(!mapOk(val("fMap"))){missing.push("your location pin");bad("fMap")}
-  if(missing.length){$("#formErr").textContent="Add "+missing.join(", ")+" to complete your order.";const f=document.querySelector('#checkout [aria-invalid="true"]');f&&f.focus();return}
-  placing=true;const btn=$("#waBtn");btn.disabled=true;btn.textContent="Placing your order…";$("#formErr").textContent="";
+  if(missing.length){$("#formErr").textContent="Add "+missing.join(", ")+" to complete your order.";const f=document.querySelector('#checkout [aria-invalid="true"]');f&&f.focus();return false}
+  $("#formErr").textContent="";return true;
+}
+function showStep(step){
+  const rv=step==="review";
+  $("#coForm").hidden=rv;$("#coReview").hidden=!rv;$("#sumToggle").hidden=rv;$("#coSummary").hidden=rv;
+  $("#checkout").scrollTop=0;
+}
+function renderReview(){
+  const pr=pricing();
+  $("#rvItems").innerHTML=bag.map(l=>{const {p,c}=lineInfo(l);return `<div class="co-line"><div class="co-thumb"><img src="${esc(c.imgs[0])}" alt=""><i>${l.qty}</i></div><div><div class="n">${esc(p.name)}</div><div class="v">${esc(c.n)} / ${esc(l.size)}</div></div><div class="p">${money(p.price*l.qty)}</div></div>`}).join("");
+  $("#rvSub").textContent=money(pr.sub);
+  $("#rvDiscRow").hidden=!DISC;if(DISC){$("#rvDiscLbl").textContent=`Discount (${DISC.code})`;$("#rvDisc").textContent="−"+money(pr.disc)}
+  $("#rvShip").textContent=shipLabel(pr);$("#rvTot").textContent=money(pr.total);
+  $("#rvContact").innerHTML=`${esc(val("fEmail"))}<br>${esc(val("fPhone"))}${$("#fNews").checked?`<br><span style="color:var(--muted);font-size:13px">You'll receive news and offers</span>`:""}`;
+  $("#rvAddr").innerHTML=[`${esc(val("fFirst"))} ${esc(val("fLast"))}`,esc(val("fCompany")),esc(val("fAddr1")),esc(val("fAddr2")),[esc(val("fCity")),esc(val("fZip"))].filter(Boolean).join(" "),esc(val("fCountry"))].filter(Boolean).join("<br>")
+    +(val("fMap")?`<br><a href="${esc(val("fMap"))}" target="_blank" rel="noopener" style="font-size:13px">Location pin</a>`:"")
+    +(val("fNotes")?`<br><span style="color:var(--muted);font-size:13px">${esc(val("fNotes"))}</span>`:"");
+  const pay=SETTINGS.payment_text||"";$("#rvPayBox").hidden=!pay;$("#rvPay").textContent=pay;
+  $("#rvErr").textContent="";
+}
+$("#waBtn").addEventListener("click",()=>{
+  cleanBag();if(!bag.length){closeCheckout(false);return}
+  if(!validateForm())return;
+  renderReview();showStep("review");
+});
+$("#rvBack").onclick=()=>showStep("form");
+document.querySelectorAll("#coReview [data-edit]").forEach(b=>b.onclick=()=>{if(b.dataset.edit==="bag")closeCheckout(true);else showStep("form")});
+$("#confirmBtn").addEventListener("click",async()=>{
+  if(placing)return;
+  if(!validateForm()){showStep("form");return}
+  placing=true;const btn=$("#confirmBtn");btn.disabled=true;btn.textContent="Confirming your order…";$("#rvErr").textContent="";
   const payload={first_name:val("fFirst"),last_name:val("fLast"),company:val("fCompany"),email:val("fEmail"),news_opt_in:$("#fNews").checked,phone:val("fPhone"),
     country:val("fCountry"),address1:val("fAddr1"),address2:val("fAddr2"),city:val("fCity"),postal_code:val("fZip"),map_link:val("fMap"),notes:val("fNotes"),
     items:bag.map(l=>({product_id:l.id,color:l.color,size:l.size,qty:l.qty})),discount_code:DISC?DISC.code:""};
   const {data,error}=await db.rpc("place_order",{p:payload});
-  placing=false;btn.disabled=false;btn.textContent=(C.checkout&&C.checkout.button)||"Complete order";
-  if(error||!data){$("#formErr").textContent=(error&&error.message&&!/fetch|network/i.test(error.message)?error.message:"We couldn't place your order. Check your connection and try again.");await loadProducts(true);renderSummary();return}
+  placing=false;btn.disabled=false;btn.textContent=(C.checkout&&C.checkout.confirm_button)||"Confirm order";
+  if(error||!data){$("#rvErr").textContent=(error&&error.message&&!/fetch|network/i.test(error.message)?error.message:"We couldn't place your order. Check your connection and try again.");await loadProducts(true);renderReview();return}
   DISC=null;$("#fCode").value="";bag=[];save();updateCount();
-  btn.disabled=true;btn.textContent="Order placed ✓";
+  btn.disabled=true;btn.textContent="Order confirmed ✓";
   location.href="/order?id="+encodeURIComponent(data.order_id);
 });
 $("#pinMe").onclick=()=>{

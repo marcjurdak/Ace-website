@@ -77,6 +77,9 @@ window.ACE_DEFAULT_CONTENT = {
   footer: { copyright: "© 2026 ACE. All rights reserved." },
   checkout: {
     button: "Complete order",
+    review_title: "Review your order",
+    review_text: "Please check everything before you confirm.",
+    confirm_button: "Confirm order",
     done_title: "Your order has been completed",
     done_text: "Thank you for shopping with ACE. We've emailed you a copy of this confirmation."
   },

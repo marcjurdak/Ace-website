@@ -933,7 +933,7 @@ async function pStore(){
       <div id="tiles">${tilesHtml()}</div><button class="btn ghost sm" type="button" id="addTile">Add tile</button>`,".details")}
     ${acc("store","Store section",`${tog("store.show","Show this section")}${text("store.title","Title")}${text("store.text","Text",{area:true})}
       ${img("store.image","Store photo or render",{help:"Leave empty to show the logo instead."})}${text("store.caption","Caption on the photo")}${text("store.button","Button text")}`,"#store")}
-    ${acc("checkout","Checkout",`${text("checkout.button","Order button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
+    ${acc("checkout","Checkout",`${text("checkout.button","Button after the details")}${text("checkout.review_title","Review page title")}${text("checkout.review_text","Review page text")}${text("checkout.confirm_button","Confirm button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
       <p class="help">Delivery fees and payment text are in <a class="link" href="#/settings">Settings</a>.</p>`,"")}
     ${acc("footer","Footer",text("footer.copyright","Copyright line"),"footer")}
     ${acc("seo","Search engines",`${text("seo.title","Page title",{help:"Shown in the browser tab and on Google."})}${text("seo.description","Description",{area:true,help:"The short text under your link on Google."})}`,"")}`;
