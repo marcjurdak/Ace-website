@@ -6,7 +6,7 @@ const crypto = require("crypto");
 
 const env = (k) => (process.env[k] || "").trim();
 const RESEND_BASE = env("RESEND_API_BASE") || "https://api.resend.com";
-const STATUS = { new: "New", confirmed: "Confirmed", out_for_delivery: "Out for delivery", delivered: "Delivered", cancelled: "Cancelled" };
+const STATUS = { new: "Submitted", confirmed: "Confirmed", preparing: "Preparing", out_for_delivery: "Shipped", delivered: "Delivered", cancelled: "Cancelled", returned: "Returned", refunded: "Refunded" };
 const PAY = { unpaid: "Unpaid", paid: "Paid", refunded: "Refunded" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -85,7 +85,7 @@ function buildEmail(o, paymentMethod) {
     </table>
     <h2 style="margin:26px 0 8px;font-size:15px;color:#111;text-transform:uppercase;letter-spacing:1px">Status</h2>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      ${row("Payment method", esc(paymentMethod))}${row("Payment status", esc(PAY[o.payment_status] || o.payment_status || "Unpaid"))}${row("Order status", esc(STATUS[o.status] || o.status))}
+      ${row("Payment method", esc(({cash_on_delivery:"Cash on delivery",omt:"OMT",whish:"Whish"})[o.payment_type] || paymentMethod))}${row("Payment status", esc(PAY[o.payment_status] || o.payment_status || "Unpaid"))}${row("Order status", esc(STATUS[o.status] || o.status))}
     </table>
   </td></tr>
   <tr><td style="padding:14px 24px;background:#fafafa;color:#888;font-size:12px">Sent automatically by your ACE website. The customer may also message you on WhatsApp, but this email doesn't depend on it.</td></tr>
@@ -99,7 +99,7 @@ function buildEmail(o, paymentMethod) {
     "ITEMS", ...items.map((i) => `- ${i.qty} x ${i.name} (${i.color} / ${i.size}) @ ${money(i.price)} = ${money(Number(i.price) * Number(i.qty))}`), "",
     `Subtotal: ${money(o.subtotal)}`, disc > 0 ? `Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}: -${money(disc)}` : null,
     `Delivery fee: ${money(o.delivery_fee)}`, `Total: ${money(total)}`, "",
-    `Payment method: ${paymentMethod}`, `Payment status: ${PAY[o.payment_status] || o.payment_status || "Unpaid"}`, `Order status: ${STATUS[o.status] || o.status}`,
+    `Payment method: ${({cash_on_delivery:"Cash on delivery",omt:"OMT",whish:"Whish"})[o.payment_type] || paymentMethod}`, `Payment status: ${PAY[o.payment_status] || o.payment_status || "Unpaid"}`, `Order status: ${STATUS[o.status] || o.status}`,
   ].filter((l) => l !== null).join("\n");
   return { subject, html, text };
 }
