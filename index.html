@@ -68,7 +68,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 /* watermark */
 .wm{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:0}
-.wm img{width:min(1100px,125vw);max-width:none;opacity:.045}
+.wm img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1100px,92vw);max-width:none;opacity:.045}
 .wm .logo-dark{display:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .wm .logo-light{display:none}:root:not([data-theme="light"]) .wm .logo-dark{display:block}}
 :root[data-theme="dark"] .wm .logo-light{display:none}:root[data-theme="dark"] .wm .logo-dark{display:block}
@@ -560,7 +560,7 @@ function setCat(k){cat=k;[...filters.children].forEach((c,i)=>{const on=c.datase
 const $$menu=()=>[...document.querySelectorAll("#menuCats button")];
 function buildMenu(cats){
   const count=k=>k==="all"?PRODUCTS.length:k==="sale"?PRODUCTS.filter(p=>p.sale).length:PRODUCTS.filter(p=>p.cat===k).length;
-  $("#menuCats").innerHTML=cats.map(k=>`<button data-k="${esc(k)}" class="${k==="sale"?"sale":""}" aria-current="${k===cat}">${esc(catLabel(k))}<small>${count(k)}</small></button>`).join("");
+  $("#menuCats").innerHTML=cats.map(k=>`<button data-k="${esc(k)}" class="${k==="sale"?"sale":""}" aria-current="${k===cat}">${esc(catLabel(k))}</button>`).join("");
   $$menu().forEach(b=>b.onclick=()=>{setCat(b.dataset.k);closeAll();setTimeout(()=>document.getElementById("shop").scrollIntoView({behavior:"smooth"}),80)});
 }
 $("#menuOpen").onclick=()=>openSheet($("#menu"));
