@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Order confirmed — ACE</title>
+<link rel="icon" type="image/png" href="/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link id="fontLink" href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet">
+<script src="/content-defaults.js"></script>
+<style>
+:root{--bg:#EDEDEC;--fg:#000;--surface:#fff;--muted:#5E5E5C;--line:rgba(0,0,0,.12);--studio:#C6C6C4;
+  --display:"Michroma","Eurostile","Arial Black",sans-serif;--body:"Archivo","Helvetica Neue",Arial,sans-serif;--pad:clamp(18px,5vw,56px);--radius:2px}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);line-height:1.5;min-height:100vh}
+img{max-width:100%;display:block}
+a{color:inherit}
+[hidden]{display:none!important}
+.top{display:flex;justify-content:center;align-items:center;padding:16px var(--pad);padding-top:max(16px,env(safe-area-inset-top));background:#000}
+.top img{height:22px;width:auto}
+main{max-width:640px;margin:0 auto;padding:44px var(--pad) calc(60px + env(safe-area-inset-bottom))}
+.hero{text-align:center}
+.check{width:88px;height:88px;margin:0 auto 22px}
+.check circle{fill:#000;transform-origin:center;animation:pop .5s cubic-bezier(.2,.9,.3,1.3) both}
+.check path{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:draw .45s ease-out .35s forwards}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes draw{to{stroke-dashoffset:0}}
+.fade{opacity:0;transform:translateY(8px);animation:up .6s ease-out .55s forwards}
+@keyframes up{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.check circle,.check path,.fade{animation:none;opacity:1;transform:none;stroke-dashoffset:0}}
+h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(22px,5.5vw,34px);line-height:1.1}
+.no-upper h1,.no-upper h2{text-transform:none}
+.lead{color:var(--muted);margin-top:10px;font-size:16px}
+.num{font-family:var(--display);font-size:18px;margin-top:18px}
+.mail{margin-top:8px;font-size:14px;color:var(--muted)}
+.card{background:var(--surface);border-radius:8px;padding:20px;margin-top:28px}
+.card h2{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:14px;margin-bottom:12px}
+.line{display:grid;grid-template-columns:60px 1fr auto;gap:14px;align-items:center;padding:8px 0}
+.thumb{position:relative}
+.thumb img{width:60px;aspect-ratio:4/5;object-fit:cover;background:var(--studio);border-radius:3px}
+.thumb i{position:absolute;top:-7px;right:-7px;min-width:21px;height:21px;border-radius:11px;background:var(--muted);color:#fff;font-style:normal;font-size:12px;font-weight:600;display:grid;place-items:center;padding:0 5px}
+.line .n{font-weight:600;font-size:15px}.line .v{font-size:13px;color:var(--muted)}
+.line .p{font-family:var(--display);font-size:13px;white-space:nowrap}
+.row{display:flex;justify-content:space-between;font-size:15px;padding:6px 0}
+.row.first{border-top:1px solid var(--line);margin-top:10px;padding-top:14px}
+.row.tot{font-weight:700;font-size:17px;border-top:1px solid var(--line);margin-top:6px;padding-top:12px}
+.row.tot b{font-family:var(--display);font-weight:400;font-size:20px}
+.addr{font-size:15px;line-height:1.6}
+.btn{display:flex;justify-content:center;align-items:center;width:100%;margin-top:28px;background:#000;color:#fff;font-weight:600;padding:17px;text-decoration:none;border-radius:var(--radius);font-size:16px}
+.help{text-align:center;margin-top:18px;font-size:14px;color:var(--muted)}
+.help a{font-weight:600;color:var(--fg)}
+.msg{text-align:center;padding:60px 0;color:var(--muted)}
+.spin{display:inline-block;width:22px;height:22px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+<style id="themeVars"></style>
+</head>
+<body>
+<header class="top"><a href="/" aria-label="Back to the ACE shop"><img id="logo" src="/logo-word-white.png" alt="ACE"></a></header>
+<main>
+  <div class="msg" id="loading"><span class="spin" aria-label="Loading"></span></div>
+  <div class="msg" id="missing" hidden>We couldn't find this order.<br><br><a href="/">Back to the shop</a></div>
+  <div id="page" hidden>
+    <section class="hero">
+      <svg class="check" viewBox="0 0 88 88" aria-hidden="true"><circle cx="44" cy="44" r="44"/><path d="M26 45 l12 12 l24 -26"/></svg>
+      <h1 id="title">Your order has been completed</h1>
+      <div class="fade">
+        <p class="lead" id="lead">Thank you for shopping with ACE. We've emailed you a copy of this confirmation.</p>
+        <p class="num" id="num"></p>
+        <p class="mail" id="mail"></p>
+      </div>
+    </section>
+    <div class="fade">
+      <section class="card"><h2>Your order</h2><div id="lines"></div>
+        <div class="row first"><span>Subtotal</span><span id="sub"></span></div>
+        <div class="row" id="discRow" hidden><span id="discLbl">Discount</span><span id="disc"></span></div>
+        <div class="row"><span>Delivery</span><span id="fee"></span></div>
+        <div class="row tot"><span>Total</span><b id="tot"></b></div>
+      </section>
+      <section class="card"><h2>Delivering to</h2><p class="addr" id="addr"></p></section>
+      <section class="card" id="payCard" hidden><h2>Payment</h2><p class="addr" id="pay"></p></section>
+      <a class="btn" href="/">Continue shopping</a>
+      <p class="help" id="help"></p>
+    </div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+<script src="/config.js"></script>
+<script>
+const db=window.supabase.createClient(window.ACE_CONFIG.SUPABASE_URL,window.ACE_CONFIG.SUPABASE_KEY,{auth:{persistSession:false}});
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money=n=>{const v=Math.round(Number(n||0)*100)/100;return "$"+(v%1?v.toFixed(2):v)};
+function theme(c){
+  const th=c.theme||{},F=window.ACE_FONTS,fd=F.display[th.font_display]?th.font_display:"Michroma",fb=F.body[th.font_body]?th.font_body:"Archivo";
+  $("#fontLink").href=`https://fonts.googleapis.com/css2?family=${F.display[fd]}${fd!==fb?"&family="+F.body[fb]:""}&display=swap`;
+  const ok=v=>/^#[0-9a-f]{6}$/i.test(v||"");
+  $("#themeVars").textContent=`:root{--display:"${fd}","Eurostile",sans-serif;--body:"${fb}","Helvetica Neue",Arial,sans-serif;--radius:${Number(th.button_radius)||0}px;${ok(th.light_bg)?`--bg:${th.light_bg};`:""}${ok(th.light_text)?`--fg:${th.light_text};`:""}${ok(th.photo_bg)?`--studio:${th.photo_bg};`:""}}`;
+  document.documentElement.classList.toggle("no-upper",th.uppercase_titles===false);
+  if(c.brand&&c.brand.logo_word_dark)$("#logo").src=c.brand.logo_word_dark;
+  if(c.checkout){if(c.checkout.done_title)$("#title").textContent=c.checkout.done_title;if(c.checkout.done_text)$("#lead").textContent=c.checkout.done_text}
+}
+(async()=>{
+  const id=new URLSearchParams(location.search).get("id")||"";
+  const valid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  let cached=null;try{cached=JSON.parse(localStorage.getItem("ace-site")||"null")}catch(e){}
+  theme(window.aceMerge(window.ACE_DEFAULT_CONTENT,cached||{}));
+  if(!valid){$("#loading").hidden=true;$("#missing").hidden=false;return}
+  const [o,site,set]=await Promise.all([db.rpc("get_order_confirmation",{p_id:id}),db.rpc("get_site"),db.from("settings").select("key,value")]);
+  if(site.data&&typeof site.data==="object")theme(window.aceMerge(window.ACE_DEFAULT_CONTENT,site.data));
+  $("#loading").hidden=true;
+  const d=o.data;if(o.error||!d){$("#missing").hidden=false;return}
+  const S=Object.fromEntries(((set.data)||[]).map(r=>[r.key,r.value||""]));
+  document.title=`Order #${d.order_number} confirmed — ACE`;
+  $("#num").textContent=`Order #${d.order_number}`;
+  if(d.email)$("#mail").innerHTML=`A confirmation email has been sent to <b>${esc(d.email)}</b>.`;
+  $("#lines").innerHTML=(d.items||[]).map(i=>`<div class="line"><div class="thumb">${i.image?`<img src="${esc(i.image)}" alt="">`:""}<i>${Number(i.qty)}</i></div><div><div class="n">${esc(i.name)}</div><div class="v">${esc(i.color)} / ${esc(i.size)}</div></div><div class="p">${money(Number(i.price)*Number(i.qty))}</div></div>`).join("");
+  $("#sub").textContent=money(d.subtotal);
+  if(Number(d.discount_amount)>0){$("#discRow").hidden=false;$("#discLbl").textContent=`Discount${d.discount_code?" ("+d.discount_code+")":""}`;$("#disc").textContent="−"+money(d.discount_amount)}
+  $("#fee").textContent=Number(d.delivery_fee)>0?money(d.delivery_fee):"Free";
+  $("#tot").textContent=money(d.total!=null?d.total:Number(d.subtotal)+Number(d.delivery_fee||0)-Number(d.discount_amount||0));
+  $("#addr").innerHTML=[`${esc(d.first_name)} ${esc(d.last_name)}`,esc(d.address1),esc(d.address2),[esc(d.city),esc(d.postal_code)].filter(Boolean).join(" "),esc(d.country),esc(d.phone)].filter(Boolean).join("<br>");
+  if(S.payment_text){$("#payCard").hidden=false;$("#pay").textContent=S.payment_text}
+  const wa=String(S.whatsapp_number||"").replace(/\D/g,"");
+  $("#help").innerHTML=`Questions about your order? ${wa?`<a href="https://wa.me/${wa}?text=${encodeURIComponent("Hi ACE, a question about order #"+d.order_number)}" target="_blank" rel="noopener">Message us on WhatsApp</a> or reply`:"Reply"} to your confirmation email.`;
+  $("#page").hidden=false;
+})();
+</script>
+</body>
+</html>

@@ -76,9 +76,9 @@ window.ACE_DEFAULT_CONTENT = {
   },
   footer: { copyright: "© 2026 ACE. All rights reserved." },
   checkout: {
-    button: "Complete order on WhatsApp",
-    done_title: "Order received",
-    done_text: "WhatsApp should have opened with your order. Press send there so we can confirm your delivery and payment."
+    button: "Complete order",
+    done_title: "Your order has been completed",
+    done_text: "Thank you for shopping with ACE. We've emailed you a copy of this confirmation."
   },
   seo: {
     title: "ACE — Built for athletes",
