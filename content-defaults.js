@@ -26,7 +26,7 @@ window.ACE_FONTS = {
 };
 window.ACE_DEFAULT_CONTENT = {
   theme: {
-    mode: "auto",
+    mode: "light",
     font_display: "Michroma",
     font_body: "Archivo",
     uppercase_titles: true,
@@ -52,7 +52,7 @@ window.ACE_DEFAULT_CONTENT = {
   },
   collection: {
     title: "The collection",
-    all_label: "All", tops_label: "Tops", bottoms_label: "Bottoms", accessories_label: "Socks & gloves",
+    all_label: "All", sale_label: "Discounts",
     empty_text: "New pieces are coming soon."
   },
   details: {

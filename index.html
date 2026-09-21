@@ -41,6 +41,27 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* header */
 .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px var(--pad);padding-top:max(14px,env(safe-area-inset-top));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top a img{height:22px;width:auto}
+.top .lhs{display:flex;align-items:center;gap:14px}
+.menubtn{width:40px;height:40px;margin-left:-8px;display:grid;place-items:center;border-radius:6px}
+.menubtn span{display:block;width:20px;height:2px;background:currentColor;position:relative}
+.menubtn span::before,.menubtn span::after{content:"";position:absolute;left:0;width:20px;height:2px;background:currentColor}
+.menubtn span::before{top:-6px}.menubtn span::after{top:6px}
+.menu{top:0;left:0;bottom:0;width:min(360px,88%);transform:translateX(-105%)}
+.menu.on{transform:translateX(0)}
+.menu nav{display:flex;flex-direction:column;padding:8px 0}
+.menu nav button,.menu nav a{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:15px 20px;font-family:var(--display);font-size:15px;text-transform:uppercase;text-decoration:none;color:var(--fg);border-bottom:1px solid var(--line)}
+.no-upper .menu nav button,.no-upper .menu nav a{text-transform:none}
+.menu nav button[aria-current="true"]{background:var(--fg);color:var(--bg)}
+.menu nav small{font-family:var(--body);font-size:12px;opacity:.6}
+.menu nav .sale{color:#d93b30}
+.menu nav button[aria-current="true"].sale{color:var(--bg)}
+.menu .sub{padding:18px 20px 6px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.menu .links a{font-family:var(--body);font-size:15px;text-transform:none}
+.price s,.pprice s{opacity:.5;font-size:.85em;margin-left:6px}
+.price .now,.pprice .now{color:#d93b30}
+.sale-tag{position:absolute;right:10px;top:10px;background:#d93b30;color:#fff;font-size:12px;font-weight:700;padding:5px 9px;border-radius:2px}
+.sale-tag[hidden]{display:none}
+.chip.sale-chip[aria-pressed="false"]{color:#d93b30;border-color:#d93b30}
 .bagbtn{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;padding:8px 0}
 .bagbtn .count{min-width:26px;height:26px;border-radius:13px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:13px;padding:0 7px;transition:transform .25s}
 .bagbtn .count.bump{transform:scale(1.25)}
@@ -291,7 +312,9 @@ section.co-sec{padding:28px 0 0}
 <div class="wm" id="wm" aria-hidden="true"><img class="logo-light" data-img="brand.logo_full_light" src="/logo-full-black.png" alt=""><img class="logo-dark" data-img="brand.logo_full_dark" src="/logo-full-white.png" alt=""></div>
 <div class="announce" id="announce" hidden data-c="announcement.text"></div>
 <header class="top">
+  <div class="lhs"><button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
   <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
+  </div>
   <button class="bagbtn" id="bagOpen" aria-label="Open bag">Bag <span class="count" id="bagCount">0</span></button>
 </header>
 
@@ -343,6 +366,14 @@ section.co-sec{padding:28px 0 0}
 </footer>
 
 <div class="scrim" id="scrim"></div>
+<aside class="sheet menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
+  <div class="sheet-head"><h3>Shop</h3><button class="x" data-close>Close</button></div>
+  <div class="sheet-body" style="padding:0;flex:1">
+    <nav id="menuCats"></nav>
+    <div class="sub">More</div>
+    <nav class="links"><a href="#store" data-menu-link>Our store</a><a href="#" id="menuWa" target="_blank" rel="noopener">WhatsApp us</a><a href="#" id="menuIg" target="_blank" rel="noopener" hidden>Instagram</a></nav>
+  </div>
+</aside>
 <div class="toast" id="toast" role="status" aria-live="polite"><div><b>Added to bag</b><span id="toastMsg"></span></div><button id="toastView">View bag</button></div>
 
 <div class="sheet pdp" id="pdp" role="dialog" aria-modal="true" aria-labelledby="pdpTitle" aria-hidden="true">
@@ -493,14 +524,17 @@ let gridLoaded=false;
 try{const cached=JSON.parse(localStorage.getItem("ace-site")||"null");if(cached&&!PREVIEW)C=window.aceMerge(window.ACE_DEFAULT_CONTENT,cached)}catch(e){}
 
 let PRODUCTS=[];
-const CAT_KEYS=["tops","bottoms","accessories"];
-const catLabel=k=>(C.collection&&C.collection[k+"_label"])||({all:"All",tops:"Tops",bottoms:"Bottoms",accessories:"Socks & gloves"})[k];
+let CATS=[];
+const saleLabel=()=>(C.collection&&C.collection.sale_label)||"Discounts";
+const catLabel=k=>k==="all"?((C.collection&&C.collection.all_label)||"All"):k==="sale"?saleLabel():((CATS.find(c=>c.slug===k)||{}).name||k);
+function priceHtml(p){return p.sale?`<span class="now">${money(p.price)}</span><s>${money(p.was)}</s>`:money(p.price)}
 const $=s=>document.querySelector(s);
 const money=n=>{const v=Math.round(Number(n)*100)/100;return "$"+(v%1?v.toFixed(2):v)};
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function isDark(hex){const h=(hex||"#000").replace("#","");if(h.length<6)return true;const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000<90}
 function mapProduct(r){
-  return {id:r.id,name:r.name,cat:r.category,price:Number(r.price),desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
+  const base=Number(r.price),sp=r.sale_price==null||r.sale_price===""?null:Number(r.sale_price),sale=sp!==null&&sp<base;
+  return {id:r.id,name:r.name,cat:r.category,price:sale?sp:base,was:base,sale,off:sale?Math.round((1-sp/base)*100):0,desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
     colors:(r.colors||[]).map(c=>{const stock=c.stock&&typeof c.stock==="object"?c.stock:{};const sz=(r.sizes&&r.sizes.length)?r.sizes:["One size"];
       const tracked=sz.filter(s=>stock[s]!==undefined&&stock[s]!==null&&stock[s]!=="");
       const allOut=tracked.length===sz.length&&sz.every(s=>Number(stock[s])<=0);
@@ -517,10 +551,20 @@ let cat="all";
 const filters=$("#filters");
 function buildFilters(){
   filters.innerHTML="";
-  const cats=["all",...CAT_KEYS.filter(k=>PRODUCTS.some(p=>p.cat===k))];
+  const cats=["all",...CATS.map(c=>c.slug).filter(k=>PRODUCTS.some(p=>p.cat===k)),...(PRODUCTS.some(p=>p.sale)?["sale"]:[])];
   if(!cats.includes(cat))cat="all";
-  cats.forEach(k=>{const b=document.createElement("button");b.className="chip";b.textContent=catLabel(k);b.setAttribute("aria-pressed",k===cat);b.onclick=()=>{cat=k;[...filters.children].forEach(c=>c.setAttribute("aria-pressed",c===b));renderGrid()};filters.appendChild(b)});
+  buildMenu(cats);
+  cats.forEach(k=>{const b=document.createElement("button");b.className="chip"+(k==="sale"?" sale-chip":"");b.dataset.k=k;b.textContent=catLabel(k);b.setAttribute("aria-pressed",k===cat);b.onclick=()=>setCat(k);filters.appendChild(b)});
 }
+function setCat(k){cat=k;[...filters.children].forEach((c,i)=>{const on=c.dataset.k===k;c.setAttribute("aria-pressed",on);if(on)filters.scrollTo({left:c.offsetLeft-filters.offsetLeft-20,behavior:"smooth"})});$$menu().forEach(b=>b.setAttribute("aria-current",b.dataset.k===k));renderGrid()}
+const $$menu=()=>[...document.querySelectorAll("#menuCats button")];
+function buildMenu(cats){
+  const count=k=>k==="all"?PRODUCTS.length:k==="sale"?PRODUCTS.filter(p=>p.sale).length:PRODUCTS.filter(p=>p.cat===k).length;
+  $("#menuCats").innerHTML=cats.map(k=>`<button data-k="${esc(k)}" class="${k==="sale"?"sale":""}" aria-current="${k===cat}">${esc(catLabel(k))}<small>${count(k)}</small></button>`).join("");
+  $$menu().forEach(b=>b.onclick=()=>{setCat(b.dataset.k);closeAll();setTimeout(()=>document.getElementById("shop").scrollIntoView({behavior:"smooth"}),80)});
+}
+$("#menuOpen").onclick=()=>openSheet($("#menu"));
+document.querySelectorAll("[data-menu-link]").forEach(a=>a.addEventListener("click",()=>closeAll()));
 const cardColor={};
 const cardEls={};
 function paintCard(p){
@@ -538,16 +582,16 @@ function buildGrid(){
   gridLoaded=true;Object.keys(cardEls).forEach(k=>delete cardEls[k]);
   if(!PRODUCTS.length){g.innerHTML=`<p class="grid-msg">${esc((C.collection&&C.collection.empty_text)||"New pieces are coming soon.")}</p>`;return}
   PRODUCTS.forEach(p=>{
-    const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;
-    el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span></div>
-      <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${money(p.price)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div></button>
+    const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";
+    el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
+      <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div></button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
     el.querySelector(".card-open").onclick=()=>openPdp(p,cardColor[p.id]||0);
     el.querySelectorAll(".sw").forEach(s=>s.onclick=e=>{e.stopPropagation();cardColor[p.id]=+s.dataset.i;paintCard(p)});
     cardEls[p.id]=el;g.appendChild(el);paintCard(p);
   });
 }
-function renderGrid(){Object.values(cardEls).forEach(el=>{el.hidden=!(cat==="all"||el.dataset.cat===cat)})}
+function renderGrid(){Object.values(cardEls).forEach(el=>{el.hidden=!(cat==="all"||(cat==="sale"?el.dataset.sale==="1":el.dataset.cat===cat))})}
 
 /* overlays */
 let lastFocus=null;
@@ -563,7 +607,7 @@ function sizeOut(p,c,s){const v=c.stock?c.stock[s]:undefined;return v!==undefine
 function openPdp(p,ci){cur={p,ci,size:p.sizes.length===1&&!sizeOut(p,p.colors[ci],p.sizes[0])?p.sizes[0]:null,qty:1,img:0};renderPdp();$("#addHint").textContent="";openSheet($("#pdp"))}
 function renderPdp(){
   const {p,ci}=cur,c=p.colors[ci];
-  $("#pdpTitle").textContent=p.name;$("#pdpPrice").textContent=money(p.price);$("#pdpDesc").textContent=p.desc;
+  $("#pdpTitle").textContent=p.name;$("#pdpPrice").innerHTML=priceHtml(p);$("#pdpDesc").textContent=p.desc;
   $("#pdpImg").src=c.imgs[cur.img]||c.imgs[0];$("#pdpImg").alt=`${p.name} in ${c.n.toLowerCase()}`;
   $("#pdpColorName").textContent=c.n+(c.soldOut?" (sold out)":"");
   const th=$("#pdpThumbs");th.innerHTML="";
@@ -721,15 +765,19 @@ $("#pinMe").onclick=()=>{
   },()=>{b.textContent="Use my current location";$("#formErr").textContent="Couldn't get your location. Open Google Maps, drop a pin, and paste the share link.";},{enableHighAccuracy:true,timeout:12000});
 };
 function setContact(){
-  ["#storeWa","#footWa"].forEach(s=>{const a=$(s);a.href=waLink("Hi ACE, I have a question.");a.target="_blank";a.rel="noopener"});
-  const ig=$("#footIg");if(SETTINGS.instagram_url){ig.href=SETTINGS.instagram_url;ig.target="_blank";ig.rel="noopener";ig.hidden=false}else ig.hidden=true;
+  ["#storeWa","#footWa","#menuWa"].forEach(s=>{const a=$(s);a.href=waLink("Hi ACE, I have a question.");a.target="_blank";a.rel="noopener"});
+  ["#footIg","#menuIg"].forEach(s=>{const ig=$(s);if(SETTINGS.instagram_url){ig.href=SETTINGS.instagram_url;ig.target="_blank";ig.rel="noopener";ig.hidden=false}else ig.hidden=true});
 }
 /* data */
 async function loadProducts(silent){
-  const {data,error}=await db.from("products").select("id,name,category,price,description,sizes,colors,position").eq("active",true).order("position",{ascending:true});
+  const {data,error}=await db.from("products").select("id,name,category,price,sale_price,description,sizes,colors,position").eq("active",true).order("position",{ascending:true});
   if(error){if(!silent)throw error;return}
   PRODUCTS=(data||[]).map(mapProduct).filter(p=>p.colors.length);
   cleanBag();updateCount();
+}
+async function loadCategories(){
+  const {data}=await db.from("categories").select("slug,name,position").order("position",{ascending:true});
+  CATS=data||[];
 }
 async function loadSettings(){
   const {data}=await db.from("settings").select("key,value");
@@ -787,7 +835,7 @@ function initFade(){
 }
 updateCount();setContact();
 (async function init(){
-  try{await Promise.all([loadProducts(),loadSettings(),loadContent()]);buildFilters();buildGrid();renderGrid()}
+  try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories()]);buildFilters();buildGrid();renderGrid()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   setContact();initFade();
   new MutationObserver(()=>fadeTick&&fadeTick()).observe(document.getElementById("detGrid"),{childList:true});
