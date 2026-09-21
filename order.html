@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link id="fontLink" href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet">
 <script src="/content-defaults.js"></script>
+<script defer src="/ace-analytics.js"></script>
 <style>
 :root{--bg:#EDEDEC;--fg:#000;--surface:#fff;--muted:#5E5E5C;--line:rgba(0,0,0,.12);--studio:#C6C6C4;
   --display:"Michroma","Eurostile","Arial Black",sans-serif;--body:"Archivo","Helvetica Neue",Arial,sans-serif;--pad:clamp(18px,5vw,56px);--radius:2px}
@@ -70,7 +71,7 @@ h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size
       <div class="fade">
         <p class="lead" id="lead">Thank you for shopping with ACE. We've emailed you a copy of this confirmation.</p>
         <p class="num" id="num"></p>
-        <p class="mail" id="mail"></p>
+        <p class="mail ph-mask" id="mail"></p>
       </div>
     </section>
     <div class="fade">
@@ -80,7 +81,7 @@ h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size
         <div class="row"><span>Delivery</span><span id="fee"></span></div>
         <div class="row tot"><span>Total</span><b id="tot"></b></div>
       </section>
-      <section class="card"><h2>Delivering to</h2><p class="addr" id="addr"></p></section>
+      <section class="card"><h2>Delivering to</h2><p class="addr ph-mask" id="addr"></p></section>
       <section class="card" id="payCard" hidden><h2>Payment</h2><p class="addr" id="pay"></p></section>
       <a class="btn" href="/">Back to the store</a>
       <p class="help" id="help"></p>
@@ -127,6 +128,18 @@ function theme(c){
   const wa=String(S.whatsapp_number||"").replace(/\D/g,"");
   $("#help").textContent="Questions about your order? Just reply to your confirmation email.";
   $("#page").hidden=false;
+  // GA4/PostHog purchase: only right after this browser placed the order, and only once
+  try{
+    if(window.aceAnalytics)window.aceAnalytics.configure({ga4:S.ga4_measurement_id,posthogKey:S.posthog_key,posthogHost:S.posthog_region});
+    const sentKey="ace-purchase-sent-"+d.order_number;
+    if(sessionStorage.getItem("ace-just-ordered")===id&&!localStorage.getItem(sentKey)&&window.aceAnalytics){
+      window.aceAnalytics.track("purchase",{transaction_id:String(d.order_number),value:Number(d.total),currency:"USD",
+        shipping:Number(d.delivery_fee||0),tax:0,coupon:d.discount_code||undefined,discount:Number(d.discount_amount||0)||undefined,payment_type:d.payment_type||"cash_on_delivery",
+        items:(d.items||[]).map(i=>({item_id:i.product_id,item_name:i.name,item_brand:"ACE",item_category:i.category_name||i.category||undefined,item_variant:[i.color,i.size].filter(Boolean).join(" / "),item_sku:i.sku,price:Number(i.price),quantity:Number(i.qty),
+          discount:i.regular_price&&Number(i.regular_price)>Number(i.price)?Math.round((i.regular_price-i.price)*100)/100:undefined}))});
+      localStorage.setItem(sentKey,"1");sessionStorage.removeItem("ace-just-ordered");
+    }
+  }catch(e){}
 })();
 </script>
 </body>

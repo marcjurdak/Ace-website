@@ -1050,9 +1050,21 @@ async function pSettings(){
       <p class="help" style="margin:-4px 0 10px">Leave the fee empty to agree on delivery with each customer on WhatsApp. Put 0 for free delivery on every order.</p>
       <label class="fld"><span>Delivery note shown at checkout</span><input type="text" id="sDt" value="${esc(SETTINGS.delivery_text)}"></label>
     </div>
+    <div class="card"><h2>Analytics</h2>
+      <p class="help" style="margin:-4px 0 10px">These IDs are public (they're visible in any website's code). Tracking only starts for visitors who accept cookies.</p>
+      <label class="fld"><span>Google Analytics 4 · Measurement ID</span><input type="text" id="sGa" value="${esc(SETTINGS.ga4_measurement_id||"")}" placeholder="G-XXXXXXXXXX"></label>
+      <label class="fld"><span>PostHog · Project API key</span><input type="text" id="sPh" value="${esc(SETTINGS.posthog_key||"")}" placeholder="phc_…"></label>
+      <label class="fld"><span>PostHog · Region</span><select id="sPhR"><option value="eu" ${SETTINGS.posthog_region!=="us"?"selected":""}>EU (Europe)</option><option value="us" ${SETTINGS.posthog_region==="us"?"selected":""}>US</option></select></label>
+      <p class="help">Cancelled and returned orders are also sent to GA4 as refunds from the server. That part needs the <b>GA4_API_SECRET</b> variable in Vercel.</p>
+    </div>
     <div class="card"><h2>Payment</h2><label class="fld"><span>Payment note (checkout, confirmation page and email)</span><textarea id="sPt" rows="2">${esc(SETTINGS.payment_text)}</textarea></label></div>
     <div class="row" style="margin-top:12px"><button class="btn" id="sSave">Save settings</button><span class="err" id="sErr"></span></div>
-    <div class="card" style="margin-top:22px"><h2>Order emails</h2>
+    <div class="card" style="margin-top:22px"><h2>Server events</h2>
+      <p class="help" style="margin:-4px 0 10px">Events sent from the server (GA4 refunds now, Meta in the next phase). Failed ones retry automatically.</p>
+      <div id="evList" class="muted" style="font-size:13px">Loading…</div>
+      <button class="btn ghost sm" id="evRun" style="margin-top:10px">Send waiting events now</button>
+    </div>
+    <div class="card"><h2>Order emails</h2>
       <p class="help" style="margin:-4px 0 10px">Every new order is emailed to you, and the customer gets a confirmation email. Use this button to check it works. It sends a sample email and doesn't create an order.</p>
       <button class="btn ghost sm" id="sTestMail">Send a test email</button><span class="help" id="sTestMsg" style="display:inline;margin-left:8px"></span>
     </div>
@@ -1067,11 +1079,22 @@ async function pSettings(){
     const wa=$("#sWa").value.replace(/\D/g,""),ig=$("#sIg").value.trim(),fee=$("#sFee").value.trim(),free=$("#sFree").value.trim();$("#sErr").textContent="";
     if(wa&&wa.length<8)return $("#sErr").textContent="That WhatsApp number looks too short. Include the country code.";
     if(ig&&!/^https?:\/\//i.test(ig))return $("#sErr").textContent="The Instagram link should start with https://";
-    const rows=[["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
+    const ga=$("#sGa").value.trim().toUpperCase(),ph=$("#sPh").value.trim();
+    if(ga&&!/^G-[A-Z0-9]{4,}$/.test(ga))return $("#sErr").textContent="The GA4 Measurement ID should look like G-XXXXXXXXXX.";
+    if(ph&&!/^phc_[A-Za-z0-9]{10,}$/.test(ph))return $("#sErr").textContent="The PostHog key should start with phc_.";
+    const rows=[["ga4_measurement_id",ga],["posthog_key",ph],["posthog_region",$("#sPhR").value],["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
     const {error}=await db.from("settings").upsert(rows);if(error)return $("#sErr").textContent="Couldn't save: "+error.message;toast("Settings saved");
   };
   $$("[data-rmadmin]").forEach(b=>b.onclick=async()=>{if(!confirm(`Remove ${b.dataset.rmadmin} from the admin?`))return;const {error}=await db.from("admins").delete().eq("email",b.dataset.rmadmin);if(error)return toast(error.message,true);toast("Removed");pSettings()});
   $("#sAddAdmin").onclick=async()=>{const e=$("#sNewAdmin").value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(e))return toast("Type a valid email",true);const {error}=await db.from("admins").insert({email:e});if(error)return toast(/duplicate/i.test(error.message)?"Already on the list":error.message,true);toast("Added");pSettings()};
+  const loadEv=async()=>{const {data,error}=await db.from("conversion_events").select("*").order("id",{ascending:false}).limit(15);
+    const el=$("#evList");if(error){el.textContent="Couldn't load: "+error.message;return}
+    if(!data||!data.length){el.textContent="No server events yet. They appear when orders are cancelled, returned or refunded.";return}
+    const pl={sent:"p-paid",failed:"p-new",pending:"p-unpaid",sending:"p-unpaid",skipped:"p-cancelled"};
+    el.innerHTML=data.map(e=>`<div class="row between" style="padding:7px 0;border-bottom:1px solid var(--line)"><span><b>${esc(e.destination.toUpperCase())}</b> ${esc(e.event_name)} · #${e.order_number||""} <span class="muted">${fmtDT(e.created_at)}</span>${e.last_response?`<br><span class="muted" style="font-size:12px">${esc(e.last_response)}</span>`:""}</span><span class="pill ${pl[e.status]||""}">${esc(e.status)}${e.attempts>1?" ×"+e.attempts:""}</span></div>`).join("")};
+  loadEv();
+  $("#evRun").onclick=async()=>{const b=$("#evRun");b.disabled=true;try{const {data}=await db.auth.getSession();const r=await fetch("/api/conversions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+(data.session&&data.session.access_token)},body:"{}"});
+    const j=await r.json().catch(()=>({}));toast(r.ok?`Done: ${j.sent||0} sent, ${j.failed||0} failed, ${j.skipped||0} skipped`:"Error: "+(j.error||r.status),!r.ok)}catch(e){toast(e.message,true)}b.disabled=false;loadEv()};
   $("#sTestMail").onclick=async()=>{const b=$("#sTestMail");b.disabled=true;$("#sTestMsg").textContent="Sending…";const r=await callNotify({action:"test"});b.disabled=false;
     $("#sTestMsg").textContent=r.ok?"Sent. Check your inbox (and spam folder).":"Failed: "+(r.error||"unknown error");$("#sTestMsg").style.color=r.ok?"":"var(--bad)"};
   $("#sPassBtn").onclick=async()=>{const p=$("#sPass").value;if(p.length<8)return toast("Use at least 8 characters",true);const {error}=await db.auth.updateUser({password:p});if(error)return toast(error.message,true);$("#sPass").value="";toast("Password changed")};

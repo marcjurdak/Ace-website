@@ -13,6 +13,7 @@
 <link rel="apple-touch-icon" href="/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script defer src="/ace-analytics.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet" id="fontLink">
 <script src="/content-defaults.js"></script>
 <script>
@@ -477,7 +478,7 @@ section.co-sec{padding:28px 0 0}
   <button class="co-sumbar" id="sumToggle" aria-expanded="false" aria-controls="coSummary"><span>Show order summary</span><b id="sumBarTotal">$0</b></button>
   <div class="co-wrap">
     <div class="co-main">
-     <div id="coForm">
+     <div id="coForm" class="ph-mask">
       <section class="co-sec">
         <h4>Contact</h4>
         <label class="fld"><span>Email</span><input id="fEmail" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required><small class="fld-help">Your order confirmation is sent here.</small></label>
@@ -533,8 +534,8 @@ section.co-sec{padding:28px 0 0}
         <div class="rv-row" id="rvDiscRow" hidden><span id="rvDiscLbl">Discount</span><span id="rvDisc"></span></div>
         <div class="rv-row"><span>Delivery</span><span id="rvShip"></span></div>
         <div class="rv-row rv-tot"><span>Total</span><b id="rvTot"></b></div></div>
-      <div class="rv-box"><div class="rv-head"><b>Contact</b><button type="button" class="rv-edit" data-edit="form">Change</button></div><p id="rvContact"></p></div>
-      <div class="rv-box"><div class="rv-head"><b>Delivery</b><button type="button" class="rv-edit" data-edit="form">Change</button></div><p id="rvAddr"></p></div>
+      <div class="rv-box"><div class="rv-head"><b>Contact</b><button type="button" class="rv-edit" data-edit="form">Change</button></div><p id="rvContact" class="ph-mask"></p></div>
+      <div class="rv-box"><div class="rv-head"><b>Delivery</b><button type="button" class="rv-edit" data-edit="form">Change</button></div><p id="rvAddr" class="ph-mask"></p></div>
       <div class="rv-box" id="rvPayBox"><div class="rv-head"><b>Payment</b></div><p id="rvPay"></p></div>
       <div class="form-err" id="rvErr" aria-live="polite"></div>
       <button class="wa co-pay" id="confirmBtn" data-c="checkout.confirm_button">Confirm order</button>
@@ -599,6 +600,13 @@ let PRODUCTS=[];
 let CATS=[];
 const saleLabel=()=>(C.collection&&C.collection.sale_label)||"Discounts";
 const catLabel=k=>k==="all"?((C.collection&&C.collection.all_label)||"All"):k==="sale"?saleLabel():((CATS.find(c=>c.slug===k)||{}).name||k);
+function skuOf(p,c,size){return (p.id.slice(0,8)+"-"+String(c?c.n:"").toLowerCase().replace(/\W+/g,"")+"-"+String(size||"").toLowerCase().replace(/\W+/g,""))}
+function gaItem(p,c,size,qty,index){const it={item_id:p.id,item_name:p.name,item_brand:"ACE",item_category:catLabel(p.cat),price:p.price,quantity:qty||1};
+  if(c||size)it.item_variant=[c&&c.n,size].filter(Boolean).join(" / ");if(c&&size)it.item_sku=skuOf(p,c,size);if(p.sale)it.discount=Math.round((p.was-p.price)*100)/100;if(index!=null)it.index=index;return it}
+function track(name,params){try{window.aceAnalytics&&window.aceAnalytics.track(name,params)}catch(e){}}
+function bagItems(){return bag.map(l=>{const {p,c}=lineInfo(l);return p&&c?gaItem(p,c,l.size,l.qty):null}).filter(Boolean)}
+function trackList(){const vis=PRODUCTS.filter(p=>cat==="all"||(cat==="sale"?p.sale:p.cat===cat));if(!vis.length)return;
+  track("view_item_list",{item_list_id:cat,item_list_name:catLabel(cat),items:vis.map((p,i)=>gaItem(p,p.colors[cardColor[p.id]||0],null,1,i))})}
 function priceHtml(p){return p.sale?`<span class="now">${money(p.price)}</span><s>${money(p.was)}</s>`:money(p.price)}
 const $=s=>document.querySelector(s);
 const money=n=>{const v=Math.round(Number(n)*100)/100;return "$"+(v%1?v.toFixed(2):v)};
@@ -658,12 +666,13 @@ function buildGrid(){
     el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
       <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div></button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
-    el.querySelector(".card-open").onclick=()=>openPdp(p,cardColor[p.id]||0);
+    el.querySelector(".card-open").onclick=()=>{const ci=cardColor[p.id]||0;track("select_item",{item_list_id:cat,item_list_name:catLabel(cat),items:[gaItem(p,p.colors[ci],null,1,PRODUCTS.indexOf(p))]});openPdp(p,ci)};
     el.querySelectorAll(".sw").forEach(s=>s.onclick=e=>{e.stopPropagation();cardColor[p.id]=+s.dataset.i;paintCard(p)});
     cardEls[p.id]=el;g.appendChild(el);paintCard(p);
   });
 }
-function renderGrid(){Object.values(cardEls).forEach(el=>{el.hidden=!(cat==="all"||(cat==="sale"?el.dataset.sale==="1":el.dataset.cat===cat))})}
+function renderGrid(){Object.values(cardEls).forEach(el=>{el.hidden=!(cat==="all"||(cat==="sale"?el.dataset.sale==="1":el.dataset.cat===cat))});if(gridLoaded&&PRODUCTS.length&&lastListed!==cat){lastListed=cat;trackList()}}
+let lastListed=null;
 
 /* overlays */
 let lastFocus=null;
@@ -676,7 +685,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAll()});
 let cur={p:null,ci:0,size:null,qty:1,img:0};
 function stockLeft(p,c,size){const v=c.stock?c.stock[size]:undefined;if(v===undefined||v===null||v==="")return Infinity;const inBag=bag.filter(l=>l.id===p.id&&l.color===c.n&&l.size===size).reduce((a,l)=>a+l.qty,0);return Math.max(0,Number(v)-inBag)}
 function sizeOut(p,c,s){const v=c.stock?c.stock[s]:undefined;return v!==undefined&&v!==null&&v!==""&&Number(v)<=0}
-function openPdp(p,ci){cur={p,ci,size:p.sizes.length===1&&!sizeOut(p,p.colors[ci],p.sizes[0])?p.sizes[0]:null,qty:1,img:0};renderPdp();$("#addHint").textContent="";openSheet($("#pdp"))}
+function openPdp(p,ci){cur={p,ci,size:p.sizes.length===1&&!sizeOut(p,p.colors[ci],p.sizes[0])?p.sizes[0]:null,qty:1,img:0};renderPdp();$("#addHint").textContent="";openSheet($("#pdp"));
+  track("view_item",{value:p.price,items:[gaItem(p,p.colors[ci],null,1)]})}
 function renderPdp(){
   const {p,ci}=cur,c=p.colors[ci];
   $("#pdpTitle").textContent=p.name;$("#pdpPrice").innerHTML=priceHtml(p);$("#pdpDesc").textContent=p.desc;
@@ -702,6 +712,7 @@ $("#addBtn").onclick=()=>{
   const key=`${p.id}|${c.n}|${size}`;const qtyOk=Math.min(qty,left);
   const ex=bag.find(l=>l.key===key);ex?ex.qty=Math.min(50,ex.qty+qtyOk):bag.push({key,id:p.id,color:c.n,size,qty:qtyOk});
   save();closeAll();setTimeout(()=>updateCount(true),120);
+  track("add_to_cart",{value:Math.round(p.price*qtyOk*100)/100,items:[gaItem(p,c,size,qtyOk)]});
   showToast(`${qtyOk} × ${p.name}, ${c.n}, ${size}`);
 };
 /* toast */
@@ -715,7 +726,7 @@ $("#toastView").onclick=()=>{$("#toast").classList.remove("on");openBag()};
 function lineInfo(l){const p=PRODUCTS.find(x=>x.id===l.id);const c=p&&p.colors.find(x=>x.n===l.color);return{p,c}}
 function cleanBag(){const before=bag.length;bag=bag.filter(l=>{const {p,c}=lineInfo(l);return p&&c&&!c.soldOut&&p.sizes.includes(l.size)});if(bag.length!==before)save()}
 function updateCount(bump){const n=bag.reduce((a,l)=>a+l.qty,0),c=$("#bagCount");c.textContent=n;if(bump){c.classList.add("bump");setTimeout(()=>c.classList.remove("bump"),250)}}
-function openBag(){renderBag();openSheet($("#bag"))}
+function openBag(){renderBag();openSheet($("#bag"));if(bag.length)track("view_cart",{value:bagTotal(),items:bagItems()})}
 $("#bagOpen").onclick=openBag;
 function waLink(text){return `https://wa.me/${String(SETTINGS.whatsapp_number||"").replace(/\D/g,"")}?text=${encodeURIComponent(text)}`}
 const F=["fEmail","fCountry","fFirst","fLast","fCompany","fAddr1","fAddr2","fCity","fZip","fPhone","fMap","fNotes"];
@@ -735,9 +746,9 @@ function renderBag(){
     d.innerHTML=`<img src="${esc(c.imgs[0])}" alt=""><div><div class="ln">${esc(p.name)}</div><div class="lv">${esc(c.n)}, ${esc(l.size)}</div>
     <div class="qty"><button aria-label="Decrease">−</button><output>${l.qty}</output><button aria-label="Increase">+</button></div><br><button class="rm">Remove</button></div><div class="lp">${money(p.price*l.qty)}</div>`;
     const [m,pl]=d.querySelectorAll(".qty button");
-    m.onclick=()=>{l.qty>1?l.qty--:bag.splice(i,1);save();updateCount();renderBag()};
+    m.onclick=()=>{track("remove_from_cart",{value:p.price,items:[gaItem(p,c,l.size,1)]});l.qty>1?l.qty--:bag.splice(i,1);save();updateCount();renderBag()};
     pl.onclick=()=>{if(stockLeft(p,c,l.size)<=0){showToast("No more available in this size");return}l.qty=Math.min(50,l.qty+1);save();updateCount();renderBag()};
-    d.querySelector(".rm").onclick=()=>{bag.splice(i,1);save();updateCount();renderBag()};
+    d.querySelector(".rm").onclick=()=>{track("remove_from_cart",{value:Math.round(p.price*l.qty*100)/100,items:[gaItem(p,c,l.size,l.qty)]});bag.splice(i,1);save();updateCount();renderBag()};
     body.appendChild(d)});
   $("#bagTotal").textContent=money(bagTotal());
   $("#nextBtn").disabled=!bag.length;
@@ -781,6 +792,7 @@ function openCheckout(){
   if(DISC)applyCode(DISC.code);
   closeAll();renderSummary();$("#formErr").textContent="";
   showStep("form");
+  track("begin_checkout",{value:bagTotal(),coupon:DISC?DISC.code:undefined,items:bagItems()});
   const co=$("#checkout");co.classList.add("on");co.setAttribute("aria-hidden","false");co.scrollTop=0;document.body.style.overflow="hidden";
   setTimeout(()=>$("#fEmail").focus({preventScroll:true}),350);
 }
@@ -844,6 +856,7 @@ $("#waBtn").addEventListener("click",()=>{
   cleanBag();if(!bag.length){closeCheckout(false);return}
   if(!validateForm())return;
   renderReview();showStep("review");
+  const prv=pricing();track("add_shipping_info",{value:prv.sub-prv.disc,shipping_tier:"Delivery",coupon:DISC?DISC.code:undefined,items:bagItems()});
 });
 $("#rvBack").onclick=()=>showStep("form");
 document.querySelectorAll("#coReview [data-edit]").forEach(b=>b.onclick=()=>{if(b.dataset.edit==="bag")closeCheckout(true);else showStep("form")});
@@ -854,11 +867,12 @@ $("#confirmBtn").addEventListener("click",async()=>{
   const payload={first_name:val("fFirst"),last_name:val("fLast"),company:val("fCompany"),email:val("fEmail"),news_opt_in:$("#fNews").checked,phone:val("fPhone"),
     country:val("fCountry"),address1:val("fAddr1"),address2:val("fAddr2"),city:val("fCity"),postal_code:val("fZip"),map_link:val("fMap"),notes:val("fNotes"),
     items:bag.map(l=>({product_id:l.id,color:l.color,size:l.size,qty:l.qty})),discount_code:DISC?DISC.code:"",
-    checkout_key:checkoutKey(),payment_type:"cash_on_delivery",attribution:window.aceAttribution()};
+    checkout_key:checkoutKey(),payment_type:"cash_on_delivery",
+    attribution:Object.assign(window.aceAttribution(),window.aceAnalytics?{ga_client_id:window.aceAnalytics.gaClientId(),ph_id:window.aceAnalytics.posthogId()}:{})};
   const {data,error}=await db.rpc("place_order",{p:payload});
   placing=false;btn.disabled=false;btn.textContent=(C.checkout&&C.checkout.confirm_button)||"Confirm order";
   if(error||!data){$("#rvErr").textContent=(error&&error.message&&!/fetch|network/i.test(error.message)?error.message:"We couldn't place your order. Check your connection and try again.");await loadProducts(true);renderReview();return}
-  DISC=null;$("#fCode").value="";bag=[];save();updateCount();try{sessionStorage.removeItem("ace-ckey")}catch(e){}
+  DISC=null;$("#fCode").value="";bag=[];save();updateCount();try{sessionStorage.removeItem("ace-ckey");sessionStorage.setItem("ace-just-ordered",data.order_id)}catch(e){}
   btn.disabled=true;btn.textContent="Order confirmed ✓";
   location.href="/order?id="+encodeURIComponent(data.order_id);
 });
@@ -892,6 +906,8 @@ async function loadSettings(){
   const {data}=await db.from("settings").select("key,value");
   (data||[]).forEach(r=>{SETTINGS[r.key]=r.value||""});
   updateShipping();
+  const cfgA=()=>window.aceAnalytics&&window.aceAnalytics.configure({ga4:SETTINGS.ga4_measurement_id,posthogKey:SETTINGS.posthog_key,posthogHost:SETTINGS.posthog_region});
+  if(window.aceAnalytics)cfgA();else addEventListener("DOMContentLoaded",cfgA);
 }
 async function loadContent(){
   if(PREVIEW)return;
