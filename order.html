@@ -82,7 +82,7 @@ h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size
       </section>
       <section class="card"><h2>Delivering to</h2><p class="addr" id="addr"></p></section>
       <section class="card" id="payCard" hidden><h2>Payment</h2><p class="addr" id="pay"></p></section>
-      <a class="btn" href="/">Continue shopping</a>
+      <a class="btn" href="/">Back to the store</a>
       <p class="help" id="help"></p>
     </div>
   </div>
@@ -125,7 +125,7 @@ function theme(c){
   $("#addr").innerHTML=[`${esc(d.first_name)} ${esc(d.last_name)}`,esc(d.address1),esc(d.address2),[esc(d.city),esc(d.postal_code)].filter(Boolean).join(" "),esc(d.country),esc(d.phone)].filter(Boolean).join("<br>");
   if(S.payment_text){$("#payCard").hidden=false;$("#pay").textContent=S.payment_text}
   const wa=String(S.whatsapp_number||"").replace(/\D/g,"");
-  $("#help").innerHTML=`Questions about your order? ${wa?`<a href="https://wa.me/${wa}?text=${encodeURIComponent("Hi ACE, a question about order #"+d.order_number)}" target="_blank" rel="noopener">Message us on WhatsApp</a> or reply`:"Reply"} to your confirmation email.`;
+  $("#help").textContent="Questions about your order? Just reply to your confirmation email.";
   $("#page").hidden=false;
 })();
 </script>
