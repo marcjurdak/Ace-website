@@ -148,7 +148,7 @@ function buildCustomerEmail(o, info) {
     ${info.payment ? `<p style="margin:16px 0 4px;font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px">Payment</p><p style="margin:0;font-size:14px;color:#111">${esc(info.payment)}</p>` : ""}
     ${link ? `<p style="margin:22px 0 0"><a href="${esc(link)}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;border-radius:6px">View your order</a></p>` : ""}
   </td></tr>
-  <tr><td style="padding:16px 24px;background:#fafafa;color:#777;font-size:13px;line-height:1.5">Questions about your order? Just reply to this email${wa ? ` or <a href="${esc(wa)}" style="color:#111">message us on WhatsApp</a>` : ""}.<br>ACE — Built for athletes</td></tr>
+  <tr><td style="padding:16px 24px;background:#fafafa;color:#777;font-size:13px;line-height:1.5">Questions about your order? Just reply to this email.<br>ACE — Built for athletes</td></tr>
 </table></td></tr></table></body></html>`;
   const text = [
     `Your order is confirmed`, "", `Thank you, ${o.first_name}. We've received your order and we're preparing it.`, "",
@@ -158,7 +158,7 @@ function buildCustomerEmail(o, info) {
     `Delivery: ${Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : "Free"}`, `Total: ${money(total)}`, "",
     `Delivering to: ${o.first_name} ${o.last_name}, ${address.join(", ")}, ${o.phone}`,
     info.payment ? `Payment: ${info.payment}` : null, link ? `View your order: ${link}` : null, "",
-    `Questions? Reply to this email${wa ? " or message us on WhatsApp: " + wa : ""}.`, "ACE — Built for athletes",
+    "Questions? Just reply to this email.", "ACE — Built for athletes",
   ].filter((l) => l !== null).join("\n");
   return { subject, html, text };
 }
