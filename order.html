@@ -77,6 +77,7 @@ h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size
     <div class="fade">
       <section class="card"><h2>Your order</h2><div id="lines"></div>
         <div class="row first"><span>Subtotal</span><span id="sub"></span></div>
+        <div class="row" id="bundRow" hidden><span id="bundLbl">Bundle savings</span><span id="bund"></span></div>
         <div class="row" id="discRow" hidden><span id="discLbl">Discount</span><span id="disc"></span></div>
         <div class="row"><span>Delivery</span><span id="fee"></span></div>
         <div class="row tot"><span>Total</span><b id="tot"></b></div>
@@ -120,6 +121,7 @@ function theme(c){
   if(d.email)$("#mail").innerHTML=`A confirmation email has been sent to <b>${esc(d.email)}</b>.`;
   $("#lines").innerHTML=(d.items||[]).map(i=>`<div class="line"><div class="thumb">${i.image?`<img src="${esc(i.image)}" alt="">`:""}<i>${Number(i.qty)}</i></div><div><div class="n">${esc(i.name)}</div><div class="v">${esc(i.color)} / ${esc(i.size)}</div></div><div class="p">${money(Number(i.price)*Number(i.qty))}</div></div>`).join("");
   $("#sub").textContent=money(d.subtotal);
+  if(Number(d.bundle_discount)>0){$("#bundRow").hidden=false;$("#bund").textContent="−"+money(d.bundle_discount);const bn=(d.bundles||[]).map(b=>b.name).join(", ");if(bn)$("#bundLbl").textContent=`Bundle savings (${bn})`}
   if(Number(d.discount_amount)>0){$("#discRow").hidden=false;$("#discLbl").textContent=`Discount${d.discount_code?" ("+d.discount_code+")":""}`;$("#disc").textContent="−"+money(d.discount_amount)}
   $("#fee").textContent=Number(d.delivery_fee)>0?money(d.delivery_fee):"Free";
   $("#tot").textContent=money(d.total!=null?d.total:Number(d.subtotal)+Number(d.delivery_fee||0)-Number(d.discount_amount||0));

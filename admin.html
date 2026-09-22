@@ -245,6 +245,8 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
       <a href="#/categories" data-r="categories" style="padding-left:38px;font-size:13px">Categories</a>
       <a href="#/customers" data-r="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Customers</a>
       <a href="#/discounts" data-r="discounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>Discounts</a>
+      <a href="#/bundles" data-r="bundles" style="padding-left:38px;font-size:13px">Bundles</a>
+      <a href="#/reviews" data-r="reviews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Reviews<span class="badge" id="navRev" hidden>0</span></a>
       <a href="#/store" data-r="store"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M3 9h18"/></svg>Online store</a>
       <a href="#/settings" data-r="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
     </nav>
@@ -378,7 +380,7 @@ async function router(){
   const parts=(location.hash.replace(/^#\/?/,"")||"home").split("/");
   const r=parts[0];
   $$("#nav a").forEach(a=>a.setAttribute("aria-current",a.dataset.r===r?"page":"false"));
-  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
+  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",bundles:"Bundles",reviews:"Reviews",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
   $("#side").classList.remove("open");$("#scrim").hidden=true;
   V.innerHTML=`<div class="empty" style="border:0;background:none"><span class="spin"></span></div>`;window.scrollTo(0,0);
   try{
@@ -388,6 +390,8 @@ async function router(){
     else if(r==="products"&&parts[1])await pProduct(parts[1]);
     else if(r==="products")await pProducts();
     else if(r==="categories")await pCategories();
+    else if(r==="bundles")await pBundles();
+    else if(r==="reviews")await pReviews();
     else if(r==="customers"&&parts[1])await pCustomer(decodeURIComponent(parts[1]));
     else if(r==="customers")await pCustomers();
     else if(r==="discounts")await pDiscounts();
@@ -453,6 +457,7 @@ async function pHome(){
         <a href="#/orders?f=unpaid"><span>Delivered but not marked paid</span><span class="n">${unpaid}</span></a>
         <a href="#/products"><span>Sizes low in stock (3 or less)</span><span class="n">${low}</span></a>
         <a href="#/products"><span>Sizes out of stock</span><span class="n">${out}</span></a>
+        <a href="#/reviews"><span>Reviews waiting for approval</span><span class="n" id="hRevN">…</span></a>
       </div>
       <div class="card"><h2>Top products</h2>
         ${top.map(t=>`<div class="item">${t.image?`<img src="${esc(t.image)}" alt="">`:"<span></span>"}<div><div><b>${esc(t.name)}</b></div><div class="v">${t.qty} sold</div></div><div>${money(t.rev)}</div></div>`).join("")||`<p class="muted">Sales will show here.</p>`}
@@ -460,6 +465,7 @@ async function pHome(){
     </div>
   </div>`;
   $("#hRange").onchange=e=>{homeRange=e.target.value;pHome()};
+  db.from("reviews").select("id",{count:"exact",head:true}).eq("status","pending").then(({count})=>{const el=$("#hRevN");if(el)el.textContent=count||0;revBadge(count||0)});
 }
 
 /* =============== ORDERS =============== */
@@ -720,6 +726,8 @@ async function pProduct(id){
         <label class="fld"><span>Sizes</span><input type="text" id="eSizes" value="${esc(st.sizes)}"><small>Separate with commas.</small></label>
         <div class="row">${["S, M, L, XL, XXL","S, M, L","One size"].map(s=>`<button type="button" class="chip" data-sz="${s}">${s}</button>`).join("")}</div>
       </div>
+      <div class="card"><h2>Pairs well with</h2><p class="help" style="margin:-6px 0 10px">Shown under "Complete the look" on this product's page and in the bag. Leave empty to let the website choose.</p>
+        <div id="eRel">${PRODUCTS.filter(x=>!p||x.id!==p.id).map(x=>`<label class="toggle" style="font-weight:500;margin-bottom:8px"><input type="checkbox" value="${esc(x.id)}" ${p&&(p.related||[]).includes(x.id)?"checked":""}> ${esc(x.name)}</label>`).join("")||`<p class="muted">Add more products first.</p>`}</div></div>
       ${isNew?"":`<div class="card"><h2>Delete</h2><p class="help" style="margin:-4px 0 10px">To take it off the site for a while, untick "Visible" instead. Past orders keep their details.</p><button class="btn danger sm" id="eDelete">Delete product</button></div>`}
     </div>
    </div>
@@ -763,6 +771,7 @@ async function pProduct(id){
   $$("[data-sz]").forEach(b=>b.onclick=()=>{$("#eSizes").value=b.dataset.sz;mark();renderColors()});
   $("#eSizes").onchange=()=>{mark();renderColors()};
   ["eName","eDesc","ePrice","eCat","eActive"].forEach(id=>$("#"+id).addEventListener("input",mark));
+  $$("#eRel input").forEach(i=>i.addEventListener("change",mark));
   $("#eSave").onclick=async()=>{
     const err=m=>{$("#eErr").textContent=m};err("");
     const name=$("#eName").value.trim(),price=parseFloat($("#ePrice").value),sz=sizes();
@@ -775,7 +784,7 @@ async function pProduct(id){
     if(colors.some(c=>!c.name))return err("Give every colour a name.");
     if(new Set(colors.map(c=>c.name.toLowerCase())).size!==colors.length)return err("Two colours have the same name.");
     if(colors.some(c=>!c.images.length))return err("Every colour needs at least one photo.");
-    const row={name,price,sale_price:sale,category:$("#eCat").value,description:$("#eDesc").value.trim(),sizes:sz,colors,active:$("#eActive").checked};
+    const row={related:$$("#eRel input:checked").map(i=>i.value).slice(0,8),name,price,sale_price:sale,category:$("#eCat").value,description:$("#eDesc").value.trim(),sizes:sz,colors,active:$("#eActive").checked};
     $("#eSave").disabled=true;let res;
     if(isNew){row.position=PRODUCTS.reduce((m,x)=>Math.max(m,x.position||0),0)+1;res=await db.from("products").insert(row).select().single()}
     else res=await db.from("products").update(row).eq("id",p.id).select().single();
@@ -822,6 +831,115 @@ function delCategory(c,n){
   $("#mvCancel",m).onclick=()=>m.remove();
   $("#mvGo",m).onclick=async()=>{const to=$("#mvTo",m).value;let r=await db.from("products").update({category:to}).eq("category",c.slug);if(r.error)return toast(r.error.message,true);
     r=await db.from("categories").delete().eq("id",c.id);if(r.error)return toast(r.error.message,true);m.remove();toast("Category deleted");pCategories()};
+}
+
+/* =============== BUNDLES =============== */
+let BUNDLES_A=[];
+function bundleRegularA(b){return (b.items||[]).reduce((a,i)=>{const p=PRODUCTS.find(x=>x.id===i.product_id);if(!p)return a;const sp=p.sale_price!=null&&Number(p.sale_price)<Number(p.price)?Number(p.sale_price):Number(p.price);return a+sp*(i.qty||1)},0)}
+function bundleDesc(b){return (b.items||[]).map(i=>{const p=PRODUCTS.find(x=>x.id===i.product_id);return `${i.qty||1} × ${p?esc(p.name):"(deleted product)"}${i.color?" ("+esc(i.color)+")":""}`}).join(" + ")}
+async function pBundles(){
+  await loadProducts();const {data,error}=await db.from("bundles").select("*").order("position").order("created_at");if(error)throw error;BUNDLES_A=data||[];
+  V.innerHTML=`<div class="pagehead"><h1>Bundles</h1><button class="btn sm" id="bNew">Create bundle</button></div>
+    <p class="help" style="margin:-8px 0 14px">A bundle price applies automatically when a customer's bag contains every piece of the bundle. The server always checks it, so it can't be faked. Bundles also appear in their own section on the website and on each product's page.</p>
+    <div id="bOut"></div>`;
+  $("#bOut").innerHTML=BUNDLES_A.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Bundle</th><th>Pieces</th><th class="num">Normal price</th><th class="num">Bundle price</th><th>Status</th><th class="num">Order</th></tr></thead><tbody>
+    ${BUNDLES_A.map((b,i)=>{const reg=bundleRegularA(b);return `<tr data-i="${i}"><td><b>${esc(b.name)}</b></td><td style="font-size:13px">${bundleDesc(b)}</td><td class="num"><s class="muted">${money(reg)}</s></td><td class="num"><b>${money(b.price)}</b>${reg>b.price?`<div style="color:var(--ok);font-size:12px">save ${money(reg-b.price)}</div>`:`<div style="color:var(--bad);font-size:12px">no saving</div>`}</td><td>${b.active?pill("active","Active"):pill("hidden","Off")}</td>
+      <td class="num nowrap"><button class="btn ghost sm" data-mv="-1" ${i===0?"disabled":""}>↑</button> <button class="btn ghost sm" data-mv="1" ${i===BUNDLES_A.length-1?"disabled":""}>↓</button></td></tr>`}).join("")}</tbody></table></div>`
+    :`<div class="empty">No bundles yet. Example: 1 black T-shirt + 1 white T-shirt for $45 instead of $50.</div>`;
+  $$("#bOut tr[data-i]").forEach(r=>r.onclick=e=>{if(e.target.closest("[data-mv]"))return;editBundle(BUNDLES_A[+r.dataset.i])});
+  $$("#bOut [data-mv]").forEach(x=>x.onclick=async e=>{e.stopPropagation();const i=+x.closest("tr").dataset.i,j=i+Number(x.dataset.mv);[BUNDLES_A[i],BUNDLES_A[j]]=[BUNDLES_A[j],BUNDLES_A[i]];
+    await Promise.all(BUNDLES_A.map((b,k)=>db.from("bundles").update({position:k+1}).eq("id",b.id)));pBundles()});
+  $("#bNew").onclick=()=>editBundle(null);
+}
+function editBundle(b){
+  const st={name:b?b.name:"",description:b?b.description:"",price:b?Number(b.price):"",active:b?b.active:true,items:b?JSON.parse(JSON.stringify(b.items||[])):[{product_id:(PRODUCTS[0]||{}).id,color:null,qty:1}]};
+  const m=modal(`<h2>${b?"Edit bundle":"Create bundle"}</h2>
+    <label class="fld"><span>Name</span><input type="text" id="bnName" maxlength="60" placeholder="e.g. Tee duo" value="${esc(st.name)}"></label>
+    <label class="fld"><span>Short description (optional)</span><input type="text" id="bnDesc" maxlength="140" value="${esc(st.description)}"></label>
+    <span class="lbl">Pieces in the bundle</span><div id="bnItems"></div><button class="btn ghost sm" id="bnAdd" type="button" style="margin:4px 0 14px">Add a piece</button>
+    <div class="grid2"><label class="fld"><span>Bundle price ($)</span><input type="number" id="bnPrice" min="0" step="0.01" value="${esc(st.price)}"></label><div class="fld"><span>Normal price</span><div id="bnReg" style="padding-top:9px"></div></div></div>
+    <label class="toggle" style="margin:4px 0 12px"><input type="checkbox" id="bnAct" ${st.active?"checked":""}> Active on the website</label>
+    <div class="err" id="bnErr"></div>
+    <div class="row between" style="margin-top:10px">${b?`<button class="btn danger sm" id="bnDel">Delete</button>`:"<span></span>"}<span class="row"><button class="btn ghost" id="bnCancel">Cancel</button><button class="btn" id="bnSave">Save</button></span></div>`);
+  const reg=()=>{const r=bundleRegularA(st);const pr=parseFloat($("#bnPrice",m).value);$("#bnReg",m).innerHTML=`${money(r)}${pr>=0&&pr<r?` <span style="color:var(--ok);font-size:13px">customers save ${money(r-pr)}</span>`:""}`};
+  const draw=()=>{$("#bnItems",m).innerHTML=st.items.map((it,k)=>{const p=PRODUCTS.find(x=>x.id===it.product_id);return `<div class="row" style="flex-wrap:nowrap;margin-bottom:8px" data-k="${k}">
+      <input type="number" min="1" max="10" value="${it.qty||1}" data-f="qty" style="width:64px" aria-label="Quantity">
+      <select data-f="product_id">${PRODUCTS.map(x=>`<option value="${esc(x.id)}" ${x.id===it.product_id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>
+      <select data-f="color"><option value="">Any colour</option>${p?(p.colors||[]).map(c=>`<option ${c.name===it.color?"selected":""}>${esc(c.name)}</option>`).join(""):""}</select>
+      <button class="btn ghost sm" data-rm ${st.items.length<2?"disabled":""} aria-label="Remove piece">✕</button></div>`}).join("");
+    $$("#bnItems [data-k]",m).forEach(r=>{const it=st.items[+r.dataset.k];
+      $('[data-f="qty"]',r).oninput=e=>{it.qty=Math.max(1,parseInt(e.target.value)||1);reg()};
+      $('[data-f="product_id"]',r).onchange=e=>{it.product_id=e.target.value;it.color=null;draw()};
+      $('[data-f="color"]',r).onchange=e=>{it.color=e.target.value||null};
+      $("[data-rm]",r).onclick=()=>{st.items.splice(+r.dataset.k,1);draw()}});reg()};
+  draw();$("#bnPrice",m).oninput=reg;
+  $("#bnAdd",m).onclick=()=>{st.items.push({product_id:(PRODUCTS[0]||{}).id,color:null,qty:1});draw()};
+  $("#bnCancel",m).onclick=()=>m.remove();
+  $("#bnSave",m).onclick=async()=>{const e=x=>{$("#bnErr",m).textContent=x};
+    const name=$("#bnName",m).value.trim(),price=parseFloat($("#bnPrice",m).value);
+    if(!name)return e("Give the bundle a name.");if(!(price>=0))return e("Add the bundle price.");
+    const items=st.items.filter(i=>i.product_id).map(i=>({product_id:i.product_id,color:i.color||null,qty:Math.max(1,i.qty||1)}));
+    if(!items.length)return e("Add at least one piece.");if(items.reduce((a,i)=>a+i.qty,0)<2)return e("A bundle needs at least 2 pieces.");
+    const r=bundleRegularA({items});if(price>=r)return e(`The bundle price must be lower than the normal price (${money(r)}).`);
+    const row={name,description:$("#bnDesc",m).value.trim(),price,items,active:$("#bnAct",m).checked};
+    if(!b)row.position=BUNDLES_A.length+1;
+    const res=b?await db.from("bundles").update(row).eq("id",b.id):await db.from("bundles").insert(row);
+    if(res.error)return e("Couldn't save: "+res.error.message);m.remove();toast("Bundle saved");pBundles()};
+  if(b)$("#bnDel",m).onclick=async()=>{if(!confirm(`Delete the bundle "${b.name}"?`))return;const {error}=await db.from("bundles").delete().eq("id",b.id);if(error)return toast(error.message,true);m.remove();toast("Bundle deleted");pBundles()};
+}
+
+/* =============== REVIEWS =============== */
+let rF="pending";
+function revBadge(n){const x=$("#navRev");if(x){x.textContent=n;x.hidden=!n}}
+const stars=n=>"★".repeat(n)+`<span style="opacity:.25">${"★".repeat(5-n)}</span>`;
+async function pReviews(){
+  await loadProducts();
+  const {data,error}=await db.from("reviews").select("*").order("created_at",{ascending:false}).limit(500);if(error)throw error;
+  const R=data||[];const cnt=s=>R.filter(r=>r.status===s).length;revBadge(cnt("pending"));
+  V.innerHTML=`<div class="pagehead"><h1>Reviews</h1><button class="btn sm" id="rvAdd">Add a review you received</button></div>
+    <p class="help" style="margin:-8px 0 14px">Customers leave reviews from the product page with their order number and email. They show a <b>Verified purchase</b> badge once you approve them. You can approve, hide, feature or reply, but a customer's words and stars can't be changed.</p>
+    <div class="chips" style="margin-bottom:12px">${[["pending","Waiting"],["approved","Approved"],["hidden","Hidden"],["all","All"]].map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${rF===k}">${l}<b>${k==="all"?R.length:cnt(k)}</b></button>`).join("")}</div>
+    <div id="rvOut"></div>`;
+  $$(".chips .chip").forEach(c=>c.onclick=()=>{rF=c.dataset.f;pReviews()});
+  const list=R.filter(r=>rF==="all"||r.status===rF);
+  $("#rvOut").innerHTML=list.length?list.map(r=>{const p=PRODUCTS.find(x=>x.id===r.product_id);return `<div class="card" data-id="${r.id}">
+    <div class="row between"><span style="font-size:16px">${stars(r.rating)}</span><span class="row">${r.featured?pill("scheduled","Featured"):""}${pill(r.status==="approved"?"active":r.status==="pending"?"unpaid":"hidden",r.status==="approved"?"Approved":r.status==="pending"?"Waiting":"Hidden")}</span></div>
+    ${r.title?`<div style="font-weight:700;margin-top:6px">${esc(r.title)}</div>`:""}<p style="margin-top:4px;white-space:pre-line">${esc(r.body)}</p>
+    <div class="muted" style="font-size:12.5px;margin-top:6px">${esc(r.author_name)}${r.author_city?", "+esc(r.author_city):""} · ${fmtDate(r.created_at)} · on <b>${p?esc(p.name):"deleted product"}</b> · ${r.verified?"Verified purchase":"Shared via "+esc(r.source_note||"")}</div>
+    <label class="fld" style="margin-top:10px"><span>Your public reply (optional)</span><textarea rows="2" data-reply>${esc(r.reply||"")}</textarea></label>
+    <div class="row">${r.status!=="approved"?`<button class="btn sm" data-st="approved">Approve</button>`:""}${r.status!=="hidden"?`<button class="btn ghost sm" data-st="hidden">Hide</button>`:""}
+      <button class="btn ghost sm" data-save>Save reply</button><button class="btn ghost sm" data-feat>${r.featured?"Unfeature":"Feature at the top"}</button>
+      ${r.source==="shared"?`<button class="btn ghost sm" data-edit>Edit</button><button class="btn danger sm" data-del>Delete</button>`:""}</div></div>`}).join("")
+    :`<div class="empty">${rF==="pending"?"No reviews waiting. New ones appear here after customers send them.":"Nothing here."}</div>`;
+  $$("#rvOut [data-id]").forEach(el=>{const r=R.find(x=>x.id===el.dataset.id);
+    const upd=async(patch,msg)=>{const {error}=await db.from("reviews").update(patch).eq("id",r.id);if(error)return toast(error.message,true);toast(msg);pReviews()};
+    $$("[data-st]",el).forEach(b=>b.onclick=()=>upd({status:b.dataset.st},b.dataset.st==="approved"?"Review approved":"Review hidden"));
+    $("[data-save]",el).onclick=()=>upd({reply:$("[data-reply]",el).value.trim()||null},"Reply saved");
+    $("[data-feat]",el).onclick=()=>upd({featured:!r.featured},r.featured?"Unfeatured":"Featured");
+    const ed=$("[data-edit]",el);if(ed)ed.onclick=()=>editReview(r);
+    const del=$("[data-del]",el);if(del)del.onclick=async()=>{if(!confirm("Delete this review?"))return;const {error}=await db.from("reviews").delete().eq("id",r.id);if(error)return toast(error.message,true);toast("Deleted");pReviews()};
+  });
+  $("#rvAdd").onclick=()=>editReview(null);
+}
+function editReview(r){
+  const m=modal(`<h2>${r?"Edit review":"Add a review you received"}</h2>
+    <p class="help" style="margin:-6px 0 12px">Only add real reviews that a customer sent you, for example by Instagram or WhatsApp message. It will show on the website as <b>"Shared via …"</b>, never as a verified purchase.</p>
+    <label class="fld"><span>Product</span><select id="erP">${PRODUCTS.map(p=>`<option value="${esc(p.id)}" ${r&&r.product_id===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
+    <div class="grid2"><label class="fld"><span>Customer name</span><input type="text" id="erN" maxlength="60" value="${esc(r?r.author_name:"")}"></label><label class="fld"><span>City (optional)</span><input type="text" id="erC" maxlength="60" value="${esc(r?r.author_city||"":"")}"></label></div>
+    <div class="grid2"><label class="fld"><span>Stars</span><select id="erR">${[5,4,3,2,1].map(n=>`<option value="${n}" ${r&&r.rating===n?"selected":""}>${n} star${n>1?"s":""}</option>`).join("")}</select></label>
+      <label class="fld"><span>Received via</span><select id="erS">${["Instagram","WhatsApp","In store","Facebook","Email","Other"].map(s=>`<option ${r&&r.source_note===s?"selected":""}>${s}</option>`).join("")}</select></label></div>
+    <label class="fld"><span>Title (optional)</span><input type="text" id="erT" maxlength="120" value="${esc(r?r.title||"":"")}"></label>
+    <label class="fld"><span>What they wrote</span><textarea id="erB" rows="4">${esc(r?r.body:"")}</textarea></label>
+    <label class="toggle" style="margin:4px 0 12px"><input type="checkbox" id="erOk" ${r?"checked":""}> This is a real review a customer sent me</label>
+    <div class="err" id="erErr"></div>
+    <div class="row between" style="margin-top:10px"><span></span><span class="row"><button class="btn ghost" id="erCancel">Cancel</button><button class="btn" id="erSave">Save and publish</button></span></div>`);
+  $("#erCancel",m).onclick=()=>m.remove();
+  $("#erSave",m).onclick=async()=>{const e=x=>{$("#erErr",m).textContent=x};
+    if(!$("#erOk",m).checked)return e("Please confirm this is a real review from a customer.");
+    const row={product_id:$("#erP",m).value,author_name:$("#erN",m).value.trim(),author_city:$("#erC",m).value.trim()||null,rating:+$("#erR",m).value,source:"shared",source_note:$("#erS",m).value,title:$("#erT",m).value.trim()||null,body:$("#erB",m).value.trim(),status:"approved"};
+    if(!row.author_name)return e("Add the customer's name.");if(row.body.length<5)return e("Add what they wrote.");
+    const res=r?await db.from("reviews").update(row).eq("id",r.id):await db.from("reviews").insert(row);
+    if(res.error)return e(res.error.message);m.remove();toast("Review saved");pReviews()};
 }
 
 /* =============== CUSTOMERS =============== */
@@ -973,6 +1091,10 @@ async function pStore(){
       <p class="help">Products are edited in <a class="link" href="#/products">Products</a>, category names in <a class="link" href="#/categories">Categories</a>.</p>`,"#shop")}
     ${acc("details","Details section",`${tog("details.show","Show this section")}${text("details.title","Title")}${text("details.lead","Text",{area:true})}
       <div id="tiles">${tilesHtml()}</div><button class="btn ghost sm" type="button" id="addTile">Add tile</button>`,".details")}
+    ${acc("product","Product page",`${tog("product.show_reviews","Show reviews on product pages")}${text("product.reviews_title","Reviews title")}${text("product.related_title","Recommendations title")}
+      ${text("product.size_guide","Size guide (opens from the product page)",{area:true})}${text("product.returns_text","Delivery & returns text",{area:true})}${text("product.confirm_text","Line under the add-to-bag button")}
+      <p class="help">The delivery fee and payment line come from <a class="link" href="#/settings">Settings</a>.</p>`,"")}
+    ${acc("bundlesec","Bundles section",`${text("bundles.title","Title")}${text("bundles.text","Text under the title")}<p class="help">Create bundles in <a class="link" href="#/bundles">Bundles</a>. The section only shows when at least one bundle is active.</p>`,"#bundlesSec")}
     ${acc("store","Store section",`${tog("store.show","Show this section")}${text("store.title","Title")}${text("store.text","Text",{area:true})}
       ${img("store.image","Store photo or render",{help:"Leave empty to show the logo instead."})}${text("store.caption","Caption on the photo")}${text("store.button","Button text")}`,"#store")}
     ${acc("checkout","Checkout",`${text("checkout.button","Button after the details")}${text("checkout.review_title","Review page title")}${text("checkout.review_text","Review page text")}${text("checkout.confirm_button","Confirm button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
