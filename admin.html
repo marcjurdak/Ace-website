@@ -1043,6 +1043,8 @@ async function pStore(){
   const pubRaw=(row&&row.published)||{};
   let c=window.aceMerge(D,(row&&Object.keys(row.draft||{}).length)?row.draft:pubRaw);
   let pub=JSON.stringify(window.aceMerge(D,pubRaw));
+  if(!(c.announcement.items&&c.announcement.items.length))c.announcement.items=c.announcement.text?[c.announcement.text]:[""];
+  {const po=JSON.parse(pub);if(!(po.announcement.items&&po.announcement.items.length))po.announcement.items=po.announcement.text?[po.announcement.text]:[""];pub=JSON.stringify(po)}
   let saveT=null,frameReady=false,savedDraft=JSON.stringify(c);
   const setStatus=()=>{const s=$("#seStatus");if(!s)return;const cur=JSON.stringify(c);
     s.textContent=cur!==savedDraft?"Saving…":(cur===pub?"Live on your website":"Draft saved · not published yet");$("#sePublish").disabled=cur===pub&&cur===savedDraft};
@@ -1081,7 +1083,12 @@ async function pStore(){
       ${img("brand.logo_full_light","Full logo for light backgrounds",{png:true,help:"Used in the footer, watermark and store section."})}
       ${img("brand.logo_full_dark","Full logo for dark backgrounds",{png:true,dark:true})}
       ${img("brand.favicon","Browser tab icon",{png:true,dark:true,help:"Square image."})}`,"")}
-    ${acc("announcement","Announcement bar",`${tog("announcement.show","Show the bar at the top")}${text("announcement.text","Message")}`,"#announce")}
+    ${acc("announcement","Announcement bar",`${tog("announcement.show","Show the bar at the top")}
+      <span class="lbl">Messages</span><p class="help" style="margin:-2px 0 8px">Each message shows on its own, then fades into the next one.</p>
+      <div id="anItems">${(c.announcement.items||[]).map((s,i,arr)=>`<div class="row" style="flex-wrap:nowrap;margin-bottom:8px"><input type="text" data-p="announcement.items.${i}" value="${esc(s)}" maxlength="120" placeholder="e.g. Free delivery on orders over $100" aria-label="Message ${i+1}">
+        <button type="button" class="btn ghost sm" data-anmv="-1" data-i="${i}" ${i===0?"disabled":""} aria-label="Move up">↑</button><button type="button" class="btn ghost sm" data-anmv="1" data-i="${i}" ${i===arr.length-1?"disabled":""} aria-label="Move down">↓</button><button type="button" class="btn ghost sm" data-anrm="${i}" aria-label="Remove message">✕</button></div>`).join("")}</div>
+      <button type="button" class="btn ghost sm" id="anAdd" style="margin-bottom:14px">+ Add announcement</button>
+      ${range("announcement.interval","Change message every",2,15,1," seconds")}`,"#announce")}
     ${acc("hero","Opening photo",`${tog("hero.show","Show this section")}
       ${img("hero.image","Main photo",{help:"Wide photo. Shown full width."})}${img("hero.image_mobile","Phone version (optional)",{help:"A taller crop for phones. Leave empty to use the main photo."})}
       ${text("hero.text","Text under the photo",{area:true})}${text("hero.button","Button text")}`,".hero")}
@@ -1142,6 +1149,9 @@ async function pStore(){
     $$("#tiles [data-tile]").forEach(tl=>{const i=+tl.dataset.tile;
       $$("[data-tmv]",tl).forEach(b=>b.onclick=()=>{const j=i+Number(b.dataset.tmv);const T=c.details.tiles;[T[i],T[j]]=[T[j],T[i]];changed();rebuild()});
       $("[data-trm]",tl).onclick=()=>{if(!confirm("Remove this tile?"))return;c.details.tiles.splice(i,1);changed();rebuild()}});
+    const aa=$("#anAdd");if(aa)aa.onclick=()=>{c.announcement.items=c.announcement.items||[];c.announcement.items.push("");changed();rebuild();const ins=$$("#anItems input");if(ins.length)ins[ins.length-1].focus()};
+    $$("[data-anrm]").forEach(b=>b.onclick=()=>{c.announcement.items.splice(+b.dataset.anrm,1);changed();rebuild()});
+    $$("[data-anmv]").forEach(b=>b.onclick=()=>{const i=+b.dataset.i,j=i+Number(b.dataset.anmv),A=c.announcement.items;[A[i],A[j]]=[A[j],A[i]];changed();rebuild()});
     const at=$("#addTile");if(at)at.onclick=()=>{c.details.tiles.push({image:"",image2:"",title:"New tile",text:"",wide:false});changed();rebuild()};
   };
   const rebuild=()=>{const y=$(".se-left").scrollTop;$("#seAcc").innerHTML=build();wire();$(".se-left").scrollTop=y};
@@ -1150,6 +1160,8 @@ async function pStore(){
   $$("[data-mt]").forEach(b=>b.onclick=()=>{const pv=b.dataset.mt==="preview";$("#se").classList.toggle("show-preview",pv);$$("[data-mt]").forEach(x=>x.setAttribute("aria-pressed",(x.dataset.mt==="preview")===pv))});
   $("#seReload").onclick=()=>{frameReady=false;iframe.src="/?preview=1&t="+Date.now()};
   $("#sePublish").onclick=async()=>{clearTimeout(saveT);$("#sePublish").disabled=true;
+    if(c.announcement){const keep=(c.announcement.items||[]).map(s=>String(s||"").trim()).filter(Boolean);
+      if(keep.length!==(c.announcement.items||[]).length){c.announcement.items=keep.length?keep:[""];rebuild()}}
     const {error}=await db.from("site").update({draft:c,published:c,published_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",1);
     if(error){toast("Couldn't publish: "+error.message,true);setStatus();return}pub=JSON.stringify(c);savedDraft=pub;setStatus();toast("Published. Your website is updated.")};
   $("#seDiscard").onclick=async()=>{if(!confirm("Throw away your draft and go back to what's live on the website?"))return;

@@ -353,6 +353,10 @@ section.co-sec{padding:28px 0 0}
 .no-upper h2,.no-upper .sheet-head h3,.no-upper .pdp h4,.no-upper .co-sec h4,.no-upper .co-done h4{text-transform:none}
 .cta,.add,.wa,.pin-btn{border-radius:var(--radius,2px)}
 .announce{background:var(--fg);color:var(--bg);text-align:center;font-size:13px;font-weight:600;padding:9px var(--pad);position:relative;z-index:21}
+.an-track{display:grid}
+.an-track span{grid-area:1/1;opacity:0;transition:opacity .6s ease;visibility:hidden}
+.an-track span.on{opacity:1;visibility:visible}
+@media (prefers-reduced-motion:reduce){.an-track span{transition:none}}
 .store-visual.photo img{width:100%;height:100%;object-fit:cover;opacity:1}
 .store-visual.photo span{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.6)}
 .noanim .hero-img,.noanim .hero-copy{opacity:1!important;transform:none!important;filter:none!important;transition:none!important}
@@ -522,7 +526,7 @@ section.co-sec{padding:28px 0 0}
 <body>
 <script>document.documentElement.classList.add("js")</script>
 <div class="wm" id="wm" aria-hidden="true"><img class="logo-light" data-img="brand.logo_full_light" src="/logo-full-black.png" alt=""><img class="logo-dark" data-img="brand.logo_full_dark" src="/logo-full-white.png" alt=""></div>
-<div class="announce" id="announce" hidden data-c="announcement.text"></div>
+<div class="announce" id="announce" hidden aria-label="Announcements"><div class="an-track" id="anTrack"></div></div>
 <header class="top">
   <div class="lhs"><button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
   <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
@@ -773,7 +777,7 @@ function applyContent(c){
   document.querySelectorAll("[data-c]").forEach(el=>{const v=getPath(c,el.dataset.c);if(typeof v==="string")el.textContent=v});
   document.querySelectorAll("[data-img]").forEach(el=>{const v=getPath(c,el.dataset.img);if(v&&el.getAttribute("src")!==v)el.setAttribute("src",v)});
   document.querySelectorAll("[data-show]").forEach(el=>{el.hidden=getPath(c,el.dataset.show)===false});
-  const an=document.getElementById("announce");an.hidden=!(c.announcement&&c.announcement.show&&c.announcement.text);
+  setupAnnouncements(c.announcement||{});
   document.getElementById("heroMobile").setAttribute("srcset",(c.hero&&c.hero.image_mobile)||(c.hero&&c.hero.image)||"/hero.jpg");
   const d=c.details||{};
   document.getElementById("detGrid").innerHTML=(d.tiles||[]).filter(x=>x&&x.image).map(x=>`<figure class="${x.wide?"wide":"sq"}">${x.image2?`<div class="pair"><img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy"><img src="${esc(x.image2)}" alt="" loading="lazy"></div>`:`<img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy">`}<figcaption><b>${esc(x.title)}</b>${esc(x.text)}</figcaption></figure>`).join("");
@@ -784,6 +788,22 @@ function applyContent(c){
   if(PRODUCTS.length){buildFilters();renderGrid()}else if(gridLoaded){buildGrid()}
 }
 let gridLoaded=false;
+/* announcement bar: several messages that take turns */
+let anTimer=null,anSig="";
+function setupAnnouncements(a){
+  const items=((a.items&&a.items.length?a.items:(a.text?[a.text]:[]))||[]).map(s=>String(s||"").trim()).filter(Boolean);
+  const bar=document.getElementById("announce"),track=document.getElementById("anTrack");
+  const secs=Math.max(2,Math.min(30,Number(a.interval)||5));
+  const sig=JSON.stringify([a.show,items,secs]);if(sig===anSig)return;anSig=sig;
+  clearInterval(anTimer);anTimer=null;
+  bar.hidden=!(a.show&&items.length);if(bar.hidden){track.innerHTML="";return}
+  track.innerHTML=items.map((s,i)=>`<span class="${i?"":"on"}"${i?' aria-hidden="true"':""}>${esc(s)}</span>`).join("");
+  if(items.length<2)return;
+  let i=0,paused=false;
+  bar.onmouseenter=()=>{paused=true};bar.onmouseleave=()=>{paused=false};
+  anTimer=setInterval(()=>{if(paused||document.hidden)return;const sp=track.children;if(!sp.length)return;
+    sp[i].classList.remove("on");sp[i].setAttribute("aria-hidden","true");i=(i+1)%sp.length;sp[i].classList.add("on");sp[i].removeAttribute("aria-hidden")},secs*1000);
+}
 try{const cached=JSON.parse(localStorage.getItem("ace-site")||"null");if(cached&&!PREVIEW)C=window.aceMerge(window.ACE_DEFAULT_CONTENT,cached)}catch(e){}
 
 let PRODUCTS=[];

@@ -42,7 +42,7 @@ window.ACE_DEFAULT_CONTENT = {
     logo_full_light: "/logo-full-black.png", logo_full_dark: "/logo-full-white.png",
     favicon: "/icon.png"
   },
-  announcement: { show: false, text: "Free delivery in Beirut this week" },
+  announcement: { show: false, text: "", items: [], interval: 5 },
   hero: {
     show: true,
     image: "/hero.jpg",
