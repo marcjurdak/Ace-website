@@ -529,6 +529,8 @@ h1,h2,.px-title,.hero h1{letter-spacing:-.02em}
 .kicker::before{content:"";display:inline-block;width:22px;height:1px;background:currentColor;vertical-align:middle;margin-right:10px}
 section{padding:var(--space) var(--pad)}
 .sec-head{align-items:flex-end;margin-bottom:26px}
+#shop .sec-head{display:block}
+#shop .sec-head .kicker{display:block;margin-bottom:10px}
 h2{font-size:clamp(24px,4.4vw,44px);line-height:1.02}
 /* header */
 .top{padding:16px var(--pad);border-bottom:var(--hair)}
@@ -589,6 +591,15 @@ h2{font-size:clamp(24px,4.4vw,44px);line-height:1.02}
 /* reviews */
 .rvw-avg{font-family:var(--body);font-weight:700;font-size:48px;letter-spacing:-.03em}
 /* story */
+.storypage{max-width:900px;margin:0 auto;padding:clamp(28px,5vw,60px) var(--pad) var(--space)}
+.storypage h1{font-size:clamp(28px,5vw,52px);line-height:1.03;margin:6px 0 26px}
+.sp-img{background:var(--studio);margin-bottom:34px}
+.sp-img img{width:100%;aspect-ratio:16/9;object-fit:cover}
+.sp-img.empty{display:none}
+.sp-text p{font-size:clamp(16px,1.8vw,19px);line-height:1.75;margin-bottom:22px;max-width:62ch}
+.sp-text p:first-child{font-size:clamp(18px,2.1vw,22px);line-height:1.6}
+.storypage .px-back{display:inline-block;margin-bottom:18px;color:var(--muted)}
+.storypage .btn-line{margin-top:18px}
 .story{padding:var(--space) var(--pad)}
 .story-in{display:grid;gap:clamp(24px,4vw,56px);align-items:center;max-width:1280px;margin:0 auto}
 @media(min-width:900px){.story-in{grid-template-columns:var(--story-w,50%) 1fr}
@@ -648,10 +659,20 @@ footer small{font-size:12px;letter-spacing:.04em}
   </div>
 </div>
 
+<section class="storypage" id="storyPage" hidden>
+  <a class="px-back" href="/" data-nav>← Back</a>
+  <span class="kicker" id="spKicker"></span>
+  <h1 id="spTitle"></h1>
+  <figure class="sp-img" id="spFig"><img id="spImg" alt=""></figure>
+  <div class="sp-text" id="spText"></div>
+  <a class="btn-line" href="/" data-nav id="spShop">Shop the collection</a>
+</section>
 <section id="shop">
   <div class="sec-head">
-    <h2 data-c="collection.title">The collection</h2>
+    <span class="kicker" id="catKicker" hidden></span>
+    <h2 data-c="collection.title" id="shopTitle">The collection</h2>
   </div>
+  <p class="lead-muted" id="catText" hidden></p>
   <div class="filters" role="group" aria-label="Filter products" id="filters"></div>
   <div class="grid" id="grid" style="margin-top:22px" aria-busy="true"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
 </section>
@@ -712,13 +733,13 @@ footer small{font-size:12px;letter-spacing:.04em}
   <div class="sheet-body" style="padding:0;flex:1">
     <nav id="menuCats"></nav>
     <div class="sub">More</div>
-    <nav class="links"><a href="#bundlesSec" data-menu-link id="menuBundles" hidden>Sets &amp; bundles</a><a href="#store" data-menu-link>Our store</a><a href="#" id="menuWa" target="_blank" rel="noopener">WhatsApp us</a><a href="#" id="menuIg" target="_blank" rel="noopener" hidden>Instagram</a></nav>
+    <nav class="links"><a href="/story" data-nav>Our story</a><a href="#bundlesSec" data-menu-link id="menuBundles" hidden>Sets &amp; bundles</a><a href="#store" data-menu-link>Our store</a><a href="#" id="menuWa" target="_blank" rel="noopener">WhatsApp us</a><a href="#" id="menuIg" target="_blank" rel="noopener" hidden>Instagram</a></nav>
   </div>
 </aside>
 <div class="toast" id="toast" role="status" aria-live="polite"><div><b>Added to bag</b><span id="toastMsg"></span></div><button id="toastView">View bag</button></div>
 
 <div class="sheet px" id="pdp" role="dialog" aria-modal="true" aria-labelledby="pdpTitle" aria-hidden="true">
-  <div class="px-top"><button class="px-back" data-close aria-label="Back to the shop">← Back</button><span class="px-crumb" id="pxCrumb"></span><button class="px-bagbtn" id="pxBag">Bag <span id="pxBagCount">0</span></button></div>
+  <div class="px-top"><button class="px-back" id="pxBackBtn" aria-label="Back">← Back</button><span class="px-crumb" id="pxCrumb"></span><button class="px-bagbtn" id="pxBag">Bag <span id="pxBagCount">0</span></button></div>
   <div class="px-body" id="pxBody">
     <div class="px-grid">
       <div class="px-media"><div class="px-gallery" id="pxGallery"></div><div class="px-dots" id="pxDots"></div></div>
@@ -905,6 +926,68 @@ function applyContent(c){
   if(PRODUCTS.length){buildFilters();renderGrid()}else if(gridLoaded){buildGrid()}
 }
 let gridLoaded=false;
+/* ---------- pages (real web addresses) ---------- */
+const SECTIONS=["#storyPage",".hero","#shop","#storySec","#bundlesSec",".details","#store"];
+let ROUTE={v:"home"};
+function pathFor(r){return r.v==="home"?"/":r.v==="story"?"/story":r.v==="product"?"/p/"+r.slug:"/"+r.slug}
+function parsePath(){
+  const p=decodeURIComponent(location.pathname.replace(/\/+$/,""))||"/";
+  if(p==="/"||p==="")return {v:"home"};
+  if(p==="/story")return {v:"story"};
+  const m=p.match(/^\/p\/(.+)$/);if(m)return {v:"product",slug:m[1]};
+  return {v:"cat",slug:p.slice(1)};
+}
+function showOnly(list){SECTIONS.forEach(sel=>{const el=document.querySelector(sel);if(!el)return;
+  const want=list.includes(sel);if(want){el.hidden=false;el.dataset.routeHidden="";}else{el.hidden=true;el.dataset.routeHidden="1"}})}
+function setMeta(title,desc){document.title=title;const m=document.getElementById("metaDesc");if(m&&desc)m.setAttribute("content",desc)}
+function navigate(path,replace){
+  const to=String(path||"/");
+  if(location.pathname!==to){history[replace?"replaceState":"pushState"]({},"",to)}
+  applyRoute();
+}
+function applyRoute(){
+  const r=parsePath();ROUTE=r;const seo=C.seo||{};
+  const shopSection=document.querySelector("#shop");
+  if(r.v==="product"){
+    const p=PRODUCTS.find(x=>x.slug===r.slug);
+    if(p){openPdp(p,cardColor[p.id]||0,true);return}
+    if(PRODUCTS.length){navigate("/",true);return}
+    return; // products still loading
+  }
+  if($("#pdp").classList.contains("on"))closeAll(false);
+  if(r.v==="story"){
+    const s=C.story||{};showOnly(["#storyPage"]);
+    $("#spKicker").textContent=s.kicker||"";$("#spTitle").textContent=s.title||"Our story";
+    $("#spFig").classList.toggle("empty",!s.image);if(s.image)$("#spImg").src=s.image;$("#spImg").alt=s.title||"";
+    $("#spText").innerHTML=String(s.full_text||s.text||"").split(/\n{2,}/).map(x=>`<p>${esc(x.trim())}</p>`).join("");
+    setMeta(`${s.title||"Our story"} — ${seo.title||"ACE"}`,(s.text||"").slice(0,150));
+  }else if(r.v==="cat"){
+    const known=[...CATS.map(c=>c.slug),"sale"];
+    if(CATS.length&&!known.includes(r.slug)){navigate("/",true);return}
+    cat=r.slug;showOnly(["#shop"]);
+    $("#shopTitle").textContent=catLabel(r.slug);
+    $("#catKicker").hidden=false;$("#catKicker").textContent=(C.collection&&C.collection.title)||"The collection";
+    const ct=r.slug==="sale"?((C.collection&&C.collection.sale_text)||""):"";
+    $("#catText").hidden=!ct;$("#catText").textContent=ct;
+    buildFilters();renderGrid();
+    setMeta(`${catLabel(r.slug)} — ${seo.title||"ACE"}`,seo.description);
+  }else{
+    cat="all";showOnly([".hero","#shop","#storySec","#bundlesSec",".details","#store"]);
+    $("#shopTitle").textContent=(C.collection&&C.collection.title)||"The collection";
+    $("#catKicker").hidden=true;$("#catText").hidden=true;
+    if(PRODUCTS.length){buildFilters();renderGrid()}
+    setMeta(seo.title||"ACE",seo.description);
+  }
+  document.querySelectorAll("[data-show]").forEach(el=>{if(el.dataset.routeHidden==="1")el.hidden=true});
+  window.scrollTo(0,0);
+  track("page_view",{page_path:location.pathname,page_title:document.title});
+}
+addEventListener("popstate",applyRoute);
+document.addEventListener("click",e=>{
+  const a=e.target.closest("a[data-nav]");if(!a)return;
+  if(e.metaKey||e.ctrlKey||e.shiftKey||a.target==="_blank")return;
+  e.preventDefault();closeAll();navigate(a.getAttribute("href"));
+});
 /* our story section */
 function setupStory(s){
   const sec=document.getElementById("storySec"),box=document.getElementById("storyIn"),fig=document.getElementById("storyFig"),img=document.getElementById("storyImg");
@@ -919,9 +1002,7 @@ function setupStory(s){
   img.alt=s.title||"";
   const btn=document.getElementById("storyBtn");btn.hidden=!(s.full_text&&s.full_text.trim());
 }
-document.getElementById("storyBtn").onclick=()=>{const s=C.story||{};
-  dialog(s.title||"Our story",s.full_text||"");
-  track("view_story",{});};
+document.getElementById("storyBtn").onclick=()=>navigate("/story");
 /* announcement bar: several messages that take turns */
 let anTimer=null,anSig="";
 function setupAnnouncements(a){
@@ -958,7 +1039,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 function isDark(hex){const h=(hex||"#000").replace("#","");if(h.length<6)return true;const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000<90}
 function mapProduct(r){
   const base=Number(r.price),sp=r.sale_price==null||r.sale_price===""?null:Number(r.sale_price),sale=sp!==null&&sp<base;
-  return {id:r.id,related:r.related||[],name:r.name,cat:r.category,price:sale?sp:base,was:base,sale,off:sale?Math.round((1-sp/base)*100):0,desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
+  return {id:r.id,slug:r.slug||r.id,related:r.related||[],name:r.name,cat:r.category,price:sale?sp:base,was:base,sale,off:sale?Math.round((1-sp/base)*100):0,desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
     colors:(r.colors||[]).map(c=>{const stock=c.stock&&typeof c.stock==="object"?c.stock:{};const sz=(r.sizes&&r.sizes.length)?r.sizes:["One size"];
       const tracked=sz.filter(s=>stock[s]!==undefined&&stock[s]!==null&&stock[s]!=="");
       const allOut=tracked.length===sz.length&&sz.every(s=>Number(stock[s])<=0);
@@ -978,14 +1059,14 @@ function buildFilters(){
   const cats=["all",...CATS.map(c=>c.slug).filter(k=>PRODUCTS.some(p=>p.cat===k)),...(PRODUCTS.some(p=>p.sale)?["sale"]:[])];
   if(!cats.includes(cat))cat="all";
   buildMenu(cats);
-  cats.forEach(k=>{const b=document.createElement("button");b.className="chip"+(k==="sale"?" sale-chip":"");b.dataset.k=k;b.textContent=catLabel(k);b.setAttribute("aria-pressed",k===cat);b.onclick=()=>setCat(k);filters.appendChild(b)});
+  cats.forEach(k=>{const b=document.createElement("button");b.className="chip"+(k==="sale"?" sale-chip":"");b.dataset.k=k;b.textContent=catLabel(k);b.setAttribute("aria-pressed",k===cat);b.onclick=()=>navigate(k==="all"?"/":"/"+k);filters.appendChild(b)});
 }
 function setCat(k){cat=k;[...filters.children].forEach((c,i)=>{const on=c.dataset.k===k;c.setAttribute("aria-pressed",on);if(on)filters.scrollTo({left:c.offsetLeft-filters.offsetLeft-20,behavior:"smooth"})});$$menu().forEach(b=>b.setAttribute("aria-current",b.dataset.k===k));renderGrid()}
 const $$menu=()=>[...document.querySelectorAll("#menuCats button")];
 function buildMenu(cats){
   const count=k=>k==="all"?PRODUCTS.length:k==="sale"?PRODUCTS.filter(p=>p.sale).length:PRODUCTS.filter(p=>p.cat===k).length;
-  $("#menuCats").innerHTML=cats.map(k=>`<button data-k="${esc(k)}" class="${k==="sale"?"sale":""}" aria-current="${k===cat}">${esc(catLabel(k))}</button>`).join("");
-  $$menu().forEach(b=>b.onclick=()=>{setCat(b.dataset.k);closeAll();setTimeout(()=>document.getElementById("shop").scrollIntoView({behavior:"smooth"}),80)});
+  $("#menuCats").innerHTML=cats.map(k=>`<a href="${k==="all"?"/":"/"+esc(k)}" data-k="${esc(k)}" class="${k==="sale"?"sale":""}" aria-current="${ROUTE.v==="cat"?ROUTE.slug===k:k==="all"}">${esc(catLabel(k))}</a>`).join("");
+  $("#menuCats").querySelectorAll("a").forEach(b=>b.onclick=e=>{e.preventDefault();closeAll();navigate(b.dataset.k==="all"?"/":"/"+b.dataset.k)});
 }
 $("#menuOpen").onclick=()=>openSheet($("#menu"));
 document.querySelectorAll("[data-menu-link]").forEach(a=>a.addEventListener("click",()=>closeAll()));
@@ -1020,9 +1101,13 @@ let lastListed=null;
 
 /* overlays */
 let lastFocus=null;
-function openSheet(el){lastFocus=document.activeElement;$("#scrim").classList.add("on");el.classList.add("on");el.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";setTimeout(()=>el.querySelector("[data-close]").focus(),50)}
-function closeAll(){document.querySelectorAll(".sheet.on").forEach(s=>{s.classList.remove("on");s.setAttribute("aria-hidden","true")});$("#scrim").classList.remove("on");document.body.style.overflow="";lastFocus&&lastFocus.focus&&lastFocus.focus()}
+function openSheet(el){lastFocus=document.activeElement;$("#scrim").classList.add("on");el.classList.add("on");el.setAttribute("aria-hidden","false");document.body.style.overflow="hidden";setTimeout(()=>{const f=el.querySelector("[data-close]")||el.querySelector("button");if(f)f.focus()},50)}
+function closeAll(back){
+  if(back!==false&&ROUTE&&ROUTE.v==="product"&&$("#pdp").classList.contains("on")){
+    if(history.length>1){history.back();return}ROUTE={v:"home"};navigate("/",true);return}
+  document.querySelectorAll(".sheet.on").forEach(s=>{s.classList.remove("on");s.setAttribute("aria-hidden","true")});$("#scrim").classList.remove("on");document.body.style.overflow="";lastFocus&&lastFocus.focus&&lastFocus.focus()}
 $("#scrim").onclick=closeAll;document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeAll);
+$("#pxBackBtn").onclick=()=>{if(history.length>1)history.back();else{closeAll(false);navigate("/")}};
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAll()});
 
 /* product sheet */
@@ -1050,8 +1135,11 @@ $("#dlgClose").onclick=()=>{$("#dlg").hidden=true};$("#dlg").addEventListener("c
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#dlg").hidden)$("#dlg").hidden=true});
 
 /* ---------- product page ---------- */
-function openPdp(p,ci){
-  ci=ci||0;cur={p,ci,size:p.sizes.length===1&&!sizeOut(p,p.colors[ci],p.sizes[0])?p.sizes[0]:null,qty:1,gal:null};
+function openPdp(p,ci,fromRoute){
+  ci=ci||0;
+  if(!fromRoute&&p.slug&&location.pathname!=="/p/"+p.slug)history.pushState({},"","/p/"+p.slug);
+  ROUTE={v:"product",slug:p.slug};
+  setMeta(`${p.name} — ${(C.seo&&C.seo.title)||"ACE"}`,(p.desc||"").slice(0,150));cur={p,ci,size:p.sizes.length===1&&!sizeOut(p,p.colors[ci],p.sizes[0])?p.sizes[0]:null,qty:1,gal:null};
   renderPdp();renderPdpExtras();$("#addHint").textContent="";
   if(!$("#pdp").classList.contains("on"))openSheet($("#pdp"));
   $("#pxBody").scrollTop=0;
@@ -1415,7 +1503,7 @@ function setContact(){
 }
 /* data */
 async function loadProducts(silent){
-  const {data,error}=await db.from("products").select("id,name,category,price,sale_price,description,sizes,colors,position,related").eq("active",true).order("position",{ascending:true});
+  const {data,error}=await db.from("products").select("id,slug,name,category,price,sale_price,description,sizes,colors,position,related").eq("active",true).order("position",{ascending:true});
   if(error){if(!silent)throw error;return}
   PRODUCTS=(data||[]).map(mapProduct).filter(p=>p.colors.length);
   cleanBag();updateCount();
@@ -1490,7 +1578,7 @@ function initFade(){
 }
 updateCount();setContact();
 (async function init(){
-  try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories(),loadRatings()]);await loadBundles();buildFilters();buildGrid();renderGrid();renderBundlesHome()}
+  try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories(),loadRatings()]);await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   setContact();initFade();
   new MutationObserver(()=>fadeTick&&fadeTick()).observe(document.getElementById("detGrid"),{childList:true});
