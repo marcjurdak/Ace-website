@@ -106,6 +106,28 @@ window.ACE_DEFAULT_CONTENT = {
     size_guide: "Not sure about your size?\n\nIf you're between two sizes, pick the bigger one for a relaxed fit or the smaller one for a closer fit.\n\nStill unsure? Reply to your order confirmation email or message us, tell us your height and weight, and we'll recommend a size.",
     returns_text: "We deliver across Lebanon. Your order confirmation and delivery details are sent to your email.\n\nFor an exchange or a return, reply to your confirmation email and we'll help you."
   },
+  coming_soon: {
+    on: false,
+    title: "ACE",
+    tagline: "Built for athletes",
+    headline: "Coming soon.",
+    text: "Our first collection lands soon. Join the list for early access and first pick of sizes.",
+    button: "Get early access",
+    success_title: "You're on the list",
+    success_text: "We'll message you the moment we launch, before anyone else.",
+    note: "We only use this to tell you when we launch.",
+    logo_size: 62,
+    logo_opacity: 8,
+    background: "",
+    overlay: 45,
+    dark: true,
+    ask_size: true,
+    ask_sport: true,
+    ask_notes: false,
+    sizes: "S, M, L, XL, XXL",
+    sports: "Football, Padel, Gym, Other",
+    show_socials: true
+  },
   story: {
     show: true,
     kicker: "Our story",

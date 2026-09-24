@@ -246,6 +246,7 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
       <a href="#/customers" data-r="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Customers</a>
       <a href="#/discounts" data-r="discounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>Discounts</a>
       <a href="#/bundles" data-r="bundles" style="padding-left:38px;font-size:13px">Bundles</a>
+      <a href="#/waitlist" data-r="waitlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2.6"/></svg>Early access</a>
       <a href="#/reviews" data-r="reviews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Reviews<span class="badge" id="navRev" hidden>0</span></a>
       <a href="#/store" data-r="store"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M3 9h18"/></svg>Online store</a>
       <a href="#/settings" data-r="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
@@ -380,7 +381,7 @@ async function router(){
   const parts=(location.hash.replace(/^#\/?/,"")||"home").split("/");
   const r=parts[0];
   $$("#nav a").forEach(a=>a.setAttribute("aria-current",a.dataset.r===r?"page":"false"));
-  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",bundles:"Bundles",reviews:"Reviews",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
+  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",bundles:"Bundles",reviews:"Reviews",waitlist:"Early access",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
   $("#side").classList.remove("open");$("#scrim").hidden=true;
   V.innerHTML=`<div class="empty" style="border:0;background:none"><span class="spin"></span></div>`;window.scrollTo(0,0);
   try{
@@ -392,6 +393,7 @@ async function router(){
     else if(r==="categories")await pCategories();
     else if(r==="bundles")await pBundles();
     else if(r==="reviews")await pReviews();
+    else if(r==="waitlist")await pWaitlist();
     else if(r==="customers"&&parts[1])await pCustomer(decodeURIComponent(parts[1]));
     else if(r==="customers")await pCustomers();
     else if(r==="discounts")await pDiscounts();
@@ -796,6 +798,43 @@ async function pProduct(id){
     const {error}=await db.from("products").delete().eq("id",p.id);if(error){$("#eErr").textContent="Couldn't delete: "+error.message;return}dirty=false;toast("Product deleted");go("#/products")};
 }
 
+/* =============== EARLY ACCESS LIST =============== */
+let wF={q:"",sport:"all"};
+async function pWaitlist(){
+  const {data,error}=await db.from("waitlist").select("*").order("created_at",{ascending:false}).limit(5000);if(error)throw error;
+  const W=data||[];
+  const sports=[...new Set(W.map(w=>w.sport).filter(Boolean))];
+  const bySize={};W.forEach(w=>{if(w.size)bySize[w.size]=(bySize[w.size]||0)+1});
+  const last7=W.filter(w=>new Date(w.created_at)>new Date(Date.now()-7*86400000)).length;
+  V.innerHTML=`<div class="pagehead"><h1>Early access</h1><button class="btn ghost sm" id="wExport">Export CSV</button></div>
+    <p class="help" style="margin:-8px 0 14px">People who signed up on your coming soon page. Turn that page on or off in <a class="link" href="#/store">Online store → Coming soon page</a>.</p>
+    <div class="metrics">
+      <div class="metric"><div class="k">Sign-ups</div><div class="v">${W.length}</div></div>
+      <div class="metric"><div class="k">Last 7 days</div><div class="v">${last7}</div></div>
+      ${sports.map(s=>`<div class="metric"><div class="k">${esc(s)}</div><div class="v">${W.filter(w=>w.sport===s).length}</div></div>`).join("")}
+      <div class="metric"><div class="k">Sizes</div><div class="v" style="font-size:14px;font-family:var(--body)">${Object.entries(bySize).sort((a,b)=>b[1]-a[1]).map(([s,n])=>`${esc(s)}: ${n}`).join(" · ")||"—"}</div></div>
+    </div>
+    <div class="toolbar"><input type="search" id="wQ" placeholder="Search name, phone, email" value="${esc(wF.q)}">
+      <select id="wSport"><option value="all">All sports</option>${sports.map(s=>`<option ${wF.sport===s?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
+    <div id="wOut"></div>`;
+  const draw=()=>{
+    const q=wF.q.toLowerCase();
+    const list=W.filter(w=>(wF.sport==="all"||w.sport===wF.sport)&&(!q||[w.name,w.email,w.phone,w.size,w.sport].join(" ").toLowerCase().includes(q)));
+    $("#wOut").innerHTML=list.length?`<div class="tblwrap resp"><table class="tbl"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Size</th><th>Sport</th><th>Joined</th><th></th></tr></thead><tbody>
+      ${list.map(w=>`<tr data-id="${w.id}"><td><b>${esc(w.name)}</b>${w.notes?`<div class="muted" style="font-size:12px">${esc(w.notes)}</div>`:""}</td><td class="nowrap">${esc(w.phone)}</td><td>${esc(w.email)}</td><td>${esc(w.size||"")}</td><td>${esc(w.sport||"")}</td><td class="nowrap muted">${fmtDate(w.created_at)}</td>
+        <td class="nowrap"><a class="btn ghost sm" href="https://wa.me/${waNumber(w.phone,"Lebanon")}" target="_blank" rel="noopener">WhatsApp</a> <button class="btn danger sm" data-del aria-label="Remove">✕</button></td></tr>`).join("")}</tbody></table></div>
+      <div class="mlist">${list.map(w=>`<div class="mcard"><span class="t">${esc(w.name)}</span><span class="s">${fmtDate(w.created_at)}</span><span class="s">${esc(w.phone)} · ${esc(w.email)}</span><span class="s">${esc(w.size||"")} ${esc(w.sport||"")}</span></div>`).join("")}</div>`
+      :`<div class="empty">${W.length?"Nobody matches.":"No sign-ups yet. Turn the coming soon page on and share your link."}</div>`;
+    $$("#wOut [data-del]").forEach(b=>b.onclick=async e=>{e.stopPropagation();const id=b.closest("tr").dataset.id;if(!confirm("Remove this person from the list?"))return;
+      const {error}=await db.from("waitlist").delete().eq("id",id);if(error)return toast(error.message,true);toast("Removed");pWaitlist()});
+  };
+  draw();
+  $("#wQ").oninput=e=>{wF.q=e.target.value;draw()};$("#wSport").onchange=e=>{wF.sport=e.target.value;draw()};
+  $("#wExport").onclick=()=>{const rows=[["Name","Phone","Email","Preferred size","Sport","Notes","Joined","Source","Campaign"]];
+    W.forEach(w=>rows.push([w.name,w.phone,w.email,w.size,w.sport,w.notes,new Date(w.created_at).toISOString(),((w.source||{}).first_touch||{}).utm_source||((w.source||{}).first_touch||{}).source||"",((w.source||{}).first_touch||{}).utm_campaign||""]));
+    csv(rows,`ace-early-access-${new Date().toISOString().slice(0,10)}.csv`)};
+}
+
 /* =============== CATEGORIES =============== */
 const slugify=s=>s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)||"category";
 async function pCategories(){
@@ -1065,6 +1104,23 @@ async function pStore(){
       ${text(`details.tiles.${i}.title`,"Title")}${text(`details.tiles.${i}.text`,"Text")}
       ${tog(`details.tiles.${i}.wide`,"Wide tile")}</div>`).join("");
   const build=()=>`
+    ${acc("coming","Coming soon page",`${tog("coming_soon.on","Turn the coming soon page ON (hides the shop from visitors)")}
+      <p class="help" style="margin:-4px 0 12px">While this is on, everyone who opens your website sees this page. You can still see the real shop by adding <b>?see=1</b> to your address, for example aceforathletes.com/?see=1</p>
+      ${text("coming_soon.tagline","Small line above the title")}${text("coming_soon.headline","Big title")}${text("coming_soon.text","Text under the title",{area:true})}
+      ${text("coming_soon.button","Button")}${text("coming_soon.note","Small line under the form")}
+      ${text("coming_soon.success_title","Thank-you title")}${text("coming_soon.success_text","Thank-you text",{area:true})}
+      <span class="lbl" style="margin-top:14px">What to ask for</span>
+      <p class="help" style="margin:-2px 0 8px">Name, phone and email are always asked.</p>
+      ${tog("coming_soon.ask_size","Preferred size")}${text("coming_soon.sizes","Size choices",{help:"Separate with commas."})}
+      ${tog("coming_soon.ask_sport","Sport they play")}${text("coming_soon.sports","Sport choices",{help:"Separate with commas."})}
+      ${tog("coming_soon.ask_notes","An open question (what they'd like to see)")}
+      ${tog("coming_soon.show_socials","Show Instagram and WhatsApp links")}
+      <span class="lbl" style="margin-top:14px">Look</span>
+      ${tog("coming_soon.dark","Dark page (white logo on black)")}
+      ${range("coming_soon.logo_size","Watermark logo size",20,140,1,"%")}
+      ${range("coming_soon.logo_opacity","Watermark strength",0,60,1,"%")}
+      ${img("coming_soon.background","Background photo (optional)",{help:"Leave empty for a plain background."})}
+      ${range("coming_soon.overlay","Darken the photo",0,95,1,"%")}`,"")}
     ${acc("theme","Theme",`
       ${sel("theme.mode","Colour mode",[["auto","Automatic (follows the visitor's phone)"],["light","Always light"],["dark","Always dark"]])}
       ${sel("theme.font_display","Title font",Object.keys(F.display).map(k=>[k,k]))}

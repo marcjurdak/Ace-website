@@ -521,6 +521,31 @@ section.co-sec{padding:28px 0 0}
 /* card rating */
 .card .rt{font-size:12px;margin-top:3px;display:flex;gap:6px;align-items:center;color:var(--muted)}
 
+/* ===================== coming soon ===================== */
+html.cs-on body{overflow:hidden}
+html.cs-on .top,html.cs-on main,html.cs-on footer,html.cs-on .wm,html.cs-on .announce{display:none!important}
+.cs{position:fixed;inset:0;z-index:40;display:grid;place-items:center;text-align:center;padding:max(24px,env(safe-area-inset-top)) var(--pad) calc(24px + env(safe-area-inset-bottom));background:var(--bg);overflow-y:auto}
+.cs[hidden]{display:none}
+.cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.cs-bg[hidden]{display:none}
+.cs::after{content:"";position:absolute;inset:0;background:var(--bg);opacity:var(--cs-overlay,0);z-index:1;pointer-events:none}
+.cs-wm{position:absolute;inset:0;display:grid;place-items:center;z-index:1;pointer-events:none}
+.cs-wm img{width:var(--cs-wm,62%);max-width:none;opacity:var(--cs-wm-op,.08)}
+.cs-in{position:relative;z-index:2;width:min(460px,100%);padding:40px 0}
+.cs-logo{height:clamp(26px,5vw,38px);width:auto;margin:0 auto 22px}
+.cs-tag{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:26px}
+.cs h1{font-size:clamp(30px,7vw,56px);line-height:1.02;margin-bottom:16px}
+.cs-text{color:var(--muted);font-size:clamp(15px,1.8vw,17px);line-height:1.65;max-width:38ch;margin:0 auto 30px}
+.cs .cta{width:100%;max-width:340px}
+.cs-form{margin:26px auto 0;max-width:360px;text-align:left}
+.cs-form[hidden]{display:none}
+.cs-note{font-size:12px;color:var(--muted);margin-top:12px;text-align:center}
+.cs-done{max-width:360px;margin:20px auto 0}
+.cs-done h2{font-size:clamp(20px,3vw,28px);margin-bottom:10px}
+.cs-done p{color:var(--muted)}
+.cs-social{margin-top:34px;display:flex;gap:22px;justify-content:center;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.cs-social a{color:var(--fg);text-decoration:none;border-bottom:1px solid var(--line);padding-bottom:3px}
+html.cs-on .consent{display:none!important}
 /* ===================== high-end design pass ===================== */
 :root{--hair:1px solid color-mix(in srgb,var(--fg) 12%,transparent);--space:clamp(56px,9vw,132px)}
 body{font-size:15.5px;line-height:1.55;letter-spacing:.005em;-webkit-font-smoothing:antialiased}
@@ -643,6 +668,30 @@ footer small{font-size:12px;letter-spacing:.04em}
 <script>document.documentElement.classList.add("js")</script>
 <div class="wm" id="wm" aria-hidden="true"><img class="logo-light" data-img="brand.logo_full_light" src="/logo-full-black.png" alt=""><img class="logo-dark" data-img="brand.logo_full_dark" src="/logo-full-white.png" alt=""></div>
 <div class="announce" id="announce" hidden aria-label="Announcements"><div class="an-track" id="anTrack"></div></div>
+<section class="cs" id="comingSoon" hidden>
+  <img class="cs-bg" id="csBg" alt="" hidden>
+  <div class="cs-wm"><img class="logo-light" id="csWmL" src="/logo-full-black.png" alt=""><img class="logo-dark" id="csWmD" src="/logo-full-white.png" alt=""></div>
+  <div class="cs-in">
+    <img class="cs-logo logo-light" id="csLogoL" src="/logo-word-black.png" alt="ACE"><img class="cs-logo logo-dark" id="csLogoD" src="/logo-word-white.png" alt="ACE">
+    <p class="cs-tag" id="csTag"></p>
+    <h1 id="csHead"></h1>
+    <p class="cs-text" id="csText"></p>
+    <button type="button" class="cta" id="csOpen"></button>
+    <form class="cs-form" id="csForm" hidden>
+      <label class="fld"><span>Name</span><input id="wName" autocomplete="name" maxlength="80"></label>
+      <label class="fld"><span>Phone</span><input id="wPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+961 70 123 456"></label>
+      <label class="fld"><span>Email</span><input id="wEmail" type="email" inputmode="email" autocomplete="email"></label>
+      <label class="fld" id="wSizeWrap"><span>Preferred size</span><select id="wSize"></select></label>
+      <label class="fld" id="wSportWrap"><span>You mostly play</span><select id="wSport"></select></label>
+      <label class="fld" id="wNotesWrap" hidden><span>Anything you'd like to see?</span><input id="wNotes" maxlength="300"></label>
+      <div class="form-err" id="wErr" aria-live="polite"></div>
+      <button type="submit" class="px-add" id="wSend"><span>Join the list</span><span aria-hidden="true">→</span></button>
+      <p class="cs-note" id="csNote"></p>
+    </form>
+    <div class="cs-done" id="csDone" hidden><h2 id="csDoneT"></h2><p id="csDoneX"></p></div>
+    <div class="cs-social" id="csSocial"></div>
+  </div>
+</section>
 <header class="top">
   <div class="lhs"><button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
   <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
@@ -916,16 +965,64 @@ function applyContent(c){
   document.querySelectorAll("[data-show]").forEach(el=>{el.hidden=getPath(c,el.dataset.show)===false});
   setupAnnouncements(c.announcement||{});
   setupStory(c.story||{});
+  setupComingSoon(c.coming_soon||{});
   document.getElementById("heroMobile").setAttribute("srcset",(c.hero&&c.hero.image_mobile)||(c.hero&&c.hero.image)||"/hero.jpg");
   const d=c.details||{};
   document.getElementById("detGrid").innerHTML=(d.tiles||[]).filter(x=>x&&x.image).map(x=>`<figure class="${x.wide?"wide":"sq"}">${x.image2?`<div class="pair"><img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy"><img src="${esc(x.image2)}" alt="" loading="lazy"></div>`:`<img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy">`}<figcaption><b>${esc(x.title)}</b>${esc(x.text)}</figcaption></figure>`).join("");
   const st=c.store||{},sv=document.getElementById("storeVisual"),si=document.getElementById("storeImg");
   if(st.image){sv.classList.add("photo");si.src=st.image;si.alt=st.title||""}else{sv.classList.remove("photo");si.src=(c.brand&&c.brand.logo_full_light)||"/logo-full-black.png";si.alt=""}
-  const seo=c.seo||{};if(seo.title)document.title=seo.title;if(seo.description)document.getElementById("metaDesc").setAttribute("content",seo.description);
+  const seo=c.seo||{};if(seo.title)document.title=seo.title;
+  if(CS_ON){const cs=c.coming_soon||{};document.title=`${cs.title||seo.title||"ACE"} — ${cs.headline||"Coming soon"}`}if(seo.description)document.getElementById("metaDesc").setAttribute("content",seo.description);
   if(c.brand&&c.brand.favicon)document.getElementById("favicon").setAttribute("href",c.brand.favicon);
   if(PRODUCTS.length){buildFilters();renderGrid()}else if(gridLoaded){buildGrid()}
 }
 let gridLoaded=false;
+/* ---------- coming soon ---------- */
+let CS_ON=false;
+function csList(s,fallback){return String(s||fallback).split(",").map(x=>x.trim()).filter(Boolean)}
+function setupComingSoon(cs){
+  cs=cs||{};
+  let bypass=false;
+  try{const q=new URLSearchParams(location.search);if(q.has("see")){sessionStorage.setItem("ace-see","1")}bypass=sessionStorage.getItem("ace-see")==="1"}catch(e){}
+  CS_ON=!!cs.on&&!bypass;
+  document.documentElement.classList.toggle("cs-on",CS_ON);
+  const box=document.getElementById("comingSoon");box.hidden=!CS_ON;
+  if(!CS_ON)return;
+  box.style.setProperty("--cs-wm",Math.max(20,Math.min(140,Number(cs.logo_size)||62))+"%");
+  box.style.setProperty("--cs-wm-op",Math.max(0,Math.min(60,Number(cs.logo_opacity)||8))/100);
+  box.style.setProperty("--cs-overlay",Math.max(0,Math.min(95,Number(cs.overlay)||0))/100);
+  const bg=document.getElementById("csBg");bg.hidden=!cs.background;if(cs.background)bg.src=cs.background;
+  if(cs.dark===true)document.documentElement.setAttribute("data-theme","dark");
+  $("#csLogoL").src=(C.brand&&C.brand.logo_word_light)||"/logo-word-black.png";$("#csLogoD").src=(C.brand&&C.brand.logo_word_dark)||"/logo-word-white.png";
+  $("#csWmL").src=(C.brand&&C.brand.logo_full_light)||"/logo-full-black.png";$("#csWmD").src=(C.brand&&C.brand.logo_full_dark)||"/logo-full-white.png";
+  $("#csTag").textContent=cs.tagline||"";$("#csHead").textContent=cs.headline||"Coming soon.";
+  $("#csText").textContent=cs.text||"";$("#csOpen").textContent=cs.button||"Get early access";
+  $("#csNote").textContent=cs.note||"";$("#csDoneT").textContent=cs.success_title||"You're on the list";$("#csDoneX").textContent=cs.success_text||"";
+  $("#wSize").innerHTML=csList(cs.sizes,"S, M, L, XL, XXL").map(x=>`<option>${esc(x)}</option>`).join("");
+  $("#wSport").innerHTML=csList(cs.sports,"Football, Padel, Gym, Other").map(x=>`<option>${esc(x)}</option>`).join("");
+  $("#wSizeWrap").hidden=cs.ask_size===false;$("#wSportWrap").hidden=cs.ask_sport===false;$("#wNotesWrap").hidden=cs.ask_notes!==true;
+  const wa=String(SETTINGS.whatsapp_number||"").replace(/\D/g,""),ig=SETTINGS.instagram_url||"";
+  $("#csSocial").innerHTML=cs.show_socials===false?"":[ig?`<a href="${esc(ig)}" target="_blank" rel="noopener">Instagram</a>`:"",wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""].join("");
+  document.title=`${(cs.title||"ACE")} — ${cs.headline||"Coming soon"}`;
+  wireComingSoon();
+}
+let csWired=false;
+function wireComingSoon(){
+  if(csWired)return;csWired=true;
+  document.getElementById("csOpen").onclick=()=>{$("#csForm").hidden=false;$("#csOpen").hidden=true;$("#wName").focus();track("waitlist_open",{})};
+  document.getElementById("csForm").addEventListener("submit",async e=>{
+  e.preventDefault();const err=$("#wErr");err.textContent="";
+  const btn=$("#wSend");btn.disabled=true;
+  const payload={name:$("#wName").value,phone:$("#wPhone").value,email:$("#wEmail").value,
+    size:$("#wSizeWrap").hidden?"":$("#wSize").value,sport:$("#wSportWrap").hidden?"":$("#wSport").value,
+    notes:$("#wNotesWrap").hidden?"":$("#wNotes").value,attribution:window.aceAttribution()};
+  const {data,error}=await db.rpc("join_waitlist",{p:payload});
+  btn.disabled=false;
+  if(error||!data){err.textContent=(error&&error.message)||"Something went wrong. Please try again.";return}
+  $("#csForm").hidden=true;$("#csDone").hidden=false;
+  track("waitlist_signup",{sport:payload.sport,size:payload.size});
+});
+}
 /* ---------- pages (real web addresses) ---------- */
 const SECTIONS=["#storyPage",".hero","#shop","#storySec","#bundlesSec",".details","#store"];
 let ROUTE={v:"home"};
@@ -946,6 +1043,7 @@ function navigate(path,replace){
   applyRoute();
 }
 function applyRoute(){
+  if(CS_ON)return;
   const r=parsePath();ROUTE=r;const seo=C.seo||{};
   const shopSection=document.querySelector("#shop");
   if(r.v==="product"){
