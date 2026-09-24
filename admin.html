@@ -1098,6 +1098,14 @@ async function pStore(){
       <p class="help">Products are edited in <a class="link" href="#/products">Products</a>, category names in <a class="link" href="#/categories">Categories</a>.</p>`,"#shop")}
     ${acc("details","Details section",`${tog("details.show","Show this section")}${text("details.title","Title")}${text("details.lead","Text",{area:true})}
       <div id="tiles">${tilesHtml()}</div><button class="btn ghost sm" type="button" id="addTile">Add tile</button>`,".details")}
+    ${acc("story","Our story section",`${tog("story.show","Show this section")}
+      ${text("story.kicker","Small label above the title")}${text("story.title","Title")}${text("story.text","Short text on the page",{area:true})}
+      ${text("story.button","Button label",{help:"Leave the full story empty to hide the button."})}
+      ${text("story.full_text","The full story (opens when the button is clicked)",{area:true,help:"Leave an empty line between paragraphs."})}
+      ${img("story.image","Photo",{help:"Leave empty to show the text only, across the full width."})}
+      ${sel("story.layout","Photo position",[["image_left","Photo on the left"],["image_right","Photo on the right"],["image_top","Photo above, full width"]])}
+      ${range("story.image_width","Photo width",25,70,1,"%")}
+      ${sel("story.image_ratio","Photo shape",[["4/5","Portrait (4:5)"],["1/1","Square"],["3/4","Portrait (3:4)"],["16/9","Wide (16:9)"],["3/2","Landscape (3:2)"]])}`,"#storySec")}
     ${acc("product","Product page",`${tog("product.show_reviews","Show reviews on product pages")}${text("product.reviews_title","Reviews title")}${text("product.related_title","Recommendations title")}
       ${text("product.size_guide","Size guide (opens from the product page)",{area:true})}${text("product.returns_text","Delivery & returns text",{area:true})}${text("product.confirm_text","Line under the add-to-bag button")}
       <p class="help">The delivery fee and payment line come from <a class="link" href="#/settings">Settings</a>.</p>`,"")}
