@@ -37,6 +37,12 @@
       localStorage.setItem(KEY,JSON.stringify(A));
     }
   }catch(e){}
+  try{
+    var cq=new URLSearchParams(location.search).get("code");
+    if(cq&&/^[A-Za-z0-9_-]{2,40}$/.test(cq))localStorage.setItem("ace-code",JSON.stringify({code:cq.toUpperCase(),at:Date.now()}));
+  }catch(e){}
+  window.aceSavedCode=function(){try{var s=JSON.parse(localStorage.getItem("ace-code")||"null");
+    if(s&&s.code&&Date.now()-s.at<30*864e5)return s.code}catch(e){}return ""};
   window.aceAttribution=function(){var A={};try{A=JSON.parse(localStorage.getItem("ace-attr")||"{}")||{}}catch(e){}
     var m=document.cookie.match(/(?:^|; )_fbp=([^;]+)/);if(m)A.fbp=decodeURIComponent(m[1]);return A};
 })();
@@ -1497,6 +1503,7 @@ function renderSummary(){
 function openCheckout(){
   cleanBag();if(!bag.length)return;
   if(DISC)applyCode(DISC.code);
+  else{const saved=window.aceSavedCode&&window.aceSavedCode();if(saved){$("#fCode").value=saved;applyCode(saved)}}
   closeAll();renderSummary();$("#formErr").textContent="";
   showStep("form");
   track("begin_checkout",{value:bagTotal(),coupon:DISC?DISC.code:undefined,items:bagItems()});

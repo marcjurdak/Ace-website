@@ -245,6 +245,7 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
       <a href="#/categories" data-r="categories" style="padding-left:38px;font-size:13px">Categories</a>
       <a href="#/customers" data-r="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Customers</a>
       <a href="#/discounts" data-r="discounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>Discounts</a>
+      <a href="#/influencers" data-r="influencers" style="padding-left:38px;font-size:13px">Influencers</a>
       <a href="#/bundles" data-r="bundles" style="padding-left:38px;font-size:13px">Bundles</a>
       <a href="#/waitlist" data-r="waitlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2.6"/></svg>Early access</a>
       <a href="#/reviews" data-r="reviews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Reviews<span class="badge" id="navRev" hidden>0</span></a>
@@ -381,7 +382,7 @@ async function router(){
   const parts=(location.hash.replace(/^#\/?/,"")||"home").split("/");
   const r=parts[0];
   $$("#nav a").forEach(a=>a.setAttribute("aria-current",a.dataset.r===r?"page":"false"));
-  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",bundles:"Bundles",reviews:"Reviews",waitlist:"Early access",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
+  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
   $("#side").classList.remove("open");$("#scrim").hidden=true;
   V.innerHTML=`<div class="empty" style="border:0;background:none"><span class="spin"></span></div>`;window.scrollTo(0,0);
   try{
@@ -391,6 +392,8 @@ async function router(){
     else if(r==="products"&&parts[1])await pProduct(parts[1]);
     else if(r==="products")await pProducts();
     else if(r==="categories")await pCategories();
+    else if(r==="influencers"&&parts[1])await pInfluencer(parts[1]);
+    else if(r==="influencers")await pInfluencers();
     else if(r==="bundles")await pBundles();
     else if(r==="reviews")await pReviews();
     else if(r==="waitlist")await pWaitlist();
@@ -798,6 +801,112 @@ async function pProduct(id){
     const {error}=await db.from("products").delete().eq("id",p.id);if(error){$("#eErr").textContent="Couldn't delete: "+error.message;return}dirty=false;toast("Product deleted");go("#/products")};
 }
 
+/* =============== INFLUENCERS =============== */
+function infStats(inf,codes){
+  const mine=codes.filter(c=>c.influencer_id===inf.id).map(c=>c.code);
+  const set=new Set(mine.map(c=>c.toUpperCase()));
+  const os=ORDERS.filter(o=>o.discount_code&&set.has(String(o.discount_code).toUpperCase()));
+  const delivered=os.filter(o=>o.status==="delivered");
+  const cancelled=os.filter(o=>["cancelled","returned","refunded"].includes(o.status));
+  const liveO=os.filter(live);
+  const salesDelivered=delivered.reduce((a,o)=>a+Number(o.delivered_revenue||o.total||0),0);
+  const salesAll=liveO.reduce((a,o)=>a+oTotal(o),0);
+  const given=os.reduce((a,o)=>a+Number(o.discount_amount||0),0);
+  const base=delivered.reduce((a,o)=>a+(Number(o.subtotal||0)-Number(o.discount_amount||0)-Number(o.bundle_discount||0)),0);
+  const commission=base*Number(inf.commission_percent||0)/100;
+  const customers=new Set(os.map(custKey)).size;
+  return {codes:mine,orders:os,n:os.length,delivered:delivered.length,cancelled:cancelled.length,salesDelivered,salesAll,given,commission,customers,
+    last:os.length?os.map(o=>o.created_at).sort().slice(-1)[0]:null};
+}
+async function pInfluencers(){
+  await Promise.all([loadInfluencers(),loadDiscounts(),ORDERS.length?null:loadOrders()]);
+  const rows=INFLUENCERS.map(i=>({i,s:infStats(i,DISCOUNTS)})).sort((a,b)=>b.s.salesDelivered-a.s.salesDelivered||b.s.n-a.s.n);
+  const tot=rows.reduce((a,r)=>({n:a.n+r.s.n,sales:a.sales+r.s.salesDelivered,given:a.given+r.s.given,com:a.com+r.s.commission}),{n:0,sales:0,given:0,com:0});
+  V.innerHTML=`<div class="pagehead"><h1>Influencers</h1><button class="btn sm" id="iNew">Add influencer</button></div>
+    <p class="help" style="margin:-8px 0 14px">Give each influencer their own promo code, then see exactly how many orders and how much delivered revenue it brought. Delivered revenue is what customers actually received and paid for, not just submitted orders.</p>
+    <div class="metrics">
+      <div class="metric"><div class="k">Influencers</div><div class="v">${INFLUENCERS.length}</div></div>
+      <div class="metric"><div class="k">Orders from codes</div><div class="v">${tot.n}</div></div>
+      <div class="metric"><div class="k">Delivered revenue</div><div class="v">${money(tot.sales)}</div></div>
+      <div class="metric"><div class="k">Discounts given</div><div class="v">${money(tot.given)}</div></div>
+      <div class="metric"><div class="k">Commission owed</div><div class="v">${money(tot.com)}</div></div>
+    </div>
+    <div id="iOut"></div>`;
+  $("#iOut").innerHTML=rows.length?`<div class="tblwrap resp"><table class="tbl"><thead><tr><th>Influencer</th><th>Codes</th><th class="num">Orders</th><th class="num">Delivered</th><th class="num">Delivered revenue</th><th class="num">Discounts given</th><th class="num">Commission</th><th>Last order</th></tr></thead><tbody>
+    ${rows.map(({i,s})=>`<tr data-id="${i.id}"><td><b>${esc(i.name)}</b>${i.handle?`<div class="muted" style="font-size:12px">${esc(i.handle)} · ${esc(i.platform)}</div>`:""}${i.active?"":' <span class="pill p-hidden">Off</span>'}</td>
+      <td>${s.codes.map(c=>`<span class="pill p-scheduled" style="margin-right:4px">${esc(c)}</span>`).join("")||`<span class="muted">no code yet</span>`}</td>
+      <td class="num">${s.n}</td><td class="num">${s.delivered}${s.cancelled?`<div class="muted" style="font-size:12px">${s.cancelled} cancelled</div>`:""}</td>
+      <td class="num"><b>${money(s.salesDelivered)}</b>${s.salesAll>s.salesDelivered?`<div class="muted" style="font-size:12px">${money(s.salesAll)} incl. pending</div>`:""}</td>
+      <td class="num">${money(s.given)}</td><td class="num">${i.commission_percent>0?`${money(s.commission)}<div class="muted" style="font-size:12px">${Number(i.commission_percent)}%</div>`:`<span class="muted">—</span>`}</td>
+      <td class="nowrap muted">${s.last?ago(s.last):"—"}</td></tr>`).join("")}</tbody></table></div>
+    <div class="mlist">${rows.map(({i,s})=>`<button class="mcard" data-id="${i.id}"><span class="t">${esc(i.name)}</span><b>${money(s.salesDelivered)}</b><span class="s">${s.codes.join(", ")||"no code"}</span><span class="s">${s.n} orders · ${s.delivered} delivered</span></button>`).join("")}</div>`
+    :`<div class="empty">No influencers yet. Add one, give them a promo code, and every order with that code is counted here.</div>`;
+  $$("#iOut [data-id]").forEach(r=>r.onclick=()=>go("#/influencers/"+r.dataset.id));
+  $("#iNew").onclick=()=>editInfluencer(null);
+}
+async function pInfluencer(id){
+  await Promise.all([loadInfluencers(),loadDiscounts(),ORDERS.length?null:loadOrders()]);
+  const i=INFLUENCERS.find(x=>x.id===id);
+  if(!i){V.innerHTML=`<a class="back" href="#/influencers">← Influencers</a><div class="empty">Not found.</div>`;return}
+  const s=infStats(i,DISCOUNTS);
+  const wa=i.phone?waNumber(i.phone,"Lebanon"):"";
+  const link=s.codes.length?`https://aceforathletes.com/?code=${encodeURIComponent(s.codes[0])}&utm_source=influencer&utm_campaign=${encodeURIComponent(s.codes[0].toLowerCase())}`:"";
+  V.innerHTML=`<a class="back" href="#/influencers">← Influencers</a>
+  <div class="pagehead"><h1>${esc(i.name)}</h1>${i.active?"":pill("hidden","Off")}<span class="row"><button class="btn ghost sm" id="iEdit">Edit</button><button class="btn sm" id="iCode">New promo code</button></span>
+    <span class="muted" style="width:100%;font-size:13px">${esc(i.handle||"")}${i.handle?" · ":""}${esc(i.platform)}${i.commission_percent>0?` · ${Number(i.commission_percent)}% commission`:""}</span></div>
+  <div class="metrics">
+    <div class="metric"><div class="k">Orders with their code</div><div class="v">${s.n}</div><div class="muted" style="font-size:12px;margin-top:3px">${s.customers} customer${s.customers===1?"":"s"}</div></div>
+    <div class="metric"><div class="k">Delivered</div><div class="v">${s.delivered}</div><div class="muted" style="font-size:12px;margin-top:3px">${s.cancelled} cancelled</div></div>
+    <div class="metric"><div class="k">Delivered revenue</div><div class="v">${money(s.salesDelivered)}</div></div>
+    <div class="metric"><div class="k">Including pending</div><div class="v">${money(s.salesAll)}</div></div>
+    <div class="metric"><div class="k">Discounts given</div><div class="v">${money(s.given)}</div></div>
+    <div class="metric"><div class="k">Commission owed</div><div class="v">${money(s.commission)}</div></div>
+  </div>
+  <div class="dgrid">
+    <div class="card"><div class="row between" style="margin-bottom:8px"><h2 style="margin:0">Orders</h2><button class="btn ghost sm" id="iExport">Export CSV</button></div>
+      ${s.orders.length?[...s.orders].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(o=>`<a href="#/orders/${o.order_number}" class="row between" style="text-decoration:none;padding:9px 0;border-bottom:1px solid var(--line)"><span><b>#${o.order_number}</b> <span class="muted">· ${esc(o.first_name)} ${esc(o.last_name)} · ${fmtDate(o.created_at)} · code ${esc(o.discount_code)}</span></span><span class="row">${pill(o.status,SL[o.status])}<b>${money(oTotal(o))}</b></span></a>`).join(""):`<p class="muted">No orders with their code yet.</p>`}
+    </div>
+    <div>
+      <div class="card"><h2>Promo codes</h2>
+        ${s.codes.length?DISCOUNTS.filter(d=>d.influencer_id===i.id).map(d=>{const [k,l]=dState(d);return `<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span><b>${esc(d.code)}</b> <span class="muted">${d.kind==="percent"?Number(d.value)+"% off":money(d.value)+" off"}</span></span><span class="row">${pill(k,l)}<span class="muted">used ${d.used_count}${d.usage_limit!=null?"/"+d.usage_limit:""}</span></span></div>`}).join(""):`<p class="muted">No code yet. Create one so their sales can be counted.</p>`}
+      </div>
+      <div class="card"><h2>Contact</h2><dl class="kv">${i.phone?`<dt>Phone</dt><dd>${esc(i.phone)}</dd>`:""}${i.email?`<dt>Email</dt><dd><a href="mailto:${esc(i.email)}">${esc(i.email)}</a></dd>`:""}${i.notes?`<dt>Notes</dt><dd>${esc(i.notes)}</dd>`:""}</dl>
+        <div class="row" style="margin-top:10px">${wa?`<a class="btn sm" href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>`:""}${i.handle&&i.platform==="instagram"?`<a class="btn ghost sm" href="https://instagram.com/${encodeURIComponent(i.handle.replace("@",""))}" target="_blank" rel="noopener">Instagram</a>`:""}</div>
+        ${link?`<div style="margin-top:14px"><span class="lbl">Link to share</span><input type="text" readonly value="${esc(link)}" onclick="this.select()"><small class="help">Sends them to your shop, fills their promo code in at checkout automatically, and tags the visit so you also see visits, not just orders.</small></div>`:""}
+      </div>
+      <div class="card"><h2>Remove</h2><button class="btn danger sm" id="iDel">Delete influencer</button><p class="help" style="margin-top:8px">Their promo codes and past orders are kept.</p></div>
+    </div>
+  </div>`;
+  $("#iEdit").onclick=()=>editInfluencer(i);
+  $("#iCode").onclick=()=>editDiscount(null,i.id);
+  $("#iDel").onclick=async()=>{if(!confirm(`Delete ${i.name}? Their codes stay, but stop being counted for them.`))return;
+    const {error}=await db.from("influencers").delete().eq("id",i.id);if(error)return toast(error.message,true);toast("Deleted");go("#/influencers")};
+  $("#iExport").onclick=()=>{const rows=[["Order","Date","Status","Code","Customer","City","Subtotal","Discount","Total","Delivered revenue"]];
+    s.orders.forEach(o=>rows.push([o.order_number,new Date(o.created_at).toISOString(),SL[o.status],o.discount_code,`${o.first_name} ${o.last_name}`,o.city,o.subtotal,o.discount_amount,oTotal(o),o.delivered_revenue]));
+    csv(rows,`ace-${(i.name||"influencer").toLowerCase().replace(/\W+/g,"-")}-orders.csv`)};
+}
+function editInfluencer(i){
+  const m=modal(`<h2>${i?"Edit influencer":"Add influencer"}</h2>
+    <div class="grid2"><label class="fld"><span>Name</span><input type="text" id="inName" maxlength="60" value="${esc(i?i.name:"")}"></label>
+      <label class="fld"><span>Handle</span><input type="text" id="inHandle" maxlength="60" placeholder="@name" value="${esc(i?i.handle||"":"")}"></label></div>
+    <div class="grid2"><label class="fld"><span>Platform</span><select id="inPlat">${[["instagram","Instagram"],["tiktok","TikTok"],["youtube","YouTube"],["friend","Friend / word of mouth"],["other","Other"]].map(([v,l])=>`<option value="${v}" ${i&&i.platform===v?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label class="fld"><span>Commission %</span><input type="number" id="inCom" min="0" max="100" step="0.5" value="${i?Number(i.commission_percent):0}"></label></div>
+    <div class="grid2"><label class="fld"><span>Phone</span><input type="tel" id="inPhone" value="${esc(i?i.phone||"":"")}"></label>
+      <label class="fld"><span>Email</span><input type="email" id="inEmail" value="${esc(i?i.email||"":"")}"></label></div>
+    <label class="fld"><span>Notes</span><textarea id="inNotes" rows="2">${esc(i?i.notes||"":"")}</textarea></label>
+    <label class="toggle" style="margin-bottom:12px"><input type="checkbox" id="inAct" ${!i||i.active?"checked":""}> Working with us right now</label>
+    <div class="err" id="inErr"></div>
+    <div class="row between" style="margin-top:10px"><span></span><span class="row"><button class="btn ghost" id="inCancel">Cancel</button><button class="btn" id="inSave">Save</button></span></div>`);
+  $("#inCancel",m).onclick=()=>m.remove();
+  $("#inSave",m).onclick=async()=>{const name=$("#inName",m).value.trim();
+    if(!name)return $("#inErr",m).textContent="Add a name.";
+    const row={name,handle:$("#inHandle",m).value.trim()||null,platform:$("#inPlat",m).value,commission_percent:Math.max(0,Math.min(100,parseFloat($("#inCom",m).value)||0)),
+      phone:$("#inPhone",m).value.trim()||null,email:$("#inEmail",m).value.trim()||null,notes:$("#inNotes",m).value.trim()||null,active:$("#inAct",m).checked};
+    const res=i?await db.from("influencers").update(row).eq("id",i.id):await db.from("influencers").insert(row);
+    if(res.error)return $("#inErr",m).textContent=res.error.message;
+    m.remove();toast("Saved");location.hash==="#/influencers"?pInfluencers():router()};
+}
+
 /* =============== EARLY ACCESS LIST =============== */
 let wF={q:"",sport:"all"};
 async function pWaitlist(){
@@ -1033,19 +1142,21 @@ async function pCustomer(key){
 
 /* =============== DISCOUNTS =============== */
 function dState(d){const n=new Date();if(!d.active)return["off","Off"];if(d.starts_at&&new Date(d.starts_at)>n)return["scheduled","Scheduled"];if(d.ends_at&&new Date(d.ends_at)<n)return["expired","Expired"];if(d.usage_limit!=null&&d.used_count>=d.usage_limit)return["usedup","Used up"];return["active","Active"]}
+let INFLUENCERS=[];
+async function loadInfluencers(){const {data,error}=await db.from("influencers").select("*").order("name");if(error)throw error;INFLUENCERS=data||[];return INFLUENCERS}
 async function pDiscounts(){
-  await loadDiscounts();
+  await Promise.all([loadDiscounts(),loadInfluencers()]);
   V.innerHTML=`<div class="pagehead"><h1>Discounts</h1><button class="btn sm" id="dNew">Create discount</button></div><div id="dOut"></div>
     <p class="help" style="margin-top:10px">Customers type the code at checkout. The discount is checked and applied by the database, so it can't be faked.</p>`;
   const out=$("#dOut");
   if(!DISCOUNTS.length)out.innerHTML=`<div class="empty">No discount codes yet. Create one, e.g. WELCOME10 for 10% off.</div>`;
-  else out.innerHTML=`<div class="tblwrap"><table class="tbl"><thead><tr><th>Code</th><th>Discount</th><th>Status</th><th>Used</th><th>Minimum</th><th>Dates</th></tr></thead><tbody>
-    ${DISCOUNTS.map(d=>{const [k,l]=dState(d);return `<tr data-id="${d.id}"><td><b>${esc(d.code)}</b></td><td>${d.kind==="percent"?`${Number(d.value)}% off`:`${money(d.value)} off`}</td><td>${pill(k,l)}</td><td>${d.used_count}${d.usage_limit!=null?` / ${d.usage_limit}`:""}</td><td>${Number(d.min_subtotal)>0?money(d.min_subtotal):"None"}</td><td class="muted nowrap" style="font-size:12.5px">${d.starts_at?fmtDate(d.starts_at):"Now"} → ${d.ends_at?fmtDate(d.ends_at):"No end"}</td></tr>`}).join("")}
+  else out.innerHTML=`<div class="tblwrap"><table class="tbl"><thead><tr><th>Code</th><th>Discount</th><th>Influencer</th><th>Status</th><th>Used</th><th>Minimum</th><th>Dates</th></tr></thead><tbody>
+    ${DISCOUNTS.map(d=>{const [k,l]=dState(d);return `<tr data-id="${d.id}"><td><b>${esc(d.code)}</b></td><td>${d.kind==="percent"?`${Number(d.value)}% off`:`${money(d.value)} off`}</td><td>${(INFLUENCERS.find(x=>x.id===d.influencer_id)||{}).name||`<span class="muted">—</span>`}</td><td>${pill(k,l)}</td><td>${d.used_count}${d.usage_limit!=null?` / ${d.usage_limit}`:""}</td><td>${Number(d.min_subtotal)>0?money(d.min_subtotal):"None"}</td><td class="muted nowrap" style="font-size:12.5px">${d.starts_at?fmtDate(d.starts_at):"Now"} → ${d.ends_at?fmtDate(d.ends_at):"No end"}</td></tr>`}).join("")}
     </tbody></table></div>`;
   $$("#dOut [data-id]").forEach(r=>r.onclick=()=>editDiscount(DISCOUNTS.find(d=>d.id===r.dataset.id)));
   $("#dNew").onclick=()=>editDiscount(null);
 }
-function editDiscount(d){
+function editDiscount(d,presetInfluencer){
   const toLocal=ts=>ts?new Date(new Date(ts).getTime()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16):"";
   const m=modal(`<h2>${d?"Edit discount":"Create discount"}</h2>
     <label class="fld"><span>Code</span><div class="row" style="flex-wrap:nowrap"><input type="text" id="dCode" value="${esc(d?d.code:"")}" maxlength="40" style="text-transform:uppercase" placeholder="WELCOME10"><button class="btn ghost sm" id="dGen" type="button">Generate</button></div></label>
@@ -1055,6 +1166,7 @@ function editDiscount(d){
       <label class="fld"><span>Total uses allowed</span><input type="number" id="dLim" min="1" step="1" value="${d&&d.usage_limit!=null?d.usage_limit:""}" placeholder="Unlimited"></label></div>
     <div class="grid2"><label class="fld"><span>Starts</span><input type="datetime-local" id="dStart" value="${toLocal(d&&d.starts_at)}"></label>
       <label class="fld"><span>Ends</span><input type="datetime-local" id="dEnd" value="${toLocal(d&&d.ends_at)}"></label></div>
+    <label class="fld"><span>Belongs to an influencer (optional)</span><select id="dInf"><option value="">— Nobody / general code —</option>${INFLUENCERS.map(i=>`<option value="${esc(i.id)}" ${d&&d.influencer_id===i.id?"selected":""}>${esc(i.name)}${i.handle?" ("+esc(i.handle)+")":""}</option>`).join("")}</select></label>
     <label class="toggle" style="margin:6px 0 14px"><input type="checkbox" id="dAct" ${!d||d.active?"checked":""}> Active</label>
     ${d?`<p class="help" style="margin-bottom:12px">Used ${d.used_count} time${d.used_count===1?"":"s"}.</p>`:""}
     <div class="err" id="dErr"></div>
@@ -1066,10 +1178,10 @@ function editDiscount(d){
     const code=$("#dCode",m).value.trim().toUpperCase().replace(/\s+/g,""),val=parseFloat($("#dVal",m).value),kind=$("#dKind",m).value;
     if(code.length<2)return e("Add a code (at least 2 characters).");if(!(val>0))return e("Add a value above 0.");if(kind==="percent"&&val>100)return e("A percentage can't be over 100.");
     const lim=$("#dLim",m).value.trim();const s=$("#dStart",m).value,en=$("#dEnd",m).value;
-    const row={code,kind,value:val,min_subtotal:Math.max(0,parseFloat($("#dMin",m).value)||0),usage_limit:lim?Math.max(1,parseInt(lim)):null,active:$("#dAct",m).checked,starts_at:s?new Date(s).toISOString():null,ends_at:en?new Date(en).toISOString():null};
+    const row={influencer_id:$("#dInf",m).value||presetInfluencer||null,code,kind,value:val,min_subtotal:Math.max(0,parseFloat($("#dMin",m).value)||0),usage_limit:lim?Math.max(1,parseInt(lim)):null,active:$("#dAct",m).checked,starts_at:s?new Date(s).toISOString():null,ends_at:en?new Date(en).toISOString():null};
     const res=d?await db.from("discounts").update(row).eq("id",d.id):await db.from("discounts").insert(row);
     if(res.error)return e(/duplicate|unique/i.test(res.error.message)?"That code already exists.":"Couldn't save: "+res.error.message);
-    m.remove();toast("Discount saved");pDiscounts();
+    m.remove();toast("Discount saved");if(presetInfluencer)router();else pDiscounts();
   };
   if(d)$("#dDel",m).onclick=async()=>{if(!confirm(`Delete ${d.code}?`))return;const {error}=await db.from("discounts").delete().eq("id",d.id);if(error)return toast(error.message,true);m.remove();toast("Discount deleted");pDiscounts()};
 }
