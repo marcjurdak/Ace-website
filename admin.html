@@ -242,6 +242,7 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
       <a href="#/home" data-r="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
       <a href="#/orders" data-r="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12.5a1 1 0 0 1-1 .9h-11a1 1 0 0 1-1-.9z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg>Orders<span class="badge" id="navNew" hidden>0</span></a>
       <a href="#/products" data-r="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3l-5 4 3 3 2-1.5V21h8V8.5L18 10l3-3-5-4c0 2-2 3-4 3S8 5 8 3z"/></svg>Products</a>
+      <a href="#/guides" data-r="guides" style="padding-left:38px;font-size:13px">Size guides</a>
       <a href="#/categories" data-r="categories" style="padding-left:38px;font-size:13px">Categories</a>
       <a href="#/customers" data-r="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Customers</a>
       <a href="#/discounts" data-r="discounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>Discounts</a>
@@ -320,6 +321,24 @@ async function uploadImage(file,{max=1800,png=false}={}){
   return db.storage.from("product-images").getPublicUrl(path).data.publicUrl;
 }
 
+const VIDEO_LIMITS={desktop:{mb:6,label:"desktop (landscape, up to 1080p)"},mobile:{mb:3,label:"phone (portrait/square, up to 720p)"}};
+async function uploadVideo(file,kind){
+  const lim=VIDEO_LIMITS[kind]||VIDEO_LIMITS.desktop;
+  const ok=["video/mp4","video/webm","video/quicktime"];
+  if(!ok.includes(file.type))throw new Error("Only MP4 or WebM videos are accepted (you chose "+(file.type||"an unknown type")+").");
+  const mb=file.size/1048576;
+  if(mb>lim.mb*2.5)throw new Error(`That file is ${mb.toFixed(1)} MB. The ${lim.label} video must be under ${(lim.mb*2.5).toFixed(0)} MB, and ideally under ${lim.mb} MB. Compress it first (see the tips above).`);
+  const meta=await new Promise(res=>{const v=document.createElement("video");v.preload="metadata";v.muted=true;
+    v.onloadedmetadata=()=>{res({d:v.duration,w:v.videoWidth,h:v.videoHeight});URL.revokeObjectURL(v.src)};
+    v.onerror=()=>res(null);v.src=URL.createObjectURL(file)});
+  if(meta&&meta.d>20)throw new Error(`That video is ${Math.round(meta.d)} seconds. Keep the hero to about 5–10 seconds so it loops well and loads fast.`);
+  const ext=file.type==="video/webm"?"webm":"mp4";
+  const path=`hero/${kind}-${Date.now()}-${Math.random().toString(36).slice(2,6)}.${ext}`;
+  const {error}=await db.storage.from("site-media").upload(path,file,{contentType:file.type==="video/webm"?"video/webm":"video/mp4",cacheControl:"31536000",upsert:false});
+  if(error)throw error;
+  return {url:db.storage.from("site-media").getPublicUrl(path).data.publicUrl,mb,meta};
+}
+
 /* =============== data =============== */
 let ORDERS=[],PRODUCTS=[],DISCOUNTS=[],SETTINGS={},ME="";
 async function loadOrders(){const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(2000);if(error)throw error;ORDERS=data||[];updateBadge();return ORDERS}
@@ -382,7 +401,7 @@ async function router(){
   const parts=(location.hash.replace(/^#\/?/,"")||"home").split("/");
   const r=parts[0];
   $$("#nav a").forEach(a=>a.setAttribute("aria-current",a.dataset.r===r?"page":"false"));
-  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
+  $("#mTitle").textContent=({home:"Home",orders:"Orders",products:"Products",categories:"Categories",guides:"Size guides",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
   $("#side").classList.remove("open");$("#scrim").hidden=true;
   V.innerHTML=`<div class="empty" style="border:0;background:none"><span class="spin"></span></div>`;window.scrollTo(0,0);
   try{
@@ -392,6 +411,7 @@ async function router(){
     else if(r==="products"&&parts[1])await pProduct(parts[1]);
     else if(r==="products")await pProducts();
     else if(r==="categories")await pCategories();
+    else if(r==="guides")await pGuides();
     else if(r==="influencers"&&parts[1])await pInfluencer(parts[1]);
     else if(r==="influencers")await pInfluencers();
     else if(r==="bundles")await pBundles();
@@ -530,7 +550,11 @@ async function pOrder(num){
       <div class="card"><h2>Items</h2>
         ${items.map(i=>`<div class="item">${i.image?`<img src="${esc(i.image)}" alt="">`:"<span></span>"}<div><div><b>${esc(i.name)}</b></div><div class="v">${esc(i.color)} / ${esc(i.size)} · ${money(i.price)} × ${Number(i.qty)}</div></div><div><b>${money(Number(i.price)*Number(i.qty))}</b></div></div>`).join("")}
       </div>
-      <div class="card"><h2>Payment</h2>
+      <div class="card"><h2>Stock &amp; delivery wording</h2>
+      <div class="grid2"><label class="fld"><span>Show "Only X left" when stock is at or below</span><input type="number" id="sLow" min="1" max="20" value="${esc(SETTINGS.low_stock_threshold||"3")}"></label>
+        <label class="fld"><span>Delivery time shown to customers</span><input type="text" id="sDays" value="${esc(SETTINGS.delivery_days||"")}" placeholder="2-4 working days"></label></div>
+    </div>
+    <div class="card"><h2>Payment</h2>
         <div class="sumrow"><span>Subtotal · ${items.reduce((a,i)=>a+Number(i.qty),0)} items</span><span>${money(o.subtotal)}</span></div>
         ${Number(o.discount_amount)>0?`<div class="sumrow"><span>Discount <span class="muted">${esc(o.discount_code||"")}</span></span><span>−${money(o.discount_amount)}</span></div>`:""}
         <div class="sumrow"><span>Delivery</span><span class="row"><span class="muted">$</span><input type="number" class="feein" id="oFee" min="0" step="0.5" value="${Number(o.delivery_fee||0)}"><button class="btn ghost sm" id="oFeeSave">Save</button></span></div>
@@ -697,9 +721,10 @@ async function pProducts(){
 }
 async function pProduct(id){
   await Promise.all([PRODUCTS.length?null:loadProducts(),loadCategories()]);
+  await loadGuidesA();
   const isNew=id==="new";const p=isNew?null:PRODUCTS.find(x=>x.id===id);
   if(!isNew&&!p){V.innerHTML=`<a class="back" href="#/products">← Products</a><div class="empty">This product wasn't found.</div>`;return}
-  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:((CATEGORIES[0]||{}).slug||""),sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
+  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:((CATEGORIES[0]||{}).slug||""),fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
     colors:p?JSON.parse(JSON.stringify(p.colors||[])):[{name:"Black",hex:"#000000",images:[],sold_out:false,stock:{}}]};
   let dirty=false;const mark=()=>{dirty=true};
   leaveGuard=()=>!dirty||confirm("You have unsaved changes. Leave without saving?");
@@ -731,6 +756,15 @@ async function pProduct(id){
         <label class="fld"><span>Sizes</span><input type="text" id="eSizes" value="${esc(st.sizes)}"><small>Separate with commas.</small></label>
         <div class="row">${["S, M, L, XL, XXL","S, M, L","One size"].map(s=>`<button type="button" class="chip" data-sz="${s}">${s}</button>`).join("")}</div>
       </div>
+      <div class="card"><h2>Product details</h2>
+        <p class="help" style="margin:-6px 0 10px">These appear on the product page under "Fit &amp; sizing" and "Material &amp; care". Leave empty to hide a section.</p>
+        <label class="fld"><span>Fit</span><input type="text" id="eFit" maxlength="120" placeholder="e.g. Regular fit, true to size" value="${esc(st.fit)}"></label>
+        <label class="fld"><span>Performance benefits</span><textarea id="eBenefits" rows="2" maxlength="400">${esc(st.benefits)}</textarea></label>
+        <label class="fld"><span>Material</span><input type="text" id="eMaterial" maxlength="160" placeholder="e.g. 100% cotton, 220 gsm" value="${esc(st.material)}"></label>
+        <label class="fld"><span>Care instructions</span><input type="text" id="eCare" maxlength="200" placeholder="e.g. Machine wash 30°, do not tumble dry" value="${esc(st.care)}"></label>
+        <label class="fld"><span>Size guide</span><select id="eGuide"><option value="">Use the guide for this category</option>${GUIDES_A.map(g=>`<option value="${esc(g.id)}" ${st.size_guide_id===g.id?"selected":""}>${esc(g.name)}</option>`).join("")}</select>
+          <small><a class="link" href="#/guides">Create or edit size guides</a></small></label>
+      </div>
       <div class="card"><h2>Pairs well with</h2><p class="help" style="margin:-6px 0 10px">Shown under "Complete the look" on this product's page and in the bag. Leave empty to let the website choose.</p>
         <div id="eRel">${PRODUCTS.filter(x=>!p||x.id!==p.id).map(x=>`<label class="toggle" style="font-weight:500;margin-bottom:8px"><input type="checkbox" value="${esc(x.id)}" ${p&&(p.related||[]).includes(x.id)?"checked":""}> ${esc(x.name)}</label>`).join("")||`<p class="muted">Add more products first.</p>`}</div></div>
       ${isNew?"":`<div class="card"><h2>Delete</h2><p class="help" style="margin:-4px 0 10px">To take it off the site for a while, untick "Visible" instead. Past orders keep their details.</p><button class="btn danger sm" id="eDelete">Delete product</button></div>`}
@@ -747,6 +781,12 @@ async function pProduct(id){
       </div>
       <div class="photos">${(c.images||[]).map((src,k)=>`<div class="ph"><img src="${esc(src)}" alt="">${k===0?'<span class="main">Main</span>':""}<div class="tools"><button type="button" data-l="${k}" ${k===0?"disabled":""} aria-label="Move left">←</button><button type="button" data-rm="${k}" aria-label="Remove photo">✕</button><button type="button" data-r="${k}" ${k===c.images.length-1?"disabled":""} aria-label="Move right">→</button></div></div>`).join("")}
         ${(c.images||[]).length<8?`<label class="addph"><input type="file" accept="image/*" multiple data-up>+ Add photo</label>`:""}</div>
+      <div style="margin-top:10px"><span class="lbl">Video for this colour (optional)</span>
+        <div class="row"><label class="btn ghost sm upl">Upload video<input type="file" accept="video/mp4,video/webm" data-cvid="${i}"></label>
+          ${c.video?`<a class="btn ghost sm" href="${esc(c.video)}" target="_blank" rel="noopener">Preview</a><button type="button" class="btn ghost sm" data-cvrm="${i}">Remove</button>`:""}</div>
+        <small class="help">Up to 10 seconds, no sound, under 6 MB. It appears after the photos on the product page.</small><div class="help" data-cvmsg="${i}"></div></div>
+      <div style="margin-top:12px"><span class="lbl">Photo descriptions (alt text, for Google and screen readers)</span>
+        <div class="stockgrid">${(c.images||[]).map((src,i)=>`<label style="grid-column:span 2">Photo ${i+1}<input type="text" data-alt="${i}" maxlength="120" value="${esc((c.alts||[])[i]||"")}" placeholder="e.g. Black hoodie, front"></label>`).join("")||`<span class="muted" style="font-size:12.5px">Add photos first.</span>`}</div></div>
       <div style="margin-top:12px"><span class="lbl">Stock per size</span><div class="stockgrid">${sizes().map(s=>`<label>${esc(s)}<input type="number" min="0" step="1" data-stock="${esc(s)}" value="${c.stock&&c.stock[s]!==undefined&&c.stock[s]!==null?esc(c.stock[s]):""}" placeholder="∞"></label>`).join("")}</div></div>
       <div class="row between" style="margin-top:12px"><label class="toggle"><input type="checkbox" data-k="so" ${c.sold_out?"checked":""}> Mark whole colour sold out</label>${st.colors.length>1?`<button type="button" class="btn danger sm" data-rmc>Remove colour</button>`:""}</div>
     </div>`).join("");
@@ -756,6 +796,12 @@ async function pProduct(id){
       pk.oninput=()=>{c.hex=pk.value;hx.value=pk.value;mark()};
       hx.oninput=()=>{let v=hx.value.trim();if(!v.startsWith("#"))v="#"+v;c.hex=v;if(/^#[0-9a-f]{6}$/i.test(v))pk.value=v;mark()};
       $('[data-k="so"]',box).onchange=e=>{c.sold_out=e.target.checked;mark()};
+      $$("[data-alt]",box).forEach(inp=>inp.oninput=()=>{c.alts=c.alts||[];c.alts[+inp.dataset.alt]=inp.value;mark()});
+      const cv=$("[data-cvid]",box);if(cv)cv.onchange=async()=>{const f=cv.files[0];if(!f)return;const msg=$(`[data-cvmsg="${box.dataset.i}"]`,box);
+        msg.style.color="";msg.textContent="Uploading…";
+        try{const r=await uploadVideo(f,"mobile");c.video=r.url;mark();msg.textContent=`Uploaded · ${r.mb.toFixed(1)} MB`;renderColors()}
+        catch(e){msg.style.color="var(--bad)";msg.textContent=e.message||String(e)}};
+      const cvr=$("[data-cvrm]",box);if(cvr)cvr.onclick=()=>{delete c.video;mark();renderColors()};
       $$("[data-stock]",box).forEach(inp=>inp.oninput=()=>{c.stock=c.stock||{};const v=inp.value.trim();if(v==="")delete c.stock[inp.dataset.stock];else c.stock[inp.dataset.stock]=Math.max(0,parseInt(v)||0);mark()});
       $$("[data-rm]",box).forEach(b=>b.onclick=()=>{c.images.splice(+b.dataset.rm,1);mark();renderColors()});
       $$("[data-l]",box).forEach(b=>b.onclick=()=>{const k=+b.dataset.l;[c.images[k-1],c.images[k]]=[c.images[k],c.images[k-1]];mark();renderColors()});
@@ -775,6 +821,7 @@ async function pProduct(id){
   $("#eAddColor").onclick=()=>{st.colors.push({name:"",hex:"#ffffff",images:[],sold_out:false,stock:{}});mark();renderColors()};
   $$("[data-sz]").forEach(b=>b.onclick=()=>{$("#eSizes").value=b.dataset.sz;mark();renderColors()});
   $("#eSizes").onchange=()=>{mark();renderColors()};
+  ["eFit","eMaterial","eCare","eBenefits","eGuide"].forEach(id=>{const el=$("#"+id);if(el)el.addEventListener("input",mark)});
   ["eName","eDesc","ePrice","eCat","eActive"].forEach(id=>$("#"+id).addEventListener("input",mark));
   $$("#eRel input").forEach(i=>i.addEventListener("change",mark));
   $("#eSave").onclick=async()=>{
@@ -784,12 +831,14 @@ async function pProduct(id){
     let sale=null;if($("#eSaleOn").checked){sale=parseFloat($("#eSale").value);if(!(sale>=0))return err("Add a sale price, or untick \"Put this product on sale\".");if(sale>=price)return err("The sale price must be lower than the normal price.")}
     if(!$("#eCat").value)return err("Create a category first (Products > Categories).");if(!sz.length)return err("Add at least one size.");
     const colors=st.colors.map(c=>{const stock={};sz.forEach(s=>{if(c.stock&&c.stock[s]!==undefined&&c.stock[s]!==null&&c.stock[s]!=="")stock[s]=Number(c.stock[s])});
-      return {name:(c.name||"").trim(),hex:/^#[0-9a-f]{6}$/i.test(c.hex||"")?c.hex:"#000000",images:(c.images||[]).filter(Boolean),sold_out:!!c.sold_out,stock}});
+      return {video:c.video||undefined,alts:(c.alts||[]).slice(0,(c.images||[]).length),name:(c.name||"").trim(),hex:/^#[0-9a-f]{6}$/i.test(c.hex||"")?c.hex:"#000000",images:(c.images||[]).filter(Boolean),sold_out:!!c.sold_out,stock}});
     if(!colors.length)return err("Add at least one colour.");
     if(colors.some(c=>!c.name))return err("Give every colour a name.");
     if(new Set(colors.map(c=>c.name.toLowerCase())).size!==colors.length)return err("Two colours have the same name.");
     if(colors.some(c=>!c.images.length))return err("Every colour needs at least one photo.");
-    const row={related:$$("#eRel input:checked").map(i=>i.value).slice(0,8),name,price,sale_price:sale,category:$("#eCat").value,description:$("#eDesc").value.trim(),sizes:sz,colors,active:$("#eActive").checked};
+    const row={related:$$("#eRel input:checked").map(i=>i.value).slice(0,8),
+      fit:$("#eFit").value.trim()||null,material:$("#eMaterial").value.trim()||null,care:$("#eCare").value.trim()||null,
+      benefits:$("#eBenefits").value.trim()||null,size_guide_id:$("#eGuide").value||null,name,price,sale_price:sale,category:$("#eCat").value,description:$("#eDesc").value.trim(),sizes:sz,colors,active:$("#eActive").checked};
     $("#eSave").disabled=true;let res;
     if(isNew){row.position=PRODUCTS.reduce((m,x)=>Math.max(m,x.position||0),0)+1;res=await db.from("products").insert(row).select().single()}
     else res=await db.from("products").update(row).eq("id",p.id).select().single();
@@ -942,6 +991,59 @@ async function pWaitlist(){
   $("#wExport").onclick=()=>{const rows=[["Name","Phone","Email","Preferred size","Sport","Notes","Joined","Source","Campaign"]];
     W.forEach(w=>rows.push([w.name,w.phone,w.email,w.size,w.sport,w.notes,new Date(w.created_at).toISOString(),((w.source||{}).first_touch||{}).utm_source||((w.source||{}).first_touch||{}).source||"",((w.source||{}).first_touch||{}).utm_campaign||""]));
     csv(rows,`ace-early-access-${new Date().toISOString().slice(0,10)}.csv`)};
+}
+
+/* =============== SIZE GUIDES =============== */
+let GUIDES_A=[];
+async function loadGuidesA(){const {data,error}=await db.from("size_guides").select("*").order("position").order("created_at");if(error)throw error;GUIDES_A=data||[];return GUIDES_A}
+async function pGuides(){
+  await Promise.all([loadGuidesA(),loadCategories()]);
+  V.innerHTML=`<div class="pagehead"><h1>Size guides</h1><button class="btn sm" id="gNew">Create size guide</button></div>
+    <p class="help" style="margin:-8px 0 14px">A guide opens from the "Size guide" link on the product page. Set one per category (for example Tops), or pick a specific guide on a product.</p>
+    <div id="gOut"></div>`;
+  $("#gOut").innerHTML=GUIDES_A.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Guide</th><th>Used for</th><th class="num">Rows</th><th>Status</th></tr></thead><tbody>
+    ${GUIDES_A.map((g,i)=>`<tr data-i="${i}"><td><b>${esc(g.name)}</b></td><td>${g.category?esc(catName(g.category)):`<span class="muted">Only products that pick it</span>`}</td><td class="num">${(g.rows||[]).length}</td><td>${g.active?pill("active","Active"):pill("hidden","Off")}</td></tr>`).join("")}
+    </tbody></table></div>`:`<div class="empty">No size guides yet. Create one with your measurements, for example Tops: S, M, L with chest and length.</div>`;
+  $$("#gOut tr[data-i]").forEach(r=>r.onclick=()=>editGuide(GUIDES_A[+r.dataset.i]));
+  $("#gNew").onclick=()=>editGuide(null);
+}
+function editGuide(g){
+  const st=g?JSON.parse(JSON.stringify(g)):{name:"",category:"",intro:"",columns:["Size","Chest (cm)","Length (cm)"],rows:[["S","",""],["M","",""],["L","",""]],how_to_measure:"",model_note:"",fit_note:"",active:true};
+  st.columns=st.columns&&st.columns.length?st.columns:["Size"];st.rows=Array.isArray(st.rows)?st.rows:[];
+  const m=modal(`<h2>${g?"Edit size guide":"New size guide"}</h2>
+    <div class="grid2"><label class="fld"><span>Name</span><input type="text" id="gName" maxlength="60" placeholder="e.g. Tops size guide" value="${esc(st.name)}"></label>
+      <label class="fld"><span>Use for category</span><select id="gCat"><option value="">— None (pick it on products) —</option>${CATEGORIES.map(c=>`<option value="${esc(c.slug)}" ${st.category===c.slug?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label></div>
+    <label class="fld"><span>Intro (optional)</span><input type="text" id="gIntro" maxlength="200" value="${esc(st.intro||"")}"></label>
+    <span class="lbl">Measurement table</span><div id="gTable" style="overflow:auto"></div>
+    <div class="row" style="margin:8px 0 14px"><button class="btn ghost sm" type="button" id="gAddRow">Add size</button><button class="btn ghost sm" type="button" id="gAddCol">Add column</button><button class="btn ghost sm" type="button" id="gDelCol">Remove last column</button></div>
+    <label class="fld"><span>How to measure</span><textarea id="gHow" rows="2" maxlength="500">${esc(st.how_to_measure||"")}</textarea></label>
+    <div class="grid2"><label class="fld"><span>On the model</span><input type="text" id="gModel" maxlength="160" placeholder="e.g. Model is 1.80 m, 75 kg, wears M" value="${esc(st.model_note||"")}"></label>
+      <label class="fld"><span>Fit advice</span><input type="text" id="gFit" maxlength="160" placeholder="e.g. Between sizes? Take the bigger one." value="${esc(st.fit_note||"")}"></label></div>
+    <label class="toggle" style="margin:4px 0 12px"><input type="checkbox" id="gAct" ${st.active?"checked":""}> Active</label>
+    <div class="err" id="gErr"></div>
+    <div class="row between" style="margin-top:10px">${g?`<button class="btn danger sm" id="gDel">Delete</button>`:"<span></span>"}<span class="row"><button class="btn ghost" id="gCancel">Cancel</button><button class="btn" id="gSave">Save</button></span></div>`);
+  const draw=()=>{
+    $("#gTable",m).innerHTML=`<table class="tbl"><thead><tr>${st.columns.map((c,i)=>`<th><input type="text" data-col="${i}" value="${esc(c)}" style="min-width:90px"></th>`).join("")}<th></th></tr></thead><tbody>
+      ${st.rows.map((r,ri)=>`<tr>${st.columns.map((_,ci)=>`<td><input type="text" data-cell="${ri}.${ci}" value="${esc((r||[])[ci]||"")}" style="min-width:90px"></td>`).join("")}<td><button class="btn danger sm" data-rowrm="${ri}">✕</button></td></tr>`).join("")}</tbody></table>`;
+    $$("[data-col]",m).forEach(i=>i.oninput=()=>{st.columns[+i.dataset.col]=i.value});
+    $$("[data-cell]",m).forEach(i=>i.oninput=()=>{const [r,c]=i.dataset.cell.split(".").map(Number);st.rows[r]=st.rows[r]||[];st.rows[r][c]=i.value});
+    $$("[data-rowrm]",m).forEach(b=>b.onclick=()=>{st.rows.splice(+b.dataset.rowrm,1);draw()});
+  };
+  draw();
+  $("#gAddRow",m).onclick=()=>{st.rows.push(st.columns.map(()=>""));draw()};
+  $("#gAddCol",m).onclick=()=>{st.columns.push("");st.rows.forEach(r=>r.push(""));draw()};
+  $("#gDelCol",m).onclick=()=>{if(st.columns.length<2)return;st.columns.pop();st.rows.forEach(r=>r.pop());draw()};
+  $("#gCancel",m).onclick=()=>m.remove();
+  $("#gSave",m).onclick=async()=>{const e=x=>{$("#gErr",m).textContent=x};
+    const name=$("#gName",m).value.trim();if(!name)return e("Give the guide a name.");
+    const cols=st.columns.map(c=>String(c||"").trim()).filter(Boolean);if(!cols.length)return e("Add at least one column.");
+    const rows=st.rows.map(r=>cols.map((_,i)=>String((r||[])[i]||"").trim())).filter(r=>r.some(Boolean));
+    const row={name,category:$("#gCat",m).value||null,intro:$("#gIntro",m).value.trim()||null,columns:cols,rows,
+      how_to_measure:$("#gHow",m).value.trim()||null,model_note:$("#gModel",m).value.trim()||null,fit_note:$("#gFit",m).value.trim()||null,active:$("#gAct",m).checked};
+    if(!g)row.position=GUIDES_A.length+1;
+    const res=g?await db.from("size_guides").update(row).eq("id",g.id):await db.from("size_guides").insert(row);
+    if(res.error)return e(res.error.message);m.remove();toast("Size guide saved");pGuides()};
+  if(g)$("#gDel",m).onclick=async()=>{if(!confirm(`Delete "${g.name}"?`))return;const {error}=await db.from("size_guides").delete().eq("id",g.id);if(error)return toast(error.message,true);m.remove();toast("Deleted");pGuides()};
 }
 
 /* =============== CATEGORIES =============== */
@@ -1207,6 +1309,11 @@ async function pStore(){
   const color=(p,label)=>`<label class="fld"><span>${label}</span><div class="hexwrap"><input type="color" data-p="${p}" data-t="color" value="${esc(get(p))}"><input type="text" data-p="${p}" data-t="hex" value="${esc(get(p))}" maxlength="7"></div></label>`;
   const range=(p,label,min,max,step,unit)=>`<label class="fld"><span>${label}: <b data-show="${p}">${esc(get(p))}${unit}</b></span><input type="range" data-p="${p}" data-t="num" data-unit="${unit}" min="${min}" max="${max}" step="${step}" value="${esc(get(p))}"></label>`;
   const sel=(p,label,opts)=>`<label class="fld"><span>${label}</span><select data-p="${p}">${opts.map(([v,l])=>`<option value="${esc(v)}" ${String(get(p))===String(v)?"selected":""}>${esc(l)}</option>`).join("")}</select></label>`;
+  const vid=(p,label,kind,help)=>{const v=get(p);
+    return `<div class="imgpick"><div class="pv" data-pv="${p}" style="background:#000;display:grid;place-items:center;color:#fff;font-size:11px">${v?"VIDEO":"—"}</div>
+      <div><span class="lbl">${label}</span><div class="row"><label class="btn ghost sm upl">Upload<input type="file" accept="video/mp4,video/webm" data-vid="${p}" data-kind="${kind}"></label>
+      ${v?`<a class="btn ghost sm" href="${esc(v)}" target="_blank" rel="noopener">Preview</a><button class="btn ghost sm" data-clear="${p}" type="button">Remove</button>`:""}</div>
+      <small class="help">${help}</small><div class="help" data-vmsg="${p}"></div></div></div>`};
   const img=(p,label,{png=false,dark=false,help=""}={})=>`<div class="imgpick"><div class="pv${dark?" dark":""}" data-pv="${p}" style="background-image:${get(p)?`url('${esc(get(p))}')`:"none"}"></div><div><span class="lbl">${label}</span><div class="row"><label class="btn ghost sm upl">Upload<input type="file" accept="image/*" data-img="${p}" data-png="${png?1:""}"></label>${get(p)?`<button class="btn ghost sm" data-clear="${p}" type="button">Remove</button>`:""}</div>${help?`<small class="help">${help}</small>`:""}</div></div>`;
   const acc=(key,title,body,scroll)=>`<div class="acc" data-acc="${key}" data-scroll="${scroll||""}"><button type="button">${title}</button><div class="in">${body}</div></div>`;
   const openSet=new Set(["theme"]);
@@ -1257,9 +1364,19 @@ async function pStore(){
         <button type="button" class="btn ghost sm" data-anmv="-1" data-i="${i}" ${i===0?"disabled":""} aria-label="Move up">↑</button><button type="button" class="btn ghost sm" data-anmv="1" data-i="${i}" ${i===arr.length-1?"disabled":""} aria-label="Move down">↓</button><button type="button" class="btn ghost sm" data-anrm="${i}" aria-label="Remove message">✕</button></div>`).join("")}</div>
       <button type="button" class="btn ghost sm" id="anAdd" style="margin-bottom:14px">+ Add announcement</button>
       ${range("announcement.interval","Change message every",2,15,1," seconds")}`,"#announce")}
-    ${acc("hero","Opening photo",`${tog("hero.show","Show this section")}
-      ${img("hero.image","Main photo",{help:"Wide photo. Shown full width."})}${img("hero.image_mobile","Phone version (optional)",{help:"A taller crop for phones. Leave empty to use the main photo."})}
-      ${text("hero.text","Text under the photo",{area:true})}${text("hero.button","Button text")}`,".hero")}
+    ${acc("hero","Opening video / photo",`${tog("hero.show","Show this section")}
+      <p class="help" style="margin:-2px 0 12px"><b>Videos:</b> 5–10 seconds, no sound, seamless loop. <b>Desktop:</b> landscape 1920×1080, under 4 MB (6 MB max). <b>Phone:</b> portrait 1080×1350 or 1080×1920, under 2 MB (3 MB max). MP4 (H.264) works everywhere; WebM is smaller where supported.</p>
+      ${vid("hero.video_desktop","Desktop video (MP4)","desktop","Shown on computers and tablets.")}
+      ${vid("hero.video_mobile","Phone video (MP4)","mobile","Phones download only this one, never the desktop file.")}
+      ${vid("hero.video_desktop_webm","Desktop video (WebM, optional)","desktop","Smaller file for Chrome and Android. Safari falls back to the MP4.")}
+      ${vid("hero.video_mobile_webm","Phone video (WebM, optional)","mobile","Optional. Leave empty if you only have MP4.")}
+      ${img("hero.image","Poster photo (desktop)",{help:"Shown instantly while the video loads, and instead of it on slow connections or when a visitor turns off animations. Required."})}
+      ${img("hero.image_mobile","Poster photo (phone, optional)",{help:"A taller crop for phones."})}
+      ${range("hero.overlay","Dark overlay over the video",0,85,1,"%")}
+      ${text("hero.headline","Headline over the video")}${text("hero.text","Text under the headline",{area:true})}
+      <div class="grid2">${text("hero.button","Main button")}${text("hero.button_url","Main button link",{help:"e.g. #shop or /tops"})}</div>
+      <div class="grid2">${text("hero.button2","Second button (optional)")}${text("hero.button2_url","Second button link")}</div>
+      <p class="help">The headline, text and buttons stay as real text on the page, so Google can read them and screen readers can announce them.</p>`,".hero")}
     ${acc("collection","Collection",`${text("collection.title","Title")}
       <div class="grid2">${text("collection.all_label","\"All\" filter")}${text("collection.sale_label","Sale category name")}</div>
       ${text("collection.empty_text","Text when there are no products")}
@@ -1320,6 +1437,16 @@ async function pStore(){
       });});
     $$("#seAcc [data-img]").forEach(inp=>inp.onchange=async()=>{const f=inp.files[0];if(!f)return;const lab=inp.closest("label");lab.classList.add("uploading");lab.firstChild.textContent="Uploading…";
       try{const url=await uploadImage(f,{max:inp.dataset.png?1200:2400,png:!!inp.dataset.png});set(inp.dataset.img,url);rebuild()}catch(e){toast("Upload failed: "+(e.message||e),true);rebuild()}});
+    $$("#seAcc [data-vid]").forEach(inp=>inp.onchange=async()=>{
+      const f=inp.files[0];if(!f)return;const p=inp.dataset.vid,msg=$(`[data-vmsg="${p}"]`);
+      const lab=inp.closest("label");lab.classList.add("uploading");lab.firstChild.textContent="Uploading…";
+      msg.textContent="Uploading… large videos can take a minute.";msg.style.color="";
+      try{const r=await uploadVideo(f,inp.dataset.kind);set(p,r.url);
+        msg.textContent=`Uploaded · ${r.mb.toFixed(1)} MB${r.meta?` · ${Math.round(r.meta.d)}s · ${r.meta.w}×${r.meta.h}`:""}`;
+        if(r.mb>(VIDEO_LIMITS[inp.dataset.kind]||{}).mb)msg.textContent+=" · bigger than recommended, consider compressing it";
+        rebuild();}
+      catch(e){msg.style.color="var(--bad)";msg.textContent=e.message||String(e);lab.classList.remove("uploading");lab.firstChild.textContent="Upload"}
+    });
     $$("#seAcc [data-clear]").forEach(b=>b.onclick=()=>{const p=b.dataset.clear;const def=p.split(".").reduce((a,k)=>a==null?a:a[k],D);set(p,p.startsWith("brand.")?def:"");rebuild()});
     $$("#seAcc [data-reset]").forEach(b=>b.onclick=()=>{if(!confirm("Reset the theme to the original look?"))return;c.theme=JSON.parse(JSON.stringify(D.theme));changed();rebuild()});
     $$("#tiles [data-tile]").forEach(tl=>{const i=+tl.dataset.tile;
@@ -1392,7 +1519,7 @@ async function pSettings(){
     const ga=$("#sGa").value.trim().toUpperCase(),ph=$("#sPh").value.trim();
     if(ga&&!/^G-[A-Z0-9]{4,}$/.test(ga))return $("#sErr").textContent="The GA4 Measurement ID should look like G-XXXXXXXXXX.";
     if(ph&&!/^phc_[A-Za-z0-9]{10,}$/.test(ph))return $("#sErr").textContent="The PostHog key should start with phc_.";
-    const rows=[["ga4_measurement_id",ga],["posthog_key",ph],["posthog_region",$("#sPhR").value],["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
+    const rows=[["low_stock_threshold",String(Math.max(1,parseInt($("#sLow").value)||3))],["delivery_days",$("#sDays").value.trim()],["ga4_measurement_id",ga],["posthog_key",ph],["posthog_region",$("#sPhR").value],["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
     const {error}=await db.from("settings").upsert(rows);if(error)return $("#sErr").textContent="Couldn't save: "+error.message;toast("Settings saved");
   };
   $$("[data-rmadmin]").forEach(b=>b.onclick=async()=>{if(!confirm(`Remove ${b.dataset.rmadmin} from the admin?`))return;const {error}=await db.from("admins").delete().eq("email",b.dataset.rmadmin);if(error)return toast(error.message,true);toast("Removed");pSettings()});

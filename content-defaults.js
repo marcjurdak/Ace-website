@@ -71,8 +71,17 @@ window.ACE_DEFAULT_CONTENT = {
     show: true,
     image: "/hero.jpg",
     image_mobile: "",
+    video_desktop: "",
+    video_mobile: "",
+    video_desktop_webm: "",
+    video_mobile_webm: "",
+    overlay: 35,
+    headline: "",
     text: "Training and match-day wear for footballers. Tees, shorts, hoodies, socks and winter gloves in black and white.",
-    button: "Shop the collection"
+    button: "Shop the collection",
+    button_url: "#shop",
+    button2: "",
+    button2_url: "/story"
   },
   collection: {
     title: "The collection",
