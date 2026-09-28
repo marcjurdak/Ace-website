@@ -978,8 +978,8 @@ async function pWaitlist(){
   const draw=()=>{
     const q=wF.q.toLowerCase();
     const list=W.filter(w=>(wF.sport==="all"||w.sport===wF.sport)&&(!q||[w.name,w.email,w.phone,w.size,w.sport].join(" ").toLowerCase().includes(q)));
-    $("#wOut").innerHTML=list.length?`<div class="tblwrap resp"><table class="tbl"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Size</th><th>Sport</th><th>Joined</th><th></th></tr></thead><tbody>
-      ${list.map(w=>`<tr data-id="${w.id}"><td><b>${esc(w.name)}</b>${w.notes?`<div class="muted" style="font-size:12px">${esc(w.notes)}</div>`:""}</td><td class="nowrap">${esc(w.phone)}</td><td>${esc(w.email)}</td><td>${esc(w.size||"")}</td><td>${esc(w.sport||"")}</td><td class="nowrap muted">${fmtDate(w.created_at)}</td>
+    $("#wOut").innerHTML=list.length?`<div class="tblwrap resp"><table class="tbl"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Size</th><th>Sport</th><th>From</th><th>Joined</th><th></th></tr></thead><tbody>
+      ${list.map(w=>`<tr data-id="${w.id}"><td><b>${esc(w.name||"—")}</b>${w.notes?`<div class="muted" style="font-size:12px">${esc(w.notes)}</div>`:""}</td><td class="nowrap">${esc(w.phone)}</td><td>${esc(w.email)}</td><td>${esc(w.size||"")}</td><td>${esc(w.sport||"")}</td><td>${w.kind==="popup"?pill("scheduled","Pop-up"):pill("active","Coming soon")}</td><td class="nowrap muted">${fmtDate(w.created_at)}</td>
         <td class="nowrap"><a class="btn ghost sm" href="https://wa.me/${waNumber(w.phone,"Lebanon")}" target="_blank" rel="noopener">WhatsApp</a> <button class="btn danger sm" data-del aria-label="Remove">✕</button></td></tr>`).join("")}</tbody></table></div>
       <div class="mlist">${list.map(w=>`<div class="mcard"><span class="t">${esc(w.name)}</span><span class="s">${fmtDate(w.created_at)}</span><span class="s">${esc(w.phone)} · ${esc(w.email)}</span><span class="s">${esc(w.size||"")} ${esc(w.sport||"")}</span></div>`).join("")}</div>`
       :`<div class="empty">${W.length?"Nobody matches.":"No sign-ups yet. Turn the coming soon page on and share your link."}</div>`;
@@ -988,8 +988,8 @@ async function pWaitlist(){
   };
   draw();
   $("#wQ").oninput=e=>{wF.q=e.target.value;draw()};$("#wSport").onchange=e=>{wF.sport=e.target.value;draw()};
-  $("#wExport").onclick=()=>{const rows=[["Name","Phone","Email","Preferred size","Sport","Notes","Joined","Source","Campaign"]];
-    W.forEach(w=>rows.push([w.name,w.phone,w.email,w.size,w.sport,w.notes,new Date(w.created_at).toISOString(),((w.source||{}).first_touch||{}).utm_source||((w.source||{}).first_touch||{}).source||"",((w.source||{}).first_touch||{}).utm_campaign||""]));
+  $("#wExport").onclick=()=>{const rows=[["Name","Phone","Email","Preferred size","Sport","Signed up from","Notes","Joined","Source","Campaign"]];
+    W.forEach(w=>rows.push([w.name,w.phone,w.email,w.size,w.sport,w.kind==="popup"?"Pop-up":"Coming soon page",w.notes,new Date(w.created_at).toISOString(),((w.source||{}).first_touch||{}).utm_source||((w.source||{}).first_touch||{}).source||"",((w.source||{}).first_touch||{}).utm_campaign||""]));
     csv(rows,`ace-early-access-${new Date().toISOString().slice(0,10)}.csv`)};
 }
 
@@ -1340,6 +1340,16 @@ async function pStore(){
       ${range("coming_soon.logo_opacity","Watermark strength",0,60,1,"%")}
       ${img("coming_soon.background","Background photo (optional)",{help:"Leave empty for a plain background."})}
       ${range("coming_soon.overlay","Darken the photo",0,95,1,"%")}`,"")}
+    ${acc("popup","Welcome pop-up",`${tog("popup.on","Show the pop-up to new visitors")}
+      <p class="help" style="margin:-4px 0 12px">Appears once per visitor. After they sign up it never shows again on that phone or computer, and their email lands in <a class="link" href="#/waitlist">Early access</a>.</p>
+      ${img("popup.image","Photo (optional)",{help:"A portrait photo works best. Leave empty for a text-only pop-up."})}
+      ${sel("popup.layout","Photo position",[["image_left","Photo on the left"],["image_right","Photo on the right"]])}
+      ${text("popup.title","Title")}${text("popup.text","Text",{area:true})}${text("popup.button","Button")}
+      ${text("popup.note","Small line under the button")}${text("popup.dismiss","\"No thanks\" link")}
+      ${text("popup.code","Discount code to reveal",{help:"Type an existing code, for example WELCOME10. Create it in Discounts first. It is filled in automatically at checkout."})}
+      ${text("popup.success_title","Thank-you title")}${text("popup.success_text","Thank-you text",{area:true})}
+      ${range("popup.delay","Show after",1,30,1," s")}
+      ${range("popup.again_days","If they close it, ask again after",1,60,1," days")}`,"")}
     ${acc("theme","Theme",`
       ${sel("theme.mode","Colour mode",[["auto","Automatic (follows the visitor's phone)"],["light","Always light"],["dark","Always dark"]])}
       ${sel("theme.font_display","Title font",Object.keys(F.display).map(k=>[k,k]))}

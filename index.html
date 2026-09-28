@@ -548,6 +548,25 @@ section.co-sec{padding:28px 0 0}
 .hero-over .cta.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.7)}
 .hero-over .cta.ghost:hover{background:#fff;color:#000}
 .hero-over .cta[hidden]{display:none}
+/* ===================== welcome pop-up ===================== */
+.pop{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px;opacity:0;transition:opacity .3s}
+.pop.on{opacity:1}
+.pop[hidden]{display:none}
+.pop-box{position:relative;background:var(--surface);width:min(820px,100%);max-height:92vh;overflow:auto;display:grid;transform:translateY(12px);transition:transform .35s cubic-bezier(.3,.7,.2,1)}
+.pop.on .pop-box{transform:none}
+@media(min-width:760px){.pop-box.has-img{grid-template-columns:1fr 1fr}.pop-box.has-img.right .pop-img{order:2}}
+.pop-img{background:var(--studio) center/cover no-repeat;min-height:180px}
+.pop-img.empty{display:none}
+.pop-in{padding:clamp(24px,4vw,40px)}
+.pop-in h2{font-size:clamp(22px,3vw,32px);line-height:1.05;margin-bottom:12px}
+.pop-in p{color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:18px}
+.pop-in .fld span{font-size:11px}
+.pop-x{position:absolute;right:10px;top:10px;z-index:2;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--line);font-size:14px}
+.pop-note{font-size:12px;color:var(--muted);margin:12px 0 0}
+.pop-no{display:block;margin:12px auto 0;font-size:12px;color:var(--muted);text-decoration:underline}
+.pop-code{font-family:var(--display);font-size:clamp(22px,4vw,30px);letter-spacing:.14em;border:1px dashed var(--fg);padding:14px;text-align:center;margin:14px 0}
+#popDone h3{font-size:clamp(20px,2.6vw,26px);margin-bottom:8px}
+@media (prefers-reduced-motion:reduce){.pop,.pop-box{transition:none}}
 /* ===================== product media & details ===================== */
 .px-gallery .media-wrap{position:relative;flex:0 0 100%;scroll-snap-align:start}
 .px-gallery video{width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--studio);display:block}
@@ -838,6 +857,25 @@ footer small{font-size:12px;letter-spacing:.04em}
   <p>We use cookies to measure our ads and improve the website. You can change this any time.</p>
   <div class="consent-btns"><button type="button" class="btn-lite" id="consentNo">Only necessary</button><button type="button" class="btn-dark" id="consentYes">Accept</button></div>
 </div>
+<div class="pop" id="pop" hidden role="dialog" aria-modal="true" aria-labelledby="popTitle">
+  <div class="pop-box">
+    <button class="pop-x" id="popX" aria-label="Close">✕</button>
+    <div class="pop-img" id="popImg"></div>
+    <div class="pop-in">
+      <h2 id="popTitle" data-c="popup.title"></h2>
+      <p id="popText" data-c="popup.text"></p>
+      <form id="popForm">
+        <label class="fld"><span>Email</span><input type="email" id="popEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" required></label>
+        <div class="form-err" id="popErr" aria-live="polite"></div>
+        <button type="submit" class="px-add" id="popSend"><span data-c="popup.button">Claim my 10%</span><span aria-hidden="true">→</span></button>
+      </form>
+      <div id="popDone" hidden><h3 id="popDoneT"></h3><p id="popDoneX"></p><div class="pop-code" id="popCode" hidden></div>
+        <button type="button" class="px-add" id="popShop"><span>Start shopping</span><span aria-hidden="true">→</span></button></div>
+      <p class="pop-note" id="popNote" data-c="popup.note"></p>
+      <button type="button" class="pop-no" id="popNo" data-c="popup.dismiss"></button>
+    </div>
+  </div>
+</div>
 <div class="scrim" id="scrim"></div>
 <aside class="sheet menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
   <div class="sheet-head"><h3>Shop</h3><button class="x" data-close>Close</button></div>
@@ -1037,6 +1075,7 @@ function applyContent(c){
   setupAnnouncements(c.announcement||{});
   setupStory(c.story||{});
   setupComingSoon(c.coming_soon||{});
+  setupPopup(c.popup||{});
   setupHero(c.hero||{});
   document.getElementById("heroMobile").setAttribute("srcset",(c.hero&&c.hero.image_mobile)||(c.hero&&c.hero.image)||"/hero.jpg");
   const d=c.details||{};
@@ -1087,6 +1126,52 @@ function setupHero(h){
   heroCtl={stop(){try{v.pause()}catch(e){}if(io)io.disconnect();document.removeEventListener("visibilitychange",onVis);removeEventListener("resize",onResize)}};
 }
 addEventListener("pagehide",()=>{const v=document.getElementById("heroVideo");if(v){try{v.pause()}catch(e){}v.removeAttribute("src")}});
+/* ---------- welcome pop-up ---------- */
+let popWired=false,popTimer=null;
+function popSeen(){try{const s=JSON.parse(localStorage.getItem("ace-pop")||"null");
+  if(!s)return false;if(s.done)return true;const days=Number(s.days||14);return Date.now()-s.at<days*864e5}catch(e){return false}}
+function popRemember(done,days){try{localStorage.setItem("ace-pop",JSON.stringify({at:Date.now(),done:!!done,days:days}))}catch(e){}}
+function closePop(remember){const p=$("#pop");p.classList.remove("on");setTimeout(()=>{p.hidden=true},300);
+  if(remember)popRemember(false,(C.popup||{}).again_days||14);
+  if(!$("#pdp").classList.contains("on")&&!$("#checkout").classList.contains("on"))document.body.style.overflow="";}
+function openPop(){
+  const s=C.popup||{};const box=$(".pop-box");
+  box.classList.toggle("has-img",!!s.image);box.classList.toggle("right",s.layout==="image_right");
+  const im=$("#popImg");im.classList.toggle("empty",!s.image);if(s.image)im.style.backgroundImage=`url('${s.image}')`;
+  $("#popDoneT").textContent=s.success_title||"";$("#popDoneX").textContent=s.success_text||"";
+  $("#popForm").hidden=false;$("#popDone").hidden=true;$("#popErr").textContent="";$("#popNote").hidden=!s.note;$("#popNo").hidden=!s.dismiss;
+  const p=$("#pop");p.hidden=false;requestAnimationFrame(()=>p.classList.add("on"));
+  document.body.style.overflow="hidden";setTimeout(()=>$("#popEmail").focus({preventScroll:true}),350);
+  track("popup_shown",{});
+}
+function setupPopup(s){
+  s=s||{};clearTimeout(popTimer);
+  if(!popWired){popWired=true;
+    $("#popX").onclick=()=>closePop(true);
+    $("#popNo").onclick=()=>closePop(true);
+    $("#popShop").onclick=()=>closePop(false);
+    $("#pop").addEventListener("click",e=>{if(e.target.id==="pop")closePop(true)});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#pop").hidden){e.stopPropagation();closePop(true)}},true);
+    $("#popForm").addEventListener("submit",async e=>{
+      e.preventDefault();const err=$("#popErr");err.textContent="";const btn=$("#popSend");btn.disabled=true;
+      const {error}=await db.rpc("subscribe_email",{p:{email:$("#popEmail").value,attribution:window.aceAttribution()}});
+      btn.disabled=false;
+      if(error){err.textContent=error.message||"Something went wrong. Please try again.";return}
+      const cs=C.popup||{};const code=String(cs.code||"").trim().toUpperCase();
+      $("#popForm").hidden=true;$("#popDone").hidden=false;$("#popNote").hidden=true;$("#popNo").hidden=true;
+      if(code){$("#popCode").hidden=false;$("#popCode").textContent=code;
+        try{localStorage.setItem("ace-code",JSON.stringify({code,at:Date.now()}))}catch(e2){}}
+      popRemember(true);track("popup_signup",{});
+    });
+  }
+  if(CS_ON||!s.on||popSeen())return;
+  const tryOpen=()=>{
+    if(!$("#pop").hidden||$("#checkout").classList.contains("on"))return;
+    if(!$("#consent").hidden){popTimer=setTimeout(tryOpen,3000);return}  // let them answer the cookie bar first
+    openPop();
+  };
+  popTimer=setTimeout(tryOpen,Math.max(1,Number(s.delay)||6)*1000);
+}
 /* ---------- coming soon ---------- */
 let CS_ON=false;
 function csList(s,fallback){return String(s||fallback).split(",").map(x=>x.trim()).filter(Boolean)}
