@@ -7,7 +7,7 @@
 <meta name="description" id="metaDesc" content="ACE sportswear for footballers. Tees, shorts, hoodies, socks and winter gloves in black and white.">
 <meta property="og:title" content="ACE — Built for athletes">
 <meta property="og:description" content="Training and match-day wear for footballers.">
-<meta property="og:image" content="/hero.jpg">
+<meta property="og:image" id="ogImage" content="">
 <meta name="theme-color" content="#000000">
 <link rel="icon" type="image/png" href="/icon.png" id="favicon">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -119,7 +119,9 @@ main,footer{position:relative;z-index:1}
 .fu{will-change:opacity,transform}
 
 /* hero */
-.hero{background:#000;color:#fff}
+.hero-media.no-poster{background:#0b0b0b}
+.hero-img[hidden]{display:none}
+/* hero */
 .hero-img{width:100%;height:auto;display:block}
 .hero{overflow:hidden}
 .js .hero-img{opacity:0;transform:scale(1.035);filter:brightness(.55)}
@@ -775,7 +777,7 @@ footer small{font-size:12px;letter-spacing:.04em}
 <main>
 <div class="hero" data-show="hero.show">
   <div class="hero-media" id="heroMedia">
-    <picture><source id="heroMobile" media="(max-width:699px)" srcset=""><img class="hero-img" data-img="hero.image" src="/hero.jpg" alt="ACE sportswear worn on the pitch" fetchpriority="high" decoding="async"></picture>
+    <picture><source id="heroMobile" media="(max-width:699px)" srcset=""><img class="hero-img" id="heroImg" alt="" fetchpriority="high" decoding="async" hidden></picture>
     <video class="hero-video" id="heroVideo" muted playsinline loop preload="none" tabindex="-1" aria-hidden="true" disablepictureinpicture disableremoteplayback></video>
     <div class="hero-shade" id="heroShade"></div>
     <div class="hero-over">
@@ -1054,7 +1056,9 @@ const PREVIEW=new URLSearchParams(location.search).has("preview");
 let C=window.aceMerge(window.ACE_DEFAULT_CONTENT,{});
 function getPath(o,p){return p.split(".").reduce((a,k)=>a==null?a:a[k],o)}
 function hexOk(h){return /^#[0-9a-f]{6}$/i.test(h||"")}
-function applyContent(c){
+let CONTENT_FRESH=false;
+function applyContent(c,fresh){
+  if(fresh)CONTENT_FRESH=true;
   C=c;const th=c.theme||{};
   const F=window.ACE_FONTS,fd=F.display[th.font_display]?th.font_display:"Michroma",fb=F.body[th.font_body]?th.font_body:"Archivo";
   const href=`https://fonts.googleapis.com/css2?family=${F.display[fd]}${fd!==fb?"&family="+F.body[fb]:""}&display=swap`;
@@ -1070,18 +1074,22 @@ function applyContent(c){
   root.classList.toggle("noanim",th.animations===false);
   document.getElementById("wm").hidden=th.watermark===false;
   document.querySelectorAll("[data-c]").forEach(el=>{const v=getPath(c,el.dataset.c);if(typeof v==="string")el.textContent=v});
-  document.querySelectorAll("[data-img]").forEach(el=>{const v=getPath(c,el.dataset.img);if(v&&el.getAttribute("src")!==v)el.setAttribute("src",v)});
+  document.querySelectorAll("[data-img]").forEach(el=>{const v=getPath(c,el.dataset.img);
+    if(v){if(el.getAttribute("src")!==v)el.setAttribute("src",v);el.hidden=false}
+    else{el.removeAttribute("src");el.removeAttribute("srcset");el.hidden=true}});
   document.querySelectorAll("[data-show]").forEach(el=>{el.hidden=getPath(c,el.dataset.show)===false});
   setupAnnouncements(c.announcement||{});
   setupStory(c.story||{});
   setupComingSoon(c.coming_soon||{});
   setupPopup(c.popup||{});
   setupHero(c.hero||{});
-  document.getElementById("heroMobile").setAttribute("srcset",(c.hero&&c.hero.image_mobile)||(c.hero&&c.hero.image)||"/hero.jpg");
+  // the hero poster is handled in setupHero(), from your settings only
   const d=c.details||{};
   document.getElementById("detGrid").innerHTML=(d.tiles||[]).filter(x=>x&&x.image).map(x=>`<figure class="${x.wide?"wide":"sq"}">${x.image2?`<div class="pair"><img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy"><img src="${esc(x.image2)}" alt="" loading="lazy"></div>`:`<img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy">`}<figcaption><b>${esc(x.title)}</b>${esc(x.text)}</figcaption></figure>`).join("");
   const st=c.store||{},sv=document.getElementById("storeVisual"),si=document.getElementById("storeImg");
   if(st.image){sv.classList.add("photo");si.src=st.image;si.alt=st.title||""}else{sv.classList.remove("photo");si.src=(c.brand&&c.brand.logo_full_light)||"/logo-full-black.png";si.alt=""}
+  const og=document.getElementById("ogImage");const ogSrc=(c.hero&&(c.hero.image||c.hero.image_mobile))||(c.story&&c.story.image)||"";
+  if(og){if(ogSrc)og.setAttribute("content",ogSrc);else og.removeAttribute("content")}
   const seo=c.seo||{};if(seo.title)document.title=seo.title;
   if(CS_ON){const cs=c.coming_soon||{};document.title=`${cs.title||seo.title||"ACE"} — ${cs.headline||"Coming soon"}`}if(seo.description)document.getElementById("metaDesc").setAttribute("content",seo.description);
   if(c.brand&&c.brand.favicon)document.getElementById("favicon").setAttribute("href",c.brand.favicon);
@@ -1093,6 +1101,20 @@ let heroCtl=null;
 function setupHero(h){
   h=h||{};
   const v=document.getElementById("heroVideo"),media=document.getElementById("heroMedia");
+  const img=document.getElementById("heroImg"),msrc=document.getElementById("heroMobile");
+  const isPhone=matchMedia("(max-width:699px)").matches;
+  // Only ever show media from freshly loaded settings, never from the copy saved
+  // in this browser: a photo you deleted must not flash up again.
+  const poster=CONTENT_FRESH?((isPhone&&h.image_mobile)||h.image||""):"";
+  if(poster){
+    if(img.getAttribute("src")!==poster)img.setAttribute("src",poster);
+    img.alt=h.headline?h.headline:"ACE sportswear";img.hidden=false;
+    msrc.setAttribute("srcset",h.image_mobile||h.image||"");
+    v.setAttribute("poster",poster);
+  }else{
+    img.removeAttribute("src");img.hidden=true;msrc.setAttribute("srcset","");v.removeAttribute("poster");
+  }
+  media.classList.toggle("no-poster",!poster);
   media.style.setProperty("--hero-ov",Math.max(0,Math.min(85,Number(h.overlay)===0?0:(Number(h.overlay)||35)))/100);
   const head=document.getElementById("heroHead");head.hidden=!(h.headline&&h.headline.trim());
   const b1=document.getElementById("heroBtn1"),b2=document.getElementById("heroBtn2");
@@ -1109,7 +1131,7 @@ function setupHero(h){
   const slow=conn.saveData===true||/(^|-)2g$/.test(conn.effectiveType||"");
   const src=(v.canPlayType&&webm&&v.canPlayType("video/webm").length)?webm:mp4;
   if(heroCtl){heroCtl.stop();heroCtl=null}
-  if(!src||reduce||slow||CS_ON){v.removeAttribute("src");v.load&&v.load();v.classList.remove("ready");return}
+  if(!CONTENT_FRESH||!src||reduce||slow||CS_ON){v.removeAttribute("src");v.load&&v.load();v.classList.remove("ready");return}
   if(v.dataset.src!==src){v.dataset.src=src;v.classList.remove("ready");v.setAttribute("src",src);v.preload="auto";v.load()}
   const play=()=>{const p=v.play();if(p&&p.catch)p.catch(()=>{})};
   v.onplaying=()=>v.classList.add("ready");
@@ -1894,11 +1916,11 @@ async function loadContent(){
   if(error)return;
   const pub=data&&typeof data==="object"?data:{};
   try{localStorage.setItem("ace-site",JSON.stringify(pub))}catch(e){}
-  applyContent(window.aceMerge(window.ACE_DEFAULT_CONTENT,pub));
+  applyContent(window.aceMerge(window.ACE_DEFAULT_CONTENT,pub),true);
 }
 if(PREVIEW){
   addEventListener("message",e=>{if(e.origin!==location.origin)return;const d=e.data||{};
-    if(d.type==="ace-content")applyContent(window.aceMerge(window.ACE_DEFAULT_CONTENT,d.content||{}));
+    if(d.type==="ace-content")applyContent(window.aceMerge(window.ACE_DEFAULT_CONTENT,d.content||{}),true);
     if(d.type==="ace-scroll"){const el=document.querySelector(d.selector);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})}});
   try{parent.postMessage({type:"ace-ready"},location.origin)}catch(e){}
 }
