@@ -1343,7 +1343,22 @@ const catLabel=k=>k==="all"?((C.collection&&C.collection.all_label)||"All"):k===
 function skuOf(p,c,size){return (p.id.slice(0,8)+"-"+String(c?c.n:"").toLowerCase().replace(/\W+/g,"")+"-"+String(size||"").toLowerCase().replace(/\W+/g,""))}
 function gaItem(p,c,size,qty,index){const it={item_id:p.id,item_name:p.name,item_brand:"ACE",item_category:catLabel(p.cat),price:p.price,quantity:qty||1};
   if(c||size)it.item_variant=[c&&c.n,size].filter(Boolean).join(" / ");if(c&&size)it.item_sku=skuOf(p,c,size);if(p.sale)it.discount=Math.round((p.was-p.price)*100)/100;if(index!=null)it.index=index;return it}
-function track(name,params){try{window.aceAnalytics&&window.aceAnalytics.track(name,params)}catch(e){}}
+/* our own anonymous counting: no name, email or cookie, just a random id for this visit */
+function aceSession(){try{let s=sessionStorage.getItem("ace-sid");if(!s){s="s"+Math.random().toString(36).slice(2,12)+Date.now().toString(36);sessionStorage.setItem("ace-sid",s)}return s}catch(e){return ""}}
+function logEvent(name,params){
+  try{
+    const s=aceSession();if(!s)return;
+    const A=(window.aceAttribution&&window.aceAttribution())||{},L=A.last_touch||A.first_touch||{};
+    let ref="";try{ref=document.referrer?new URL(document.referrer).hostname:""}catch(e){}
+    const w=innerWidth,dev=w<700?"phone":w<1024?"tablet":"desktop";
+    const p={s,n:name,p:location.pathname.slice(0,200),d:dev,us:L.utm_source||L.source||"",uc:L.utm_campaign||"",r:ref};
+    if(params&&params.items&&params.items[0])p.i=params.items[0].item_id;
+    if(params&&params.item_id)p.i=params.item_id;
+    if(params&&params.value!=null)p.v=String(params.value);
+    db.rpc("log_event",{p}).then(()=>{},()=>{});
+  }catch(e){}
+}
+function track(name,params){logEvent(name,params);try{window.aceAnalytics&&window.aceAnalytics.track(name,params)}catch(e){}}
 function bagItems(){return bag.map(l=>{const {p,c}=lineInfo(l);return p&&c?gaItem(p,c,l.size,l.qty):null}).filter(Boolean)}
 function trackList(){const vis=PRODUCTS.filter(p=>cat==="all"||(cat==="sale"?p.sale:p.cat===cat));if(!vis.length)return;
   track("view_item_list",{item_list_id:cat,item_list_name:catLabel(cat),items:vis.map((p,i)=>gaItem(p,p.colors[cardColor[p.id]||0],null,1,i))})}
