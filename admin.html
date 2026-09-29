@@ -550,11 +550,7 @@ async function pOrder(num){
       <div class="card"><h2>Items</h2>
         ${items.map(i=>`<div class="item">${i.image?`<img src="${esc(i.image)}" alt="">`:"<span></span>"}<div><div><b>${esc(i.name)}</b></div><div class="v">${esc(i.color)} / ${esc(i.size)} · ${money(i.price)} × ${Number(i.qty)}</div></div><div><b>${money(Number(i.price)*Number(i.qty))}</b></div></div>`).join("")}
       </div>
-      <div class="card"><h2>Stock &amp; delivery wording</h2>
-      <div class="grid2"><label class="fld"><span>Show "Only X left" when stock is at or below</span><input type="number" id="sLow" min="1" max="20" value="${esc(SETTINGS.low_stock_threshold||"3")}"></label>
-        <label class="fld"><span>Delivery time shown to customers</span><input type="text" id="sDays" value="${esc(SETTINGS.delivery_days||"")}" placeholder="2-4 working days"></label></div>
-    </div>
-    <div class="card"><h2>Payment</h2>
+      <div class="card"><h2>Payment</h2>
         <div class="sumrow"><span>Subtotal · ${items.reduce((a,i)=>a+Number(i.qty),0)} items</span><span>${money(o.subtotal)}</span></div>
         ${Number(o.discount_amount)>0?`<div class="sumrow"><span>Discount <span class="muted">${esc(o.discount_code||"")}</span></span><span>−${money(o.discount_amount)}</span></div>`:""}
         <div class="sumrow"><span>Delivery</span><span class="row"><span class="muted">$</span><input type="number" class="feein" id="oFee" min="0" step="0.5" value="${Number(o.delivery_fee||0)}"><button class="btn ghost sm" id="oFeeSave">Save</button></span></div>
@@ -1504,6 +1500,10 @@ async function pSettings(){
       <label class="fld"><span>PostHog · Region</span><select id="sPhR"><option value="eu" ${SETTINGS.posthog_region!=="us"?"selected":""}>EU (Europe)</option><option value="us" ${SETTINGS.posthog_region==="us"?"selected":""}>US</option></select></label>
       <p class="help">Cancelled and returned orders are also sent to GA4 as refunds from the server. That part needs the <b>GA4_API_SECRET</b> variable in Vercel.</p>
     </div>
+    <div class="card"><h2>Stock &amp; delivery wording</h2>
+      <div class="grid2"><label class="fld"><span>Show "Only X left" when stock is at or below</span><input type="number" id="sLow" min="1" max="20" value="${esc(SETTINGS.low_stock_threshold||"3")}"></label>
+        <label class="fld"><span>Delivery time shown to customers</span><input type="text" id="sDays" value="${esc(SETTINGS.delivery_days||"")}" placeholder="2-4 working days"></label></div>
+    </div>
     <div class="card"><h2>Payment</h2><label class="fld"><span>Payment note (checkout, confirmation page and email)</span><textarea id="sPt" rows="2">${esc(SETTINGS.payment_text)}</textarea></label></div>
     <div class="row" style="margin-top:12px"><button class="btn" id="sSave">Save settings</button><span class="err" id="sErr"></span></div>
     <div class="card" style="margin-top:22px"><h2>Server events</h2>
@@ -1529,7 +1529,8 @@ async function pSettings(){
     const ga=$("#sGa").value.trim().toUpperCase(),ph=$("#sPh").value.trim();
     if(ga&&!/^G-[A-Z0-9]{4,}$/.test(ga))return $("#sErr").textContent="The GA4 Measurement ID should look like G-XXXXXXXXXX.";
     if(ph&&!/^phc_[A-Za-z0-9]{10,}$/.test(ph))return $("#sErr").textContent="The PostHog key should start with phc_.";
-    const rows=[["low_stock_threshold",String(Math.max(1,parseInt($("#sLow").value)||3))],["delivery_days",$("#sDays").value.trim()],["ga4_measurement_id",ga],["posthog_key",ph],["posthog_region",$("#sPhR").value],["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
+    const val=(id,d="")=>{const el=$("#"+id);return el?el.value:d};
+    const rows=[["low_stock_threshold",String(Math.max(1,parseInt(val("sLow","3"))||3))],["delivery_days",val("sDays").trim()],["ga4_measurement_id",ga],["posthog_key",ph],["posthog_region",$("#sPhR").value],["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
     const {error}=await db.from("settings").upsert(rows);if(error)return $("#sErr").textContent="Couldn't save: "+error.message;toast("Settings saved");
   };
   $$("[data-rmadmin]").forEach(b=>b.onclick=async()=>{if(!confirm(`Remove ${b.dataset.rmadmin} from the admin?`))return;const {error}=await db.from("admins").delete().eq("email",b.dataset.rmadmin);if(error)return toast(error.message,true);toast("Removed");pSettings()});
