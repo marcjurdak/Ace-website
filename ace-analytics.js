@@ -15,10 +15,29 @@ if (!window.aceConsent) (function () {
   function idle(fn) { (window.requestIdleCallback || function (f) { return setTimeout(f, 300); })(fn, { timeout: 2500 }); }
   function script(src) { var s = document.createElement("script"); s.async = true; s.src = src; document.head.appendChild(s); return s; }
 
+  function consentState() {
+    var c = (window.aceConsent && window.aceConsent.get()) || {};
+    return {
+      ad_storage: c.marketing ? "granted" : "denied",
+      ad_user_data: c.marketing ? "granted" : "denied",
+      ad_personalization: c.marketing ? "granted" : "denied",
+      analytics_storage: c.analytics ? "granted" : "denied",
+      functionality_storage: "granted",
+      security_storage: "granted"
+    };
+  }
   function startGA(id) {
     if (!/^G-[A-Z0-9]{4,}$/i.test(id || "")) return;
     window.dataLayer = window.dataLayer || [];
     window.gtag = function () { window.dataLayer.push(arguments); };
+    // Google Consent Mode v2: everything denied until the visitor chooses,
+    // then updated from their answer in the ACE cookie bar.
+    window.gtag("consent", "default", {
+      ad_storage: "denied", ad_user_data: "denied", ad_personalization: "denied",
+      analytics_storage: "denied", functionality_storage: "granted", security_storage: "granted",
+      wait_for_update: 500
+    });
+    window.gtag("consent", "update", consentState());
     window.gtag("js", new Date());
     window.gtag("config", id, { send_page_view: true, debug_mode: DEBUG || undefined, anonymize_ip: true });
     script("https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id));
@@ -66,5 +85,8 @@ if (!window.aceConsent) (function () {
     posthogId: function () { try { return window.posthog && window.posthog.get_distinct_id ? String(window.posthog.get_distinct_id() || "") : ""; } catch (e) { return ""; } },
     debug: DEBUG
   };
-  if (window.aceConsent) window.aceConsent.onChange(function (c) { if (c.analytics) start(); else queue = []; });
+  if (window.aceConsent) window.aceConsent.onChange(function (c) {
+    if (gaReady && window.gtag) window.gtag("consent", "update", consentState());
+    if (c.analytics) start(); else queue = [];
+  });
 })();
