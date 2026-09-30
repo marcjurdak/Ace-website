@@ -153,9 +153,11 @@ async function handleRpc(msg) {
   const ok = (result) => ({ jsonrpc: "2.0", id, result });
   const fail = (code, message) => ({ jsonrpc: "2.0", id, error: { code, message } });
   switch (msg.method) {
-    case "initialize":
-      return ok({ protocolVersion: "2024-11-05", capabilities: { tools: { listChanged: false } },
+    case "initialize": {
+      const asked = (msg.params && msg.params.protocolVersion) || "2024-11-05";
+      return ok({ protocolVersion: asked, capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "ace-ads", version: "1.0.0" } });
+    }
     case "notifications/initialized": return null;
     case "ping": return ok({});
     case "tools/list":
@@ -176,12 +178,54 @@ async function handleRpc(msg) {
 }
 
 module.exports = async function handler(req, res) {
-  const send = (code, obj) => { res.statusCode = code; res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); res.end(obj === undefined ? "" : JSON.stringify(obj)); };
-  if (req.method === "GET") return send(200, { name: "ace-ads", status: "ready", tools: TOOLS.map((t) => t.name) });
-  if (req.method !== "POST") return send(405, { error: "Method not allowed" });
-  if (!env("ACE_MCP_TOKEN")) { log("error", "ACE_MCP_TOKEN missing"); return send(500, { error: "Server not configured" }); }
-  const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  if (!safeEqual(auth, env("ACE_MCP_TOKEN"))) return send(401, { error: "Unauthorized" });
+  const url = new URL(req.url, "http://localhost");
+  const accept = String(req.headers.accept || "");
+  const wantsSSE = accept.includes("text/event-stream");
+
+  // CORS (harmless for server-to-server, needed for browser-based clients)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "authorization, content-type, mcp-session-id, mcp-protocol-version, accept");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Expose-Headers", "mcp-session-id");
+  if (req.method === "OPTIONS") { res.statusCode = 204; return res.end(); }
+
+  const sendJson = (code, obj) => {
+    res.statusCode = code; res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store");
+    res.end(obj === undefined ? "" : JSON.stringify(obj));
+  };
+  const sendRpc = (obj) => {
+    if (obj === null || obj === undefined) { res.statusCode = 202; return res.end(); }
+    if (wantsSSE) {  // some MCP clients require the streaming format
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-store");
+      res.setHeader("Connection", "keep-alive");
+      res.write(`event: message\ndata: ${JSON.stringify(obj)}\n\n`);
+      return res.end();
+    }
+    return sendJson(200, obj);
+  };
+
+  // health check in a browser: /api/mcp?health=1
+  if (req.method === "GET" && (url.searchParams.has("health") || url.searchParams.has("ping"))) {
+    return sendJson(200, { name: "ace-ads", status: "ready", tools: TOOLS.map((t) => t.name) });
+  }
+  // the MCP spec expects plain GET to be refused when the server has no stream to give
+  if (req.method === "GET") { res.setHeader("Allow", "POST"); return sendJson(405, { error: "Use POST (MCP). For a health check add ?health=1" }); }
+  if (req.method === "DELETE") { res.statusCode = 204; return res.end(); }
+  if (req.method !== "POST") { res.setHeader("Allow", "POST"); return sendJson(405, { error: "Method not allowed" }); }
+
+  if (!env("ACE_MCP_TOKEN")) { log("error", "ACE_MCP_TOKEN missing"); return sendJson(500, { error: "Server not configured" }); }
+  // the key may arrive as a header OR in the address (?key=...), because some
+  // MCP clients cannot add custom headers
+  const headerToken = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
+  const urlToken = (url.searchParams.get("key") || url.searchParams.get("token") || "").trim();
+  if (!safeEqual(headerToken, env("ACE_MCP_TOKEN")) && !safeEqual(urlToken, env("ACE_MCP_TOKEN"))) {
+    log("warn", "rejected a call with a wrong or missing key");
+    res.setHeader("WWW-Authenticate", 'Bearer realm="ace-ads"');
+    return sendJson(401, { jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized" } });
+  }
+  res.setHeader("Mcp-Session-Id", String(req.headers["mcp-session-id"] || "ace-" + crypto.randomBytes(8).toString("hex")));
 
   let body = req.body;
   if (!body || typeof body === "string") {
@@ -190,12 +234,11 @@ module.exports = async function handler(req, res) {
   try {
     if (Array.isArray(body)) {
       const out = (await Promise.all(body.map(handleRpc))).filter(Boolean);
-      return out.length ? send(200, out) : send(202, undefined);
+      return out.length ? sendRpc(out) : sendRpc(null);
     }
-    const out = await handleRpc(body);
-    return out ? send(200, out) : send(202, undefined);
+    return sendRpc(await handleRpc(body));
   } catch (e) {
     log("error", "unexpected", { error: String(e.message || e).slice(0, 200) });
-    return send(500, { jsonrpc: "2.0", id: body && body.id, error: { code: -32603, message: "Server error" } });
+    return sendJson(500, { jsonrpc: "2.0", id: body && body.id, error: { code: -32603, message: "Server error" } });
   }
 };
