@@ -1671,7 +1671,7 @@ function buildGrid(){
   PRODUCTS.forEach(p=>{
     const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";
     el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
-      <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${p.coming_soon?`<span class="soon-word">Coming soon</span>`:priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
+      <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${p.coming_soon?"":priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
     el.querySelector(".card-open").onclick=()=>{const ci=cardColor[p.id]||0;track("select_item",{item_list_id:cat,item_list_name:catLabel(cat),items:[gaItem(p,p.colors[ci],null,1,PRODUCTS.indexOf(p))]});openPdp(p,ci)};
     el.querySelectorAll(".sw").forEach(s=>s.onclick=e=>{e.stopPropagation();cardColor[p.id]=+s.dataset.i;paintCard(p)});
@@ -1797,7 +1797,8 @@ function openPdp(p,ci,fromRoute){
 function renderPdp(){
   const {p,ci}=cur,c=p.colors[ci];
   $("#pxCrumb").textContent=catLabel(p.cat);$("#pxCat").textContent=catLabel(p.cat);$("#pdpTitle").textContent=p.name;
-  $("#pdpPrice").innerHTML=p.coming_soon?`<span class="soon-word">Coming soon</span>`:priceHtml(p)+(p.sale?`<span class="off-tag">−${p.off}%</span>`:"");
+  $("#pdpPrice").innerHTML=p.coming_soon?"":priceHtml(p)+(p.sale?`<span class="off-tag">−${p.off}%</span>`:"");
+  $("#pdpPrice").hidden=!!p.coming_soon;
   const r=ratingOf(p.id),rb=$("#pxRating");
   if(r&&C.product.show_reviews!==false){rb.hidden=false;rb.innerHTML=`${starsHtml(r.avg)}<span>${r.avg.toFixed(1)} · ${r.n} review${r.n>1?"s":""}</span>`}else rb.hidden=true;
   if(cur.gal!==ci){cur.gal=ci;cur.media=mediaOf(p,c);const g=$("#pxGallery");
