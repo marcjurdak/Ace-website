@@ -385,7 +385,8 @@ section.co-sec{padding:28px 0 0}
 .px-back{font-weight:600;font-size:14px}
 .px-crumb{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-right:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .px-bagbtn{font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}
-.px-bagbtn span{min-width:24px;height:24px;border-radius:12px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:12px;padding:0 6px}
+.px-bagbtn svg{width:22px;height:22px;display:block}
+.px-bagbtn span{min-width:20px;height:20px;font-weight:700;border-radius:12px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:12px;padding:0 6px}
 .px-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
 .px-grid{display:grid;gap:0}
 @media(min-width:960px){.px-grid{grid-template-columns:minmax(0,1.45fr) minmax(360px,1fr);align-items:start}}
@@ -596,8 +597,15 @@ section.co-sec{padding:28px 0 0}
 .zoom-dots{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));display:flex;gap:6px;justify-content:center}
 .zoom-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
 .zoom-dots i.on{background:var(--fg)}
+/* a hidden element must always be hidden, even when a class sets display */
+[hidden]{display:none!important}
 /* ===================== accounts & coming soon products ===================== */
-.acctbtn{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-right:14px}
+.acctbtn{position:relative;display:grid;place-items:center;width:40px;height:40px;margin-right:2px}
+.acctbtn svg{width:23px;height:23px;display:block}
+.acct-dot{position:absolute;right:7px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--fg);border:1.5px solid var(--surface)}
+.acct-dot[hidden]{display:none}
+.bagbtn svg{width:23px;height:23px;display:block}
+.bagbtn .count{min-width:20px;height:20px;border-radius:10px;font-size:11px;font-weight:700}
 .acct{top:0;right:0;bottom:0;width:min(460px,100%);transform:translateX(105%)}
 .acct.on{transform:none}
 .acct .sheet-body{padding:22px var(--pad) 40px}
@@ -612,9 +620,16 @@ section.co-sec{padding:28px 0 0}
 .welcome-note{background:var(--fg);color:var(--bg);padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:16px}
 .cs-badge{position:absolute;left:10px;top:10px;background:var(--bg);color:var(--fg);border:1px solid var(--fg);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:5px 8px}
 .cs-badge[hidden]{display:none}
-.notify-box{border:1px solid var(--fg);padding:16px;margin-top:14px}
-.notify-box b{display:block;font-size:14px;margin-bottom:4px}
-.notify-box p{font-size:13.5px;color:var(--muted);margin-bottom:12px}
+.soon-word{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:700}
+.px-price .soon-word{font-size:15px;letter-spacing:.14em}
+.notify-box{margin-top:18px}
+.notify-box b{display:block;font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:13px;margin-bottom:6px}
+.notify-box p{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:14px}
+.notify-box .px-add{width:100%}
+.notify-open{width:100%;min-height:54px;background:var(--fg);color:var(--bg);text-transform:uppercase;letter-spacing:.14em;font-size:12.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px}
+.notify-open[hidden]{display:none}
+.notify-done{border:1px solid var(--fg);padding:16px;font-size:14px;line-height:1.6}
+.px-sticky .notify-open{min-height:50px}
 /* ===================== coming soon ===================== */
 html.cs-on body{overflow:hidden}
 html.cs-on .top,html.cs-on main,html.cs-on footer,html.cs-on .wm,html.cs-on .announce{display:none!important}
@@ -790,8 +805,12 @@ footer small{font-size:12px;letter-spacing:.04em}
   <div class="lhs"><button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
   <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
   </div>
-  <button class="acctbtn" id="acctOpen" aria-label="Your account">Account</button>
-  <button class="bagbtn" id="bagOpen" aria-label="Open bag">Bag <span class="count" id="bagCount">0</span></button>
+  <button class="acctbtn" id="acctOpen" aria-label="Your account" title="Your account">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.75"/><path d="M4.5 20c.9-3.8 3.9-5.9 7.5-5.9s6.6 2.1 7.5 5.9"/></svg>
+    <span class="acct-dot" id="acctDot" hidden></span></button>
+  <button class="bagbtn" id="bagOpen" aria-label="Open bag" title="Your bag">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.3 7.5h13.4l1.05 12.1a1.4 1.4 0 0 1-1.4 1.5H5.65a1.4 1.4 0 0 1-1.4-1.5L5.3 7.5z"/><path d="M8.9 10V6.6a3.1 3.1 0 0 1 6.2 0V10"/></svg>
+    <span class="count" id="bagCount">0</span></button>
 </header>
 
 <main>
@@ -914,7 +933,7 @@ footer small{font-size:12px;letter-spacing:.04em}
 <div class="toast" id="toast" role="status" aria-live="polite"><div><b>Added to bag</b><span id="toastMsg"></span></div><button id="toastView">View bag</button></div>
 
 <div class="sheet px" id="pdp" role="dialog" aria-modal="true" aria-labelledby="pdpTitle" aria-hidden="true">
-  <div class="px-top"><button class="px-back" id="pxBackBtn" aria-label="Back">← Back</button><span class="px-crumb" id="pxCrumb"></span><button class="px-bagbtn" id="pxBag">Bag <span id="pxBagCount">0</span></button></div>
+  <div class="px-top"><button class="px-back" id="pxBackBtn" aria-label="Back">← Back</button><span class="px-crumb" id="pxCrumb"></span><button class="px-bagbtn" id="pxBag" aria-label="Open bag" title="Your bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.3 7.5h13.4l1.05 12.1a1.4 1.4 0 0 1-1.4 1.5H5.65a1.4 1.4 0 0 1-1.4-1.5L5.3 7.5z"/><path d="M8.9 10V6.6a3.1 3.1 0 0 1 6.2 0V10"/></svg><span id="pxBagCount">0</span></button></div>
   <div class="px-body" id="pxBody">
     <div class="px-grid">
       <div class="px-media"><div class="px-gallery" id="pxGallery"></div><div class="px-dots" id="pxDots"></div></div>
@@ -932,12 +951,13 @@ footer small{font-size:12px;letter-spacing:.04em}
         <div class="notify-box" id="notifyBox" hidden>
           <b id="notifyTitle">Coming soon</b>
           <p id="notifyNote"></p>
-          <form id="notifyForm">
+          <button type="button" class="notify-open" id="notifyOpen"><span data-c="product.notify_button">Get notified by email</span><span aria-hidden="true">→</span></button>
+          <form id="notifyForm" hidden>
             <label class="fld"><span>Email</span><input type="email" id="notifyEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" required></label>
             <div class="form-err" id="notifyErr" aria-live="polite"></div>
             <button type="submit" class="px-add" id="notifySend"><span data-c="product.notify_button">Notify me when it drops</span><span aria-hidden="true">→</span></button>
           </form>
-          <div id="notifyDone" hidden><p style="margin:0"><b>You're on the list.</b> We'll email you the moment it's available.</p></div>
+          <div id="notifyDone" class="notify-done" hidden>You're on the list. We'll email you the moment it drops.</div>
         </div>
         <ul class="px-usp" id="pxUsp"></ul>
         <div id="pxBundle"></div>
@@ -1202,8 +1222,10 @@ async function refreshMe(){
   ME=error?{email:session.user.email}:data;paintAcctBtn();return ME;
 }
 function paintAcctBtn(){
-  const b=$("#acctOpen");if(!b)return;
-  b.textContent=ME?(ME.first_name||"Account"):"Account";
+  const d=$("#acctDot"),b=$("#acctOpen");if(!b)return;
+  if(d)d.hidden=!ME;
+  b.setAttribute("aria-label",ME?`Your account (${ME.first_name||ME.email||"signed in"})`:"Sign in or create an account");
+  b.setAttribute("title",ME?(ME.first_name||"Your account"):"Your account");
 }
 function openAcct(view){renderAcct(view||(ME?"home":"signin"));openSheet($("#acct"))}
 let acctWired=false;
@@ -1556,7 +1578,7 @@ function buildGrid(){
   PRODUCTS.forEach(p=>{
     const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";
     el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
-      <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
+      <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${p.coming_soon?`<span class="soon-word">Coming soon</span>`:priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
     el.querySelector(".card-open").onclick=()=>{const ci=cardColor[p.id]||0;track("select_item",{item_list_id:cat,item_list_name:catLabel(cat),items:[gaItem(p,p.colors[ci],null,1,PRODUCTS.indexOf(p))]});openPdp(p,ci)};
     el.querySelectorAll(".sw").forEach(s=>s.onclick=e=>{e.stopPropagation();cardColor[p.id]=+s.dataset.i;paintCard(p)});
@@ -1640,7 +1662,7 @@ function openPdp(p,ci,fromRoute){
 function renderPdp(){
   const {p,ci}=cur,c=p.colors[ci];
   $("#pxCrumb").textContent=catLabel(p.cat);$("#pxCat").textContent=catLabel(p.cat);$("#pdpTitle").textContent=p.name;
-  $("#pdpPrice").innerHTML=priceHtml(p)+(p.sale?`<span class="off-tag">−${p.off}%</span>`:"");
+  $("#pdpPrice").innerHTML=p.coming_soon?`<span class="soon-word">Coming soon</span>`:priceHtml(p)+(p.sale?`<span class="off-tag">−${p.off}%</span>`:"");
   const r=ratingOf(p.id),rb=$("#pxRating");
   if(r&&C.product.show_reviews!==false){rb.hidden=false;rb.innerHTML=`${starsHtml(r.avg)}<span>${r.avg.toFixed(1)} · ${r.n} review${r.n>1?"s":""}</span>`}else rb.hidden=true;
   if(cur.gal!==ci){cur.gal=ci;cur.media=mediaOf(p,c);const g=$("#pxGallery");
@@ -1671,11 +1693,19 @@ function renderPdp(){
   const P2=C.product||{};
   $("#notifyBox").hidden=!soon;
   $(".px-row").hidden=soon; $("#pdpSizes").closest(".px-opt").hidden=soon;
-  $("#pxSticky").hidden=soon;
+  const sticky=$("#pxSticky");
+  sticky.querySelectorAll(":scope > *").forEach(el=>{if(el.id!=="pxStickyNotify")el.hidden=soon});
+  let sn=$("#pxStickyNotify");
+  if(soon&&!sn){sn=document.createElement("button");sn.type="button";sn.id="pxStickyNotify";sn.className="notify-open";
+    sn.innerHTML=`<span>${esc((C.product||{}).notify_button||"Get notified by email")}</span><span aria-hidden="true">→</span>`;
+    sn.onclick=()=>{openNotifyForm();$("#notifyBox").scrollIntoView({behavior:"smooth",block:"center"})};
+    sticky.appendChild(sn);}
+  if(sn)sn.hidden=!soon;
   if(soon){
+    $("#notifyOpen").hidden=false;$("#notifyOpen").querySelector("span").textContent=P2.notify_button||"Get notified by email";
     $("#notifyTitle").textContent=P2.notify_title||"Coming soon";
     $("#notifyNote").textContent=p.coming_soon_note||P2.notify_text||"Leave your email and you'll be first to know when it drops.";
-    $("#notifyForm").hidden=false;$("#notifyDone").hidden=true;$("#notifyErr").textContent="";
+    $("#notifyForm").hidden=true;$("#notifyDone").hidden=true;$("#notifyErr").textContent="";
     if(ME&&ME.email)$("#notifyEmail").value=ME.email;
   }
   const add=$("#addBtn");add.disabled=c.soldOut;add.firstElementChild.textContent=c.soldOut?"Sold out":"Add to bag";
@@ -1755,13 +1785,20 @@ async function renderReviews(p){
     b.disabled=false;if(error){err.textContent=error.message;return}
     $("#rvForm").innerHTML=`<p><b>Thank you!</b> Your review will appear once we've checked it.</p>`;track("review_submitted",{item_id:p.id,rating:stars})};
 }
+function openNotifyForm(){
+  $("#notifyOpen").hidden=true;$("#notifyForm").hidden=false;
+  if(ME&&ME.email&&!$("#notifyEmail").value)$("#notifyEmail").value=ME.email;
+  setTimeout(()=>$("#notifyEmail").focus({preventScroll:true}),60);
+}
+$("#notifyOpen").onclick=openNotifyForm;
 $("#notifyForm").addEventListener("submit",async e=>{
   e.preventDefault();const err=$("#notifyErr");err.textContent="";const btn=$("#notifySend");btn.disabled=true;
   const p=cur.p,c=p.colors[cur.ci];
   const {error}=await db.rpc("request_restock",{p:{product_id:p.id,email:$("#notifyEmail").value,size:cur.size||"",color:c?c.n:""}});
   btn.disabled=false;
   if(error){err.textContent=error.message||"Something went wrong. Please try again.";return}
-  $("#notifyForm").hidden=true;$("#notifyDone").hidden=false;
+  $("#notifyForm").hidden=true;$("#notifyDone").hidden=false;$("#notifyOpen").hidden=true;
+  const sn2=$("#pxStickyNotify");if(sn2)sn2.hidden=true;
   track("notify_me",{item_id:p.id});
 });
 $("#pxRating").onclick=()=>$("#pxReviews").scrollIntoView({behavior:"smooth"});

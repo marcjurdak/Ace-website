@@ -1605,6 +1605,9 @@ async function pStore(){
       ${sel("story.image_ratio","Photo shape",[["4/5","Portrait (4:5)"],["1/1","Square"],["3/4","Portrait (3:4)"],["16/9","Wide (16:9)"],["3/2","Landscape (3:2)"]])}`,"#storySec")}
     ${acc("product","Product page",`${tog("product.show_reviews","Show reviews on product pages")}${text("product.reviews_title","Reviews title")}${text("product.related_title","Recommendations title")}
       ${text("product.size_guide","Size guide (opens from the product page)",{area:true})}${text("product.returns_text","Delivery & returns text",{area:true})}${text("product.confirm_text","Line under the add-to-bag button")}
+      <span class="lbl" style="margin-top:14px">Coming soon products</span>
+      <p class="help" style="margin:-2px 0 8px">Shown instead of the price and the Add to bag button when a product is marked "coming soon".</p>
+      ${text("product.notify_title","Small heading")}${text("product.notify_text","Line under it",{area:true})}${text("product.notify_button","Button")}
       <p class="help">The delivery fee and payment line come from <a class="link" href="#/settings">Settings</a>.</p>`,"")}
     ${acc("bundlesec","Bundles section",`${text("bundles.title","Title")}${text("bundles.text","Text under the title")}<p class="help">Create bundles in <a class="link" href="#/bundles">Bundles</a>. The section only shows when at least one bundle is active.</p>`,"#bundlesSec")}
     ${acc("store","Store section",`${tog("store.show","Show this section")}${text("store.title","Title")}${text("store.text","Text",{area:true})}
