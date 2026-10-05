@@ -128,6 +128,7 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
 .metric .v{font-family:var(--display);font-size:20px;margin-top:6px}
 .hgrid{display:grid;gap:14px}
 @media(min-width:1000px){.hgrid{grid-template-columns:1.6fr 1fr}}
+.emimg{height:110px;background:var(--surface2) center/cover no-repeat;border:1px solid var(--line);margin:6px 0 8px}
 .fbar{height:6px;background:var(--surface2);margin-top:5px}
 .fbar i{display:block;height:100%;background:var(--fg)}
 .chart svg{width:100%;height:190px;display:block}
@@ -811,7 +812,8 @@ async function pProduct(id){
         <div id="eSoonBox" ${st.coming_soon?"":"hidden"} style="margin-top:10px">
           <label class="fld"><span>Line shown on the product page</span><input type="text" id="eSoonNote" maxlength="200" value="${esc(st.coming_soon_note)}" placeholder="Dropping this month. Leave your email to be first."></label>
           <div id="eWaiting" class="help">Checking the waiting list…</div>
-          <button class="btn ghost sm" id="eNotify" style="margin-top:8px" hidden>Tell the waiting list it's available</button>
+          <p class="help" style="margin-top:6px">When you untick "Coming soon" and save, everyone waiting is emailed automatically.</p>
+          <button class="btn ghost sm" id="eNotify" style="margin-top:8px" hidden>Email them now</button>
         </div>
       </div>
       <div class="card"><h2>Pricing</h2><label class="fld"><span>Price ($)</span><input type="number" id="ePrice" min="0" step="0.01" inputmode="decimal" value="${esc(st.price)}"></label>
@@ -1110,9 +1112,22 @@ function editEmail(c){
     ${sent?`<p class="help" style="margin:-6px 0 12px">Sent to ${c.sent_count} people on ${fmtDT(c.sent_at)}.</p>`:""}
     <label class="fld"><span>Subject</span><input type="text" id="emSubj" maxlength="140" value="${esc(c?c.subject:"")}" ${sent?"readonly":""} placeholder="New drop: winter gloves"></label>
     <label class="fld"><span>Short line under the subject (optional)</span><input type="text" id="emPre" maxlength="140" value="${esc(c?c.preheader||"":"")}" ${sent?"readonly":""}></label>
-    <label class="fld"><span>Message</span><textarea id="emBody" rows="7" ${sent?"readonly":""} placeholder="Write it the way you'd say it. One empty line starts a new paragraph.">${esc(c?c.body:"")}</textarea></label>
+    <label class="fld"><span>Big headline inside the email (optional)</span><input type="text" id="emHead" maxlength="120" value="${esc(c?c.headline||"":"")}" ${sent?"readonly":""} placeholder="Leave empty to use the subject"></label>
+    <label class="fld"><span>Message</span><textarea id="emBody" rows="8" ${sent?"readonly":""} placeholder="Write it the way you'd say it.&#10;&#10;An empty line starts a new paragraph.&#10;**bold** · *italic* · [link text](https://aceforathletes.com/tops)">${esc(c?c.body:"")}</textarea>
+      <small class="help">An empty line starts a new paragraph. **bold**, *italic*, and [text](link) work.</small></label>
+    <div class="grid2">
+      <div><span class="lbl">Photo at the top</span>
+        <div class="emimg" id="emImgBox1" style="background-image:${c&&c.image_url?`url('${esc(c.image_url)}')`:"none"}"></div>
+        <div class="row"><label class="btn ghost sm upl">Upload<input type="file" accept="image/*" id="emImgIn1"></label><button type="button" class="btn ghost sm" id="emImgRm1">Remove</button></div>
+        <small class="help" id="emImgMsg1">Full width. 1200×600 looks best.</small></div>
+      <div><span class="lbl">Photo under the text</span>
+        <div class="emimg" id="emImgBox2" style="background-image:${c&&c.image_url2?`url('${esc(c.image_url2)}')`:"none"}"></div>
+        <div class="row"><label class="btn ghost sm upl">Upload<input type="file" accept="image/*" id="emImgIn2"></label><button type="button" class="btn ghost sm" id="emImgRm2">Remove</button></div>
+        <small class="help" id="emImgMsg2">Optional second photo.</small></div>
+    </div>
     <div class="grid2"><label class="fld"><span>Button text (optional)</span><input type="text" id="emBtn" maxlength="40" value="${esc(c?c.button_label||"":"")}" ${sent?"readonly":""}></label>
       <label class="fld"><span>Button link</span><input type="url" id="emUrl" value="${esc(c?c.button_url||"https://aceforathletes.com/":"https://aceforathletes.com/")}" ${sent?"readonly":""}></label></div>
+    <label class="fld"><span>Small print at the bottom (optional)</span><input type="text" id="emFoot" maxlength="200" value="${esc(c?c.footer_note||"":"")}" ${sent?"readonly":""} placeholder="Pay on delivery across Lebanon."></label>
     <label class="fld"><span>Send to</span><select id="emAud" ${sent?"disabled":""}>
       <option value="accounts" ${!c||c.audience==="accounts"?"selected":""}>Account holders who want emails</option>
       <option value="waitlist" ${c&&c.audience==="waitlist"?"selected":""}>Early access list</option>
@@ -1121,12 +1136,48 @@ function editEmail(c){
     <div class="err" id="emErr"></div>
     <div class="row between" style="margin-top:12px">${c&&!sent?`<button class="btn danger sm" id="emDel">Delete</button>`:"<span></span>"}
       <span class="row"><button class="btn ghost" id="emCancel">Close</button>
+      <button class="btn ghost" id="emPreview">Preview</button>
       ${sent?"":`<button class="btn ghost" id="emTest">Send me a test</button><button class="btn" id="emSend">Send to everyone</button>`}</span></div>`);
+  // the two photos upload straight to your media library
+  const emImages={one:(c&&c.image_url)||"",two:(c&&c.image_url2)||""};
+  const paintImg=(key,slot)=>{const box=$("#emImgBox"+slot,m);if(box)box.style.backgroundImage=emImages[key]?`url('${emImages[key]}')`:"none";};
+  ["1","2"].forEach(slot=>{
+    const key=slot==="1"?"one":"two";
+    const inp=$("#emImgIn"+slot,m),msg=$("#emImgMsg"+slot,m);
+    inp.onchange=async()=>{const f=inp.files[0];if(!f)return;msg.style.color="";msg.textContent="Uploading…";
+      try{const url=await uploadImage(f);emImages[key]=url;paintImg(key,slot);msg.textContent="Photo added"}
+      catch(e){msg.style.color="var(--bad)";msg.textContent=e.message||String(e)}};
+    $("#emImgRm"+slot,m).onclick=()=>{emImages[key]="";paintImg(key,slot);msg.textContent="Removed"};
+  });
   const count=async()=>{const {data}=await db.rpc("campaign_audience",{p_audience:$("#emAud",m).value});
     const n=(data||[]).length;const el=$("#emCount",m);if(el)el.textContent=`${n} ${n===1?"person":"people"} will receive it.`};
   count();$("#emAud",m).onchange=count;
   $("#emCancel",m).onclick=()=>m.remove();
+  $("#emPreview",m).onclick=()=>{
+    const d=payload();
+    const para=(x)=>esc(x).replace(/\[([^\]]{1,80})\]\((https?:\/\/[^\s)]{1,300})\)/g,'<a href="$2">$1</a>')
+      .replace(/\*\*([^*]{1,200})\*\*/g,"<b>$1</b>").replace(/(^|\s)\*([^*]{1,200})\*/g,"$1<i>$2</i>").replace(/\n/g,"<br>");
+    const w=window.open("","_blank","width=680,height=900");
+    if(!w)return toast("Allow pop-ups to see the preview",true);
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>Preview</title>
+      <body style="margin:0;background:#EDEDEC;font-family:Arial,Helvetica,sans-serif">
+      <div style="max-width:600px;margin:24px auto;background:#fff;border-radius:10px;overflow:hidden">
+        <div style="background:#000;padding:22px;text-align:center"><span style="color:#fff;letter-spacing:5px;font-size:19px">ACE</span></div>
+        ${d.image_url?`<img src="${esc(d.image_url)}" style="width:100%;display:block">`:""}
+        <div style="padding:28px 24px">
+          <h1 style="margin:0 0 16px;font-size:24px;line-height:1.22">${esc(d.headline||d.subject||"(no subject yet)")}</h1>
+          ${String(d.body||"").split(/\n{2,}/).filter(Boolean).map(p=>`<p style="margin:0 0 14px;font-size:15.5px;line-height:1.65;color:#333">${para(p.trim())}</p>`).join("")}
+          ${d.button_label&&d.button_url?`<p style="margin:26px 0 0"><a href="${esc(d.button_url)}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;font-weight:700;padding:15px 26px;border-radius:4px">${esc(d.button_label)}</a></p>`:""}
+        </div>
+        ${d.image_url2?`<div style="padding:0 24px 24px"><img src="${esc(d.image_url2)}" style="width:100%;display:block"></div>`:""}
+        ${d.footer_note?`<div style="padding:0 24px 24px;color:#666;font-size:13px">${para(d.footer_note)}</div>`:""}
+        <div style="padding:16px 24px;background:#fafafa;color:#888;font-size:12px">ACE — Built for athletes · Unsubscribe</div>
+      </div></body>`);
+    w.document.close();
+  };
   const payload=()=>({subject:$("#emSubj",m).value.trim(),preheader:$("#emPre",m).value.trim()||null,body:$("#emBody",m).value.trim(),
+    headline:$("#emHead",m).value.trim()||null,footer_note:$("#emFoot",m).value.trim()||null,
+    image_url:emImages.one||null,image_url2:emImages.two||null,
     button_label:$("#emBtn",m).value.trim()||null,button_url:$("#emUrl",m).value.trim()||null,audience:$("#emAud",m).value,created_by:ME});
   let current=c;   // after the first save we keep editing the same email, never a second copy
   const saveDraft=async()=>{const row=payload();
@@ -1543,6 +1594,8 @@ async function pStore(){
       ${img("coming_soon.background","Background photo (optional)",{help:"Leave empty for a plain background."})}
       ${range("coming_soon.overlay","Darken the photo",0,95,1,"%")}`,"")}
     ${acc("popup","Welcome pop-up",`${tog("popup.on","Show the pop-up to new visitors")}
+      ${sel("popup.mode","What the pop-up asks for",[["email","Just their email"],["account","Create an account (bigger offer)"]])}
+      <p class="help" style="margin:-2px 0 10px">"Create an account" sends them straight to the sign-up form, where your welcome discount from <a class="link" href="#/settings">Settings</a> applies to their first order.</p>
       <p class="help" style="margin:-4px 0 12px">Appears once per visitor. After they sign up it never shows again on that phone or computer, and their email lands in <a class="link" href="#/waitlist">Early access</a>.</p>
       ${img("popup.image","Photo (optional)",{help:"A portrait photo works best. Leave empty for a text-only pop-up."})}
       ${sel("popup.layout","Photo position",[["image_left","Photo on the left"],["image_right","Photo on the right"]])}

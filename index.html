@@ -617,6 +617,15 @@ section.co-sec{padding:28px 0 0}
 .acct .tabs button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .acct .ord{border-top:1px solid var(--line);padding:14px 0;font-size:14px}
 .acct .ord b{font-family:var(--display);font-weight:400}
+.addr-chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px}
+.addr-chips button{border:1px solid var(--line);padding:9px 12px;text-align:left;min-width:46%}
+.addr-chips button.on{border-color:var(--fg);background:var(--fg);color:var(--bg)}
+.addr-chips b{display:block;font-size:11.5px;text-transform:uppercase;letter-spacing:.1em}
+.addr-chips span{display:block;font-size:12px;opacity:.7;margin-top:2px}
+.addr-card{border:1px solid var(--line);padding:14px;margin-bottom:12px}
+.addr-card .row-between{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:8px}
+.addr-label{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:700;border:none;border-bottom:1px solid var(--line);padding:4px 0;background:transparent;flex:1}
+.acct .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .acct .linkbtn{text-decoration:underline;font-size:13px;color:var(--muted);margin-top:14px;display:inline-block}
 .welcome-note{background:var(--fg);color:var(--bg);padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:16px}
 .cs-badge{position:absolute;left:10px;top:10px;background:var(--bg);color:var(--fg);border:1px solid var(--fg);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:5px 8px}
@@ -790,6 +799,7 @@ footer small{font-size:12px;letter-spacing:.04em}
     <form class="cs-form" id="csForm" hidden>
       <label class="fld"><span>Name</span><input id="wName" autocomplete="name" maxlength="80"></label>
       <label class="fld"><span>Phone</span><input id="wPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+961 70 123 456"></label>
+      <div id="savedAddr" hidden></div>
       <label class="fld"><span>Email</span><input id="wEmail" type="email" inputmode="email" autocomplete="email"></label>
       <label class="fld" id="wSizeWrap"><span>Preferred size</span><select id="wSize"></select></label>
       <label class="fld" id="wSportWrap"><span>You mostly play</span><select id="wSport"></select></label>
@@ -913,6 +923,7 @@ footer small{font-size:12px;letter-spacing:.04em}
         <div class="form-err" id="popErr" aria-live="polite"></div>
         <button type="submit" class="px-add" id="popSend"><span data-c="popup.button">Claim my 10%</span><span aria-hidden="true">→</span></button>
       </form>
+      <button type="button" class="px-add" id="popJoin" hidden><span>Create my account</span><span aria-hidden="true">→</span></button>
       <div id="popDone" hidden><h3 id="popDoneT"></h3><p id="popDoneX"></p><div class="pop-code" id="popCode" hidden></div>
         <button type="button" class="px-add" id="popShop"><span>Start shopping</span><span aria-hidden="true">→</span></button></div>
       <p class="pop-note" id="popNote" data-c="popup.note"></p>
@@ -1237,6 +1248,7 @@ function wireAccounts(){
   document.getElementById("acctOpen").onclick=()=>openAcct();
   db.auth.onAuthStateChange(()=>{refreshMe()});
 }
+function acctField2(f,label,val){return `<label class="fld"><span>${label}</span><input type="text" data-f="${f}" value="${esc(val||"")}"></label>`}
 function acctField(id,label,type,val,extra){return `<label class="fld"><span>${label}</span><input id="${id}" type="${type}" value="${esc(val||"")}" ${extra||""}></label>`}
 function renderAcct(view){
   const b=$("#acctBody"),w=welcomeText();
@@ -1297,23 +1309,58 @@ function renderAcct(view){
     return;
   }
   // signed in
+  const ads=(ME&&ME.addresses)||[];
   b.innerHTML=`<h4>Hello${ME&&ME.first_name?", "+esc(ME.first_name):""}</h4>
     <p class="muted-p">${esc((ME&&ME.email)||"")}</p>
     ${w&&ME&&!ME.welcome_used?`<div class="welcome-note">${esc(w)} — it's applied automatically at checkout.</div>`:""}
     <div id="acctOrders"><p class="muted-p">Loading your orders…</p></div>
-    <h4 style="margin-top:26px">Your details</h4>
-    ${acctField("adFirst","First name","text",ME&&ME.first_name)}
-    ${acctField("adPhone","Phone","tel",ME&&ME.phone)}
-    ${acctField("adCity","City","text",ME&&ME.city)}
+
+    <h4 style="margin-top:28px">Your details</h4>
+    <div class="grid2">${acctField("adFirst","First name","text",ME&&ME.first_name,'autocomplete="given-name"')}${acctField("adLast","Last name","text",ME&&ME.last_name,'autocomplete="family-name"')}</div>
+    ${acctField("adEmailRO","Email","email",ME&&ME.email,'disabled')}
+    <div class="grid2">${acctField("adPhone","Phone","tel",ME&&ME.phone,'autocomplete="tel"')}${acctField("adCity","City","text",ME&&ME.city,'autocomplete="address-level2"')}</div>
     <label class="check"><input type="checkbox" id="adNews" ${ME&&ME.marketing_opt_in?"checked":""}> Email me about new drops and offers</label>
+
+    <h4 style="margin-top:28px">Your addresses</h4>
+    <p class="muted-p">Save up to three and pick one at checkout. Name them however you like.</p>
+    <div id="adAddr"></div>
+    <button type="button" class="btn-line" id="adAddAddr" style="min-height:44px;font-size:12px">Add an address</button>
+
     <div class="form-err" id="adErr" aria-live="polite"></div>
-    <button type="button" class="px-add" id="adSave"><span>Save</span><span aria-hidden="true">→</span></button>
+    <button type="button" class="px-add" id="adSave" style="margin-top:14px"><span>Save everything</span><span aria-hidden="true">→</span></button>
     <button type="button" class="linkbtn" id="adOut">Sign out</button>`;
+
+  let draft=JSON.parse(JSON.stringify(ads));
+  const drawAddr=()=>{
+    const box=$("#adAddr");
+    box.innerHTML=draft.length?draft.map((a,i)=>`<div class="addr-card" data-i="${i}">
+      <div class="row-between"><input class="addr-label" type="text" data-f="label" value="${esc(a.label||"Address "+(i+1))}" maxlength="30" aria-label="Name for this address">
+        <button type="button" class="linkbtn" data-rm="${i}">Remove</button></div>
+      <div class="grid2">${acctField2("first_name","First name",a.first_name)}${acctField2("last_name","Last name",a.last_name)}</div>
+      ${acctField2("phone","Phone",a.phone)}
+      ${acctField2("line1","Street and building",a.line1)}
+      ${acctField2("line2","Floor and apartment",a.line2)}
+      <div class="grid2">${acctField2("city","City",a.city)}${acctField2("area","Area",a.area)}</div>
+      ${acctField2("map","Location pin link",a.map)}
+      ${acctField2("note","Note for the driver",a.note)}
+    </div>`).join(""):`<p class="muted-p">No saved addresses yet.</p>`;
+    box.querySelectorAll(".addr-card").forEach(card=>{
+      const i=+card.dataset.i;
+      card.querySelectorAll("[data-f]").forEach(inp=>inp.oninput=()=>{draft[i][inp.dataset.f]=inp.value});
+      const rm=card.querySelector("[data-rm]");if(rm)rm.onclick=()=>{draft.splice(i,1);drawAddr()};
+    });
+    $("#adAddAddr").hidden=draft.length>=3;
+  };
+  drawAddr();
+  $("#adAddAddr").onclick=()=>{if(draft.length>=3)return;draft.push({label:"Home",first_name:(ME&&ME.first_name)||"",last_name:(ME&&ME.last_name)||"",phone:(ME&&ME.phone)||"",line1:"",line2:"",city:(ME&&ME.city)||"",area:"",map:"",note:""});drawAddr()};
   $("#adSave").onclick=async()=>{
     const btn=$("#adSave");btn.disabled=true;
-    const {error}=await db.rpc("ensure_account",{p:{first_name:$("#adFirst").value.trim(),phone:$("#adPhone").value.trim(),city:$("#adCity").value.trim(),marketing_opt_in:$("#adNews").checked}});
-    btn.disabled=false;$("#adErr").textContent=error?error.message:"Saved.";$("#adErr").style.color=error?"":"var(--muted)";
-    await refreshMe();
+    const keep=draft.filter(a=>String(a.line1||"").trim()).slice(0,3);
+    const {data,error}=await db.rpc("update_account",{p:{first_name:$("#adFirst").value.trim(),last_name:$("#adLast").value.trim(),
+      phone:$("#adPhone").value.trim(),city:$("#adCity").value.trim(),marketing_opt_in:$("#adNews").checked,addresses:keep}});
+    btn.disabled=false;
+    $("#adErr").textContent=error?error.message:"Saved.";$("#adErr").style.color=error?"":"var(--muted)";
+    if(!error&&data){ME=data;paintAcctBtn();draft=JSON.parse(JSON.stringify(ME.addresses||[]));drawAddr()}
   };
   $("#adOut").onclick=async()=>{await db.auth.signOut();ME=null;paintAcctBtn();renderAcct("signin")};
   db.rpc("my_orders").then(({data})=>{
@@ -1335,10 +1382,13 @@ function closePop(remember){const p=$("#pop");p.classList.remove("on");setTimeou
   if(!$("#pdp").classList.contains("on")&&!$("#checkout").classList.contains("on"))document.body.style.overflow="";}
 function openPop(){
   const s=C.popup||{};const box=$(".pop-box");
+  const accountMode=s.mode==="account";
   box.classList.toggle("has-img",!!s.image);box.classList.toggle("right",s.layout==="image_right");
   const im=$("#popImg");im.classList.toggle("empty",!s.image);if(s.image)im.style.backgroundImage=`url('${s.image}')`;
   $("#popDoneT").textContent=s.success_title||"";$("#popDoneX").textContent=s.success_text||"";
-  $("#popForm").hidden=false;$("#popDone").hidden=true;$("#popErr").textContent="";$("#popNote").hidden=!s.note;$("#popNo").hidden=!s.dismiss;
+  $("#popForm").hidden=accountMode;$("#popJoin").hidden=!accountMode;
+  $("#popDone").hidden=true;$("#popErr").textContent="";$("#popNote").hidden=!s.note;$("#popNo").hidden=!s.dismiss;
+  if(accountMode)$("#popJoin").querySelector("span").textContent=s.button||"Create my account";
   const p=$("#pop");p.hidden=false;requestAnimationFrame(()=>p.classList.add("on"));
   document.body.style.overflow="hidden";setTimeout(()=>$("#popEmail").focus({preventScroll:true}),350);
   track("popup_shown",{});
@@ -1347,6 +1397,7 @@ function setupPopup(s){
   s=s||{};clearTimeout(popTimer);
   if(!popWired){popWired=true;
     $("#popX").onclick=()=>closePop(true);
+    $("#popJoin").onclick=()=>{popRemember(true);closePop(false);openAcct("signup");track("popup_join",{})};
     $("#popNo").onclick=()=>closePop(true);
     $("#popShop").onclick=()=>closePop(false);
     $("#pop").addEventListener("click",e=>{if(e.target.id==="pop")closePop(true)});
@@ -2019,8 +2070,25 @@ function renderSummary(){
   $("#coDiscRow").hidden=!DISC;if(DISC){$("#coDiscCode").textContent=`(${DISC.code})`;$("#coDisc").textContent="−"+money(pr.disc)}
   const sh=$("#coShip");sh.textContent=shipLabel(pr);sh.classList.toggle("muted",pr.fee===null);
 }
+function paintSavedAddresses(){
+  const box=$("#savedAddr");if(!box)return;
+  const list=(ME&&ME.addresses)||[];
+  box.hidden=!list.length;
+  if(!list.length)return;
+  box.innerHTML=`<span class="px-label">Deliver to</span><div class="addr-chips">${list.map((a,i)=>
+    `<button type="button" data-a="${i}"><b>${esc(a.label||"Address")}</b><span>${esc([a.line1,a.city].filter(Boolean).join(", "))}</span></button>`).join("")}</div>`;
+  box.querySelectorAll("[data-a]").forEach(btn=>btn.onclick=()=>{
+    const a=list[+btn.dataset.a];
+    const set=(id,v)=>{const el=$("#"+id);if(el&&v)el.value=v};
+    set("fFirst",a.first_name);set("fLast",a.last_name);set("fPhone",a.phone);set("fAddr1",a.line1);
+    set("fAddr2",a.line2);set("fCity",a.city);set("fMap",a.map);set("fNote",a.note);
+    box.querySelectorAll("[data-a]").forEach(x=>x.classList.toggle("on",x===btn));
+    validateCheckout&&validateCheckout();
+  });
+}
 function openCheckout(){
   cleanBag();if(!bag.length)return;
+  paintSavedAddresses();
   if(ME){ if(!$("#fEmail").value)$("#fEmail").value=ME.email||"";
     if(!$("#fFirst").value&&ME.first_name)$("#fFirst").value=ME.first_name;
     if(!$("#fPhone").value&&ME.phone)$("#fPhone").value=ME.phone;

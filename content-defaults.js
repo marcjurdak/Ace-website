@@ -142,6 +142,7 @@ window.ACE_DEFAULT_CONTENT = {
   },
   popup: {
     on: false,
+    mode: "email",
     delay: 6,
     again_days: 14,
     image: "",
