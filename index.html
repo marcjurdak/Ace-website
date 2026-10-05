@@ -1262,7 +1262,13 @@ function renderAcct(view){
           const {error}=await db.auth.signUp({email,password});
           if(error)throw error;
           const {data:{session}}=await db.auth.getSession();
-          if(!session){b.innerHTML=`<h4>Check your email</h4><p class="muted-p">We sent a confirmation link to <b>${esc(email)}</b>. Open it, then come back and sign in.</p>`;btn.disabled=false;return}
+          if(!session){
+            b.innerHTML=`<h4>Check your email</h4>
+              <p class="muted-p">If this is a new address, we've sent a confirmation link to <b>${esc(email)}</b>. Open it, then come back and sign in.</p>
+              <p class="muted-p">Already have an account with this email? Nothing was sent — sign in instead, or reset your password.</p>
+              <button type="button" class="px-add" id="acGoSignin"><span>Go to sign in</span><span aria-hidden="true">→</span></button>`;
+            const g=document.getElementById("acGoSignin");if(g)g.onclick=()=>renderAcct("signin");
+            btn.disabled=false;return}
           await db.rpc("ensure_account",{p:{first_name:$("#acFirst")?$("#acFirst").value.trim():"",marketing_opt_in:$("#acNews")?$("#acNews").checked:true}});
           track("sign_up",{method:"email"});
         }else{
