@@ -596,6 +596,25 @@ section.co-sec{padding:28px 0 0}
 .zoom-dots{position:absolute;left:0;right:0;bottom:calc(18px + env(safe-area-inset-bottom));display:flex;gap:6px;justify-content:center}
 .zoom-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
 .zoom-dots i.on{background:var(--fg)}
+/* ===================== accounts & coming soon products ===================== */
+.acctbtn{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-right:14px}
+.acct{top:0;right:0;bottom:0;width:min(460px,100%);transform:translateX(105%)}
+.acct.on{transform:none}
+.acct .sheet-body{padding:22px var(--pad) 40px}
+.acct h4{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:16px;margin-bottom:6px}
+.acct .muted-p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:18px}
+.acct .tabs{display:flex;gap:6px;margin-bottom:18px}
+.acct .tabs button{flex:1;border:1px solid var(--line);padding:11px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+.acct .tabs button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.acct .ord{border-top:1px solid var(--line);padding:14px 0;font-size:14px}
+.acct .ord b{font-family:var(--display);font-weight:400}
+.acct .linkbtn{text-decoration:underline;font-size:13px;color:var(--muted);margin-top:14px;display:inline-block}
+.welcome-note{background:var(--fg);color:var(--bg);padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:16px}
+.cs-badge{position:absolute;left:10px;top:10px;background:var(--bg);color:var(--fg);border:1px solid var(--fg);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:5px 8px}
+.cs-badge[hidden]{display:none}
+.notify-box{border:1px solid var(--fg);padding:16px;margin-top:14px}
+.notify-box b{display:block;font-size:14px;margin-bottom:4px}
+.notify-box p{font-size:13.5px;color:var(--muted);margin-bottom:12px}
 /* ===================== coming soon ===================== */
 html.cs-on body{overflow:hidden}
 html.cs-on .top,html.cs-on main,html.cs-on footer,html.cs-on .wm,html.cs-on .announce{display:none!important}
@@ -771,6 +790,7 @@ footer small{font-size:12px;letter-spacing:.04em}
   <div class="lhs"><button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
   <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
   </div>
+  <button class="acctbtn" id="acctOpen" aria-label="Your account">Account</button>
   <button class="bagbtn" id="bagOpen" aria-label="Open bag">Bag <span class="count" id="bagCount">0</span></button>
 </header>
 
@@ -878,6 +898,10 @@ footer small{font-size:12px;letter-spacing:.04em}
     </div>
   </div>
 </div>
+<aside class="sheet acct" id="acct" role="dialog" aria-modal="true" aria-labelledby="acctTitle" aria-hidden="true">
+  <div class="sheet-head"><h3 id="acctTitle">Your account</h3><button class="x" data-close>Close</button></div>
+  <div class="sheet-body" id="acctBody"></div>
+</aside>
 <div class="scrim" id="scrim"></div>
 <aside class="sheet menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
   <div class="sheet-head"><h3>Shop</h3><button class="x" data-close>Close</button></div>
@@ -905,6 +929,16 @@ footer small{font-size:12px;letter-spacing:.04em}
         <div class="px-row"><div class="qty"><button id="qMinus" aria-label="Decrease quantity">−</button><output id="qVal">1</output><button id="qPlus" aria-label="Increase quantity">+</button></div>
           <button class="px-add" id="addBtn"><span>Add to bag</span><span aria-hidden="true">→</span></button></div>
         <div class="hint" id="addHint" aria-live="polite"></div>
+        <div class="notify-box" id="notifyBox" hidden>
+          <b id="notifyTitle">Coming soon</b>
+          <p id="notifyNote"></p>
+          <form id="notifyForm">
+            <label class="fld"><span>Email</span><input type="email" id="notifyEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" required></label>
+            <div class="form-err" id="notifyErr" aria-live="polite"></div>
+            <button type="submit" class="px-add" id="notifySend"><span data-c="product.notify_button">Notify me when it drops</span><span aria-hidden="true">→</span></button>
+          </form>
+          <div id="notifyDone" hidden><p style="margin:0"><b>You're on the list.</b> We'll email you the moment it's available.</p></div>
+        </div>
         <ul class="px-usp" id="pxUsp"></ul>
         <div id="pxBundle"></div>
         <div class="px-share" id="pxShare"></div>
@@ -951,6 +985,7 @@ footer small{font-size:12px;letter-spacing:.04em}
   <div class="sheet-body" id="bagBody" style="flex:1"></div>
   <div class="bag-foot">
     <div class="bag-row" id="bagBundleRow" hidden><span>Bundle savings</span><span id="bagBundle"></span></div>
+    <div class="bag-row" id="bagWelcomeRow" hidden><span id="bagWelLbl">Welcome discount</span><span id="bagWelcome"></span></div>
     <div class="bag-row" id="bagShipRow"><span>Delivery</span><span id="bagShip"></span></div>
     <div class="total"><span>Total</span><b id="bagTotal">$0</b></div>
     <p id="bagNote">Delivery fee is confirmed after you order.</p>
@@ -1021,6 +1056,7 @@ footer small{font-size:12px;letter-spacing:.04em}
       <div class="rv-box"><div class="rv-head"><b>Items</b><button type="button" class="rv-edit" data-edit="bag">Change</button></div><div id="rvItems"></div>
         <div class="rv-row"><span>Subtotal</span><span id="rvSub"></span></div>
         <div class="rv-row" id="rvBundleRow" hidden><span>Bundle savings</span><span id="rvBundle"></span></div>
+        <div class="rv-row" id="rvWelRow" hidden><span id="rvWelLbl">Welcome discount</span><span id="rvWel"></span></div>
         <div class="rv-row" id="rvDiscRow" hidden><span id="rvDiscLbl">Discount</span><span id="rvDisc"></span></div>
         <div class="rv-row"><span>Delivery</span><span id="rvShip"></span></div>
         <div class="rv-row rv-tot"><span>Total</span><b id="rvTot"></b></div></div>
@@ -1038,6 +1074,7 @@ footer small{font-size:12px;letter-spacing:.04em}
       <div class="co-disc"><input id="fCode" placeholder="Discount code" aria-label="Discount code" autocomplete="off" autocapitalize="characters"><button type="button" id="applyCode">Apply</button></div>
       <div class="code-msg" id="codeMsg" aria-live="polite"></div>
       <div class="co-row"><span>Subtotal</span><span id="coSub">$0</span></div>
+      <div class="co-row" id="coWelcomeRow" hidden><span>${""}Welcome discount</span><span id="coWelcome" class="muted"></span></div>
       <div class="co-row" id="coBundleRow" hidden><span>Bundle savings</span><span id="coBundle"></span></div>
       <div class="co-row" id="coDiscRow" hidden><span>Discount <span id="coDiscCode"></span><button type="button" class="rm-code" id="rmCode">Remove</button></span><span id="coDisc"></span></div>
       <div class="co-row"><span>Shipping</span><span id="coShip" class="muted">Confirmed on WhatsApp</span></div>
@@ -1050,7 +1087,7 @@ footer small{font-size:12px;letter-spacing:.04em}
 <script src="/config.js"></script>
 <script>
 /* ===== ACE storefront ===== */
-const db=window.supabase.createClient(window.ACE_CONFIG.SUPABASE_URL,window.ACE_CONFIG.SUPABASE_KEY,{auth:{persistSession:false}});
+const db=window.supabase.createClient(window.ACE_CONFIG.SUPABASE_URL,window.ACE_CONFIG.SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:"ace-auth"}});
 const SETTINGS={whatsapp_number:"",instagram_url:"",delivery_fee:"",free_delivery_over:"",delivery_text:"",payment_text:""};
 const PREVIEW=new URLSearchParams(location.search).has("preview");
 let C=window.aceMerge(window.ACE_DEFAULT_CONTENT,{});
@@ -1148,6 +1185,106 @@ function setupHero(h){
   heroCtl={stop(){try{v.pause()}catch(e){}if(io)io.disconnect();document.removeEventListener("visibilitychange",onVis);removeEventListener("resize",onResize)}};
 }
 addEventListener("pagehide",()=>{const v=document.getElementById("heroVideo");if(v){try{v.pause()}catch(e){}v.removeAttribute("src")}});
+/* ---------- customer accounts ---------- */
+let ME=null,WELCOME={};
+async function loadWelcome(){const {data}=await db.rpc("welcome_offer");WELCOME=data||{}}
+function welcomeText(){
+  if(String(WELCOME.welcome_enabled)!=="true")return "";
+  const v=Number(WELCOME.welcome_value||0);if(!v)return "";
+  const amount=WELCOME.welcome_kind==="fixed"?money(v):v+"%";
+  const min=Number(WELCOME.welcome_min_order||0);
+  return `${amount} off your first order${min>0?` on orders over ${money(min)}`:""}`;
+}
+async function refreshMe(){
+  const {data:{session}}=await db.auth.getSession();
+  if(!session){ME=null;paintAcctBtn();return null}
+  const {data,error}=await db.rpc("ensure_account",{p:{}});
+  ME=error?{email:session.user.email}:data;paintAcctBtn();return ME;
+}
+function paintAcctBtn(){
+  const b=$("#acctOpen");if(!b)return;
+  b.textContent=ME?(ME.first_name||"Account"):"Account";
+}
+function openAcct(view){renderAcct(view||(ME?"home":"signin"));openSheet($("#acct"))}
+let acctWired=false;
+function wireAccounts(){
+  if(acctWired)return;acctWired=true;
+  document.getElementById("acctOpen").onclick=()=>openAcct();
+  db.auth.onAuthStateChange(()=>{refreshMe()});
+}
+function acctField(id,label,type,val,extra){return `<label class="fld"><span>${label}</span><input id="${id}" type="${type}" value="${esc(val||"")}" ${extra||""}></label>`}
+function renderAcct(view){
+  const b=$("#acctBody"),w=welcomeText();
+  if(view==="signin"||view==="signup"){
+    b.innerHTML=`${w?`<div class="welcome-note">${esc(w)} — create an account to use it.</div>`:""}
+      <div class="tabs"><button type="button" data-v="signin" aria-pressed="${view==="signin"}">Sign in</button><button type="button" data-v="signup" aria-pressed="${view==="signup"}">Create account</button></div>
+      <form id="acctForm">
+        ${view==="signup"?acctField("acFirst","First name","text","",'autocomplete="given-name"'):""}
+        ${acctField("acEmail","Email","email","",'autocomplete="email" required')}
+        ${acctField("acPass","Password","password","",'autocomplete="'+(view==="signup"?"new-password":"current-password")+'" required minlength="8"')}
+        ${view==="signup"?`<label class="check"><input type="checkbox" id="acNews" checked> Email me about new drops and offers</label>`:""}
+        <div class="form-err" id="acErr" aria-live="polite"></div>
+        <button type="submit" class="px-add" id="acSend"><span>${view==="signup"?"Create my account":"Sign in"}</span><span aria-hidden="true">→</span></button>
+      </form>
+      ${view==="signin"?`<button type="button" class="linkbtn" id="acForgot">Forgot your password?</button>`:`<p class="cs-note" style="margin-top:12px">By creating an account you agree to receive your order updates by email.</p>`}`;
+    b.querySelectorAll("[data-v]").forEach(x=>x.onclick=()=>renderAcct(x.dataset.v));
+    const f=$("#acctForm");
+    f.onsubmit=async e=>{
+      e.preventDefault();const err=$("#acErr");err.textContent="";const btn=$("#acSend");btn.disabled=true;
+      const email=$("#acEmail").value.trim(),password=$("#acPass").value;
+      try{
+        if(view==="signup"){
+          const {error}=await db.auth.signUp({email,password});
+          if(error)throw error;
+          const {data:{session}}=await db.auth.getSession();
+          if(!session){b.innerHTML=`<h4>Check your email</h4><p class="muted-p">We sent a confirmation link to <b>${esc(email)}</b>. Open it, then come back and sign in.</p>`;btn.disabled=false;return}
+          await db.rpc("ensure_account",{p:{first_name:$("#acFirst")?$("#acFirst").value.trim():"",marketing_opt_in:$("#acNews")?$("#acNews").checked:true}});
+          track("sign_up",{method:"email"});
+        }else{
+          const {error}=await db.auth.signInWithPassword({email,password});
+          if(error)throw error;
+          track("login",{method:"email"});
+        }
+        await refreshMe();renderAcct("home");
+      }catch(ex){err.textContent=/invalid/i.test(ex.message||"")?"Wrong email or password.":(ex.message||"Something went wrong.")}
+      btn.disabled=false;
+    };
+    const fg=$("#acForgot");
+    if(fg)fg.onclick=async()=>{const email=$("#acEmail").value.trim();const err=$("#acErr");
+      if(!email){err.textContent="Type your email above first.";return}
+      const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+"/"});
+      err.textContent=error?error.message:"Check your email for a link to set a new password.";err.style.color=error?"":"var(--muted)"};
+    return;
+  }
+  // signed in
+  b.innerHTML=`<h4>Hello${ME&&ME.first_name?", "+esc(ME.first_name):""}</h4>
+    <p class="muted-p">${esc((ME&&ME.email)||"")}</p>
+    ${w&&ME&&!ME.welcome_used?`<div class="welcome-note">${esc(w)} — it's applied automatically at checkout.</div>`:""}
+    <div id="acctOrders"><p class="muted-p">Loading your orders…</p></div>
+    <h4 style="margin-top:26px">Your details</h4>
+    ${acctField("adFirst","First name","text",ME&&ME.first_name)}
+    ${acctField("adPhone","Phone","tel",ME&&ME.phone)}
+    ${acctField("adCity","City","text",ME&&ME.city)}
+    <label class="check"><input type="checkbox" id="adNews" ${ME&&ME.marketing_opt_in?"checked":""}> Email me about new drops and offers</label>
+    <div class="form-err" id="adErr" aria-live="polite"></div>
+    <button type="button" class="px-add" id="adSave"><span>Save</span><span aria-hidden="true">→</span></button>
+    <button type="button" class="linkbtn" id="adOut">Sign out</button>`;
+  $("#adSave").onclick=async()=>{
+    const btn=$("#adSave");btn.disabled=true;
+    const {error}=await db.rpc("ensure_account",{p:{first_name:$("#adFirst").value.trim(),phone:$("#adPhone").value.trim(),city:$("#adCity").value.trim(),marketing_opt_in:$("#adNews").checked}});
+    btn.disabled=false;$("#adErr").textContent=error?error.message:"Saved.";$("#adErr").style.color=error?"":"var(--muted)";
+    await refreshMe();
+  };
+  $("#adOut").onclick=async()=>{await db.auth.signOut();ME=null;paintAcctBtn();renderAcct("signin")};
+  db.rpc("my_orders").then(({data})=>{
+    const el=$("#acctOrders");if(!el)return;
+    const list=data||[];
+    el.innerHTML=list.length?`<h4 style="margin-top:22px">Your orders</h4>`+list.map(o=>`<div class="ord"><div class="row2" style="display:flex;justify-content:space-between"><span><b>#${o.order_number}</b> · ${new Date(o.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</span><b>${money(o.total)}</b></div>
+      <div style="color:var(--muted);font-size:13px;margin-top:4px">${(o.items||[]).map(i=>`${i.qty} × ${esc(i.name)} (${esc(i.color)}, ${esc(i.size)})`).join(", ")}</div>
+      <div style="font-size:12.5px;margin-top:4px">${esc(({new:"Submitted",confirmed:"Confirmed",preparing:"Preparing",out_for_delivery:"Shipped",delivered:"Delivered",cancelled:"Cancelled",returned:"Returned",refunded:"Refunded"})[o.status]||o.status)}</div></div>`).join("")
+      :`<p class="muted-p" style="margin-top:22px">No orders yet.</p>`;
+  });
+}
 /* ---------- welcome pop-up ---------- */
 let popWired=false,popTimer=null;
 function popSeen(){try{const s=JSON.parse(localStorage.getItem("ace-pop")||"null");
@@ -1369,7 +1506,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 function isDark(hex){const h=(hex||"#000").replace("#","");if(h.length<6)return true;const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000<90}
 function mapProduct(r){
   const base=Number(r.price),sp=r.sale_price==null||r.sale_price===""?null:Number(r.sale_price),sale=sp!==null&&sp<base;
-  return {id:r.id,slug:r.slug||r.id,related:r.related||[],fit:r.fit||"",material:r.material||"",care:r.care||"",benefits:r.benefits||"",size_guide_id:r.size_guide_id||null,name:r.name,cat:r.category,price:sale?sp:base,was:base,sale,off:sale?Math.round((1-sp/base)*100):0,desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
+  return {id:r.id,slug:r.slug||r.id,coming_soon:!!r.coming_soon,coming_soon_note:r.coming_soon_note||"",related:r.related||[],fit:r.fit||"",material:r.material||"",care:r.care||"",benefits:r.benefits||"",size_guide_id:r.size_guide_id||null,name:r.name,cat:r.category,price:sale?sp:base,was:base,sale,off:sale?Math.round((1-sp/base)*100):0,desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
     colors:(r.colors||[]).map(c=>{const stock=c.stock&&typeof c.stock==="object"?c.stock:{};const sz=(r.sizes&&r.sizes.length)?r.sizes:["One size"];
       const tracked=sz.filter(s=>stock[s]!==undefined&&stock[s]!==null&&stock[s]!=="");
       const allOut=tracked.length===sz.length&&sz.every(s=>Number(stock[s])<=0);
@@ -1418,7 +1555,7 @@ function buildGrid(){
   if(!PRODUCTS.length){g.innerHTML=`<p class="grid-msg">${esc((C.collection&&C.collection.empty_text)||"New pieces are coming soon.")}</p>`;return}
   PRODUCTS.forEach(p=>{
     const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";
-    el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
+    el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
       <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
     el.querySelector(".card-open").onclick=()=>{const ci=cardColor[p.id]||0;track("select_item",{item_list_id:cat,item_list_name:catLabel(cat),items:[gaItem(p,p.colors[ci],null,1,PRODUCTS.indexOf(p))]});openPdp(p,ci)};
@@ -1530,6 +1667,17 @@ function renderPdp(){
   else if(cur.size){const v=c.stock?c.stock[cur.size]:undefined;if(v!==undefined&&v!==null&&v!==""&&Number(v)>0&&Number(v)<=Math.max(1,parseInt(SETTINGS.low_stock_threshold)||3))msg=`Only ${Number(v)} left in size ${cur.size}.`}
   $("#pxStock").textContent=msg;
   $("#qVal").textContent=cur.qty;
+  const soon=!!p.coming_soon;
+  const P2=C.product||{};
+  $("#notifyBox").hidden=!soon;
+  $(".px-row").hidden=soon; $("#pdpSizes").closest(".px-opt").hidden=soon;
+  $("#pxSticky").hidden=soon;
+  if(soon){
+    $("#notifyTitle").textContent=P2.notify_title||"Coming soon";
+    $("#notifyNote").textContent=p.coming_soon_note||P2.notify_text||"Leave your email and you'll be first to know when it drops.";
+    $("#notifyForm").hidden=false;$("#notifyDone").hidden=true;$("#notifyErr").textContent="";
+    if(ME&&ME.email)$("#notifyEmail").value=ME.email;
+  }
   const add=$("#addBtn");add.disabled=c.soldOut;add.firstElementChild.textContent=c.soldOut?"Sold out":"Add to bag";
   $("#pxStName").textContent=p.name;$("#pxStPrice").innerHTML=`${esc(c.n)}${cur.size?" · "+esc(cur.size):""} · ${money(p.price)}`;
   $("#pxStAdd").disabled=c.soldOut;
@@ -1607,6 +1755,15 @@ async function renderReviews(p){
     b.disabled=false;if(error){err.textContent=error.message;return}
     $("#rvForm").innerHTML=`<p><b>Thank you!</b> Your review will appear once we've checked it.</p>`;track("review_submitted",{item_id:p.id,rating:stars})};
 }
+$("#notifyForm").addEventListener("submit",async e=>{
+  e.preventDefault();const err=$("#notifyErr");err.textContent="";const btn=$("#notifySend");btn.disabled=true;
+  const p=cur.p,c=p.colors[cur.ci];
+  const {error}=await db.rpc("request_restock",{p:{product_id:p.id,email:$("#notifyEmail").value,size:cur.size||"",color:c?c.n:""}});
+  btn.disabled=false;
+  if(error){err.textContent=error.message||"Something went wrong. Please try again.";return}
+  $("#notifyForm").hidden=true;$("#notifyDone").hidden=false;
+  track("notify_me",{item_id:p.id});
+});
 $("#pxRating").onclick=()=>$("#pxReviews").scrollIntoView({behavior:"smooth"});
 let GUIDES=[];
 async function loadGuides(){const {data}=await db.from("size_guides").select("*").eq("active",true).order("position");GUIDES=data||[]}
@@ -1740,6 +1897,8 @@ function renderBag(){
   const pr=pricing();
   $("#bagTotal").textContent=money(pr.total);$("#bagShip").textContent=shipLabel(pr);
   $("#bagBundleRow").hidden=!(pr.bund>0);$("#bagBundle").textContent="−"+money(pr.bund);
+  $("#bagWelcomeRow").hidden=!(pr.wel>0);
+  if(pr.wel>0){$("#bagWelLbl").textContent=WELCOME.welcome_label||"Welcome discount";$("#bagWelcome").textContent="−"+money(pr.wel)}
   $("#nextBtn").disabled=!bag.length;
   // free delivery progress
   const fb=$("#freeBar");const fee=numv(SETTINGS.delivery_fee);
@@ -1759,11 +1918,20 @@ function renderBag(){
 }
 let DISC=null;
 const numv=v=>{const n=parseFloat(String(v||"").replace(",","."));return isFinite(n)&&n>=0?n:null};
+function welcomeAmount(base){
+  // shown to the customer; the server works it out again when the order is placed
+  if(!ME||ME.welcome_used||String(WELCOME.welcome_enabled)!=="true")return 0;
+  const v=Number(WELCOME.welcome_value||0);if(!(v>0))return 0;
+  if(base<Number(WELCOME.welcome_min_order||0))return 0;
+  return WELCOME.welcome_kind==="fixed"?Math.min(v,base):Math.round(base*Math.min(v,100))/100;
+}
 function pricing(){
-  const sub=bagTotal();const B=computeBundlesClient();const bund=Math.min(B.discount,sub);const disc=DISC?Math.min(DISC.amount,sub-bund):0;
+  const sub=bagTotal();const B=computeBundlesClient();const bund=Math.min(B.discount,sub);
+  const wel=welcomeAmount(sub-bund);
+  const disc=DISC?Math.min(DISC.amount,sub-bund-wel):0;
   let fee=numv(SETTINGS.delivery_fee);const free=numv(SETTINGS.free_delivery_over);
-  if(free!==null&&sub-bund-disc>=free)fee=0;
-  return {sub,bund,bundles:B.applied,disc,fee,free,total:Math.round((sub-bund-disc+(fee||0))*100)/100};
+  if(free!==null&&sub-bund-wel-disc>=free)fee=0;
+  return {sub,bund,bundles:B.applied,wel,disc,fee,free,total:Math.round((sub-bund-wel-disc+(fee||0))*100)/100};
 }
 function shipLabel(pr){if(pr.fee===null)return "To be confirmed";return pr.fee===0?"Free":money(pr.fee)}
 function updateShipping(){
@@ -1787,13 +1955,21 @@ $("#fCode").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault(
 $("#rmCode").onclick=()=>{DISC=null;$("#fCode").value="";$("#codeMsg").textContent="";renderSummary()};
 function renderSummary(){
   $("#coLines").innerHTML=bag.map(l=>{const {p,c}=lineInfo(l);return `<div class="co-line"><div class="co-thumb"><img src="${esc(c.imgs[0])}" alt=""><i>${l.qty}</i></div><div><div class="n">${esc(p.name)}</div><div class="v">${esc(c.n)} / ${esc(l.size)}</div></div><div class="p">${money(p.price*l.qty)}</div></div>`}).join("");
-  const pr=pricing();$("#coSub").textContent=money(pr.sub);$("#coTotal").textContent=money(pr.total);$("#sumBarTotal").textContent=money(pr.total);
+  const pr=pricing();$("#coSub").textContent=money(pr.sub);
+  const wrow=$("#coWelcomeRow");
+  if(wrow){wrow.hidden=!(pr.wel>0);
+    if(pr.wel>0){$("#coWelcome").textContent="−"+money(pr.wel);
+      const lbl=wrow.querySelector("span");if(lbl)lbl.textContent=WELCOME.welcome_label||"Welcome discount";}}$("#coTotal").textContent=money(pr.total);$("#sumBarTotal").textContent=money(pr.total);
   $("#coBundleRow").hidden=!(pr.bund>0);$("#coBundle").textContent="−"+money(pr.bund);
   $("#coDiscRow").hidden=!DISC;if(DISC){$("#coDiscCode").textContent=`(${DISC.code})`;$("#coDisc").textContent="−"+money(pr.disc)}
   const sh=$("#coShip");sh.textContent=shipLabel(pr);sh.classList.toggle("muted",pr.fee===null);
 }
 function openCheckout(){
   cleanBag();if(!bag.length)return;
+  if(ME){ if(!$("#fEmail").value)$("#fEmail").value=ME.email||"";
+    if(!$("#fFirst").value&&ME.first_name)$("#fFirst").value=ME.first_name;
+    if(!$("#fPhone").value&&ME.phone)$("#fPhone").value=ME.phone;
+    if(!$("#fCity").value&&ME.city)$("#fCity").value=ME.city; }
   if(DISC)applyCode(DISC.code);
   else{const saved=window.aceSavedCode&&window.aceSavedCode();if(saved){$("#fCode").value=saved;applyCode(saved)}}
   closeAll();renderSummary();$("#formErr").textContent="";
@@ -1851,6 +2027,8 @@ function renderReview(){
   $("#rvItems").innerHTML=bag.map(l=>{const {p,c}=lineInfo(l);return `<div class="co-line"><div class="co-thumb"><img src="${esc(c.imgs[0])}" alt=""><i>${l.qty}</i></div><div><div class="n">${esc(p.name)}</div><div class="v">${esc(c.n)} / ${esc(l.size)}</div></div><div class="p">${money(p.price*l.qty)}</div></div>`}).join("");
   $("#rvSub").textContent=money(pr.sub);
   $("#rvBundleRow").hidden=!(pr.bund>0);$("#rvBundle").textContent="−"+money(pr.bund)+(pr.bundles.length?` (${pr.bundles.map(b=>b.name).join(", ")})`:"");
+  $("#rvWelRow").hidden=!(pr.wel>0);
+  if(pr.wel>0){$("#rvWelLbl").textContent=WELCOME.welcome_label||"Welcome discount";$("#rvWel").textContent="−"+money(pr.wel)}
   $("#rvDiscRow").hidden=!DISC;if(DISC){$("#rvDiscLbl").textContent=`Discount (${DISC.code})`;$("#rvDisc").textContent="−"+money(pr.disc)}
   $("#rvShip").textContent=shipLabel(pr);$("#rvTot").textContent=money(pr.total);
   $("#rvContact").innerHTML=`${esc(val("fEmail"))}<br>${esc(val("fPhone"))}${$("#fNews").checked?`<br><span style="color:var(--muted);font-size:13px">You'll receive news and offers</span>`:""}`;
@@ -1901,7 +2079,7 @@ function setContact(){
 }
 /* data */
 async function loadProducts(silent){
-  const {data,error}=await db.from("products").select("id,slug,name,category,price,sale_price,description,sizes,colors,position,related,fit,material,care,benefits,size_guide_id").eq("active",true).order("position",{ascending:true});
+  const {data,error}=await db.from("products").select("id,slug,name,category,price,sale_price,description,sizes,colors,position,related,fit,material,care,benefits,size_guide_id,coming_soon,coming_soon_note").eq("active",true).order("position",{ascending:true});
   if(error){if(!silent)throw error;return}
   PRODUCTS=(data||[]).map(mapProduct).filter(p=>p.colors.length);
   cleanBag();updateCount();
@@ -1976,7 +2154,8 @@ function initFade(){
 }
 updateCount();setContact();
 (async function init(){
-  try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories(),loadRatings(),loadGuides()]);await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute()}
+  try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories(),loadRatings(),loadGuides(),loadWelcome()]);
+    wireAccounts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   setContact();initFade();
   new MutationObserver(()=>fadeTick&&fadeTick()).observe(document.getElementById("detGrid"),{childList:true});

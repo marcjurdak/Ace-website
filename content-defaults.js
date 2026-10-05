@@ -112,6 +112,9 @@ window.ACE_DEFAULT_CONTENT = {
     reviews_title: "Reviews",
     related_title: "Complete the look",
     confirm_text: "Order confirmation sent to your email",
+    notify_title: "Coming soon",
+    notify_text: "Leave your email and you'll be first to know when it drops.",
+    notify_button: "Notify me when it drops",
     size_guide: "Not sure about your size?\n\nIf you're between two sizes, pick the bigger one for a relaxed fit or the smaller one for a closer fit.\n\nStill unsure? Reply to your order confirmation email or message us, tell us your height and weight, and we'll recommend a size.",
     returns_text: "We deliver across Lebanon. Your order confirmation and delivery details are sent to your email.\n\nFor an exchange or a return, reply to your confirmation email and we'll help you."
   },

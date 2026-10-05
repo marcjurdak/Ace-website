@@ -251,6 +251,8 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
       <a href="#/discounts" data-r="discounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>Discounts</a>
       <a href="#/influencers" data-r="influencers" style="padding-left:38px;font-size:13px">Influencers</a>
       <a href="#/bundles" data-r="bundles" style="padding-left:38px;font-size:13px">Bundles</a>
+      <a href="#/accounts" data-r="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/><path d="M19 3v4M17 5h4"/></svg>Accounts</a>
+      <a href="#/emails" data-r="emails"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5L12 13l8.5-6.5"/></svg>Emails</a>
       <a href="#/waitlist" data-r="waitlist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/><circle cx="19" cy="18" r="2.6"/></svg>Early access</a>
       <a href="#/reviews" data-r="reviews"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>Reviews<span class="badge" id="navRev" hidden>0</span></a>
       <a href="#/store" data-r="store"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M3 9h18"/></svg>Online store</a>
@@ -404,7 +406,7 @@ async function router(){
   const parts=(location.hash.replace(/^#\/?/,"")||"home").split("/");
   const r=parts[0];
   $$("#nav a").forEach(a=>a.setAttribute("aria-current",a.dataset.r===r?"page":"false"));
-  $("#mTitle").textContent=({home:"Home",analytics:"Analytics",orders:"Orders",products:"Products",categories:"Categories",guides:"Size guides",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
+  $("#mTitle").textContent=({home:"Home",analytics:"Analytics",orders:"Orders",products:"Products",categories:"Categories",guides:"Size guides",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",accounts:"Accounts",emails:"Emails",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
   $("#side").classList.remove("open");$("#scrim").hidden=true;
   V.innerHTML=`<div class="empty" style="border:0;background:none"><span class="spin"></span></div>`;window.scrollTo(0,0);
   try{
@@ -421,6 +423,8 @@ async function router(){
     else if(r==="bundles")await pBundles();
     else if(r==="reviews")await pReviews();
     else if(r==="waitlist")await pWaitlist();
+    else if(r==="accounts")await pAccounts();
+    else if(r==="emails")await pEmails();
     else if(r==="customers"&&parts[1])await pCustomer(decodeURIComponent(parts[1]));
     else if(r==="customers")await pCustomers();
     else if(r==="discounts")await pDiscounts();
@@ -767,7 +771,7 @@ async function pProducts(){
     if(!PRODUCTS.length){$("#pOut").innerHTML=`<div class="empty">No products yet. Click "Add product" to create your first one.</div>`;return}
     const img=p=>((p.colors||[])[0]||{}).images?.[0];
     $("#pOut").innerHTML=`<div class="tblwrap resp"><table class="tbl"><thead><tr><th></th><th>Product</th><th>Status</th><th>Inventory</th><th>Category</th><th class="num">Price</th><th class="num">Order</th></tr></thead><tbody>
-      ${list.map(({p,i})=>`<tr data-id="${p.id}"><td style="width:56px">${img(p)?`<img class="thumb" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}</td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${(p.colors||[]).map(c=>esc(c.name)).join(", ")}</div></td><td>${p.active?pill("active","Active"):pill("hidden","Hidden")}</td><td>${invText(p)}</td><td>${esc(catName(p.category))}</td><td class="num nowrap">${priceCell(p)}</td>
+      ${list.map(({p,i})=>`<tr data-id="${p.id}"><td style="width:56px">${img(p)?`<img class="thumb" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}</td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${(p.colors||[]).map(c=>esc(c.name)).join(", ")}</div></td><td>${p.coming_soon?pill("scheduled","Coming soon"):p.active?pill("active","Active"):pill("hidden","Hidden")}</td><td>${invText(p)}</td><td>${esc(catName(p.category))}</td><td class="num nowrap">${priceCell(p)}</td>
         <td class="num nowrap"><button class="btn ghost sm" data-mv="-1" data-i="${i}" ${i===0?"disabled":""} aria-label="Move up">↑</button> <button class="btn ghost sm" data-mv="1" data-i="${i}" ${i===PRODUCTS.length-1?"disabled":""} aria-label="Move down">↓</button></td></tr>`).join("")}
       </tbody></table></div>
       <div class="mlist">${list.map(({p,i})=>`<div class="mcard" style="grid-template-columns:48px 1fr auto;align-items:center"><button data-id="${p.id}" style="display:contents">${img(p)?`<img class="thumb" style="width:48px" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}<span style="text-align:left"><span class="t">${esc(p.name)}</span><br><span class="s">${priceCell(p)} · ${p.active?"Active":"Hidden"}</span><br><span class="s">${invText(p)}</span></span></button><span class="row" style="flex-direction:column"><button class="btn ghost sm" data-mv="-1" data-i="${i}" ${i===0?"disabled":""} aria-label="Move up">↑</button><button class="btn ghost sm" data-mv="1" data-i="${i}" ${i===PRODUCTS.length-1?"disabled":""} aria-label="Move down">↓</button></span></div>`).join("")}</div>`;
@@ -784,7 +788,7 @@ async function pProduct(id){
   await loadGuidesA();
   const isNew=id==="new";const p=isNew?null:PRODUCTS.find(x=>x.id===id);
   if(!isNew&&!p){V.innerHTML=`<a class="back" href="#/products">← Products</a><div class="empty">This product wasn't found.</div>`;return}
-  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:((CATEGORIES[0]||{}).slug||""),fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
+  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:((CATEGORIES[0]||{}).slug||""),coming_soon:p?!!p.coming_soon:false,coming_soon_note:p?p.coming_soon_note||"":"",fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
     colors:p?JSON.parse(JSON.stringify(p.colors||[])):[{name:"Black",hex:"#000000",images:[],sold_out:false,stock:{}}]};
   let dirty=false;const mark=()=>{dirty=true};
   leaveGuard=()=>!dirty||confirm("You have unsaved changes. Leave without saving?");
@@ -802,7 +806,14 @@ async function pProduct(id){
       </div>
     </div>
     <div>
-      <div class="card"><h2>Status</h2><label class="toggle"><input type="checkbox" id="eActive" ${st.active?"checked":""}> Visible on the website</label></div>
+      <div class="card"><h2>Status</h2><label class="toggle"><input type="checkbox" id="eActive" ${st.active?"checked":""}> Visible on the website</label>
+        <label class="toggle" style="margin-top:10px"><input type="checkbox" id="eSoon" ${st.coming_soon?"checked":""}> Coming soon (customers can't buy it yet)</label>
+        <div id="eSoonBox" ${st.coming_soon?"":"hidden"} style="margin-top:10px">
+          <label class="fld"><span>Line shown on the product page</span><input type="text" id="eSoonNote" maxlength="200" value="${esc(st.coming_soon_note)}" placeholder="Dropping this month. Leave your email to be first."></label>
+          <div id="eWaiting" class="help">Checking the waiting list…</div>
+          <button class="btn ghost sm" id="eNotify" style="margin-top:8px" hidden>Tell the waiting list it's available</button>
+        </div>
+      </div>
       <div class="card"><h2>Pricing</h2><label class="fld"><span>Price ($)</span><input type="number" id="ePrice" min="0" step="0.01" inputmode="decimal" value="${esc(st.price)}"></label>
         <label class="toggle" style="margin:4px 0 10px"><input type="checkbox" id="eSaleOn" ${st.sale!==""?"checked":""}> Put this product on sale</label>
         <div id="eSaleBox" ${st.sale!==""?"":"hidden"}>
@@ -881,6 +892,23 @@ async function pProduct(id){
   $("#eAddColor").onclick=()=>{st.colors.push({name:"",hex:"#ffffff",images:[],sold_out:false,stock:{}});mark();renderColors()};
   $$("[data-sz]").forEach(b=>b.onclick=()=>{$("#eSizes").value=b.dataset.sz;mark();renderColors()});
   $("#eSizes").onchange=()=>{mark();renderColors()};
+  $("#eSoon").onchange=()=>{$("#eSoonBox").hidden=!$("#eSoon").checked;mark()};
+  $("#eSoonNote").addEventListener("input",mark);
+  if(!isNew){
+    db.from("restock_requests").select("id,email,notified_at").eq("product_id",p.id).then(({data})=>{
+      const el=$("#eWaiting");if(!el)return;const rows=data||[];const waiting=rows.filter(r=>!r.notified_at);
+      el.innerHTML=rows.length?`<b>${waiting.length}</b> waiting to be told${rows.length-waiting.length?` · ${rows.length-waiting.length} already told`:""}`:"Nobody on the waiting list yet.";
+      const btn=$("#eNotify");if(btn&&waiting.length){btn.hidden=false;
+        btn.onclick=async()=>{if(!confirm(`Email ${waiting.length} ${waiting.length===1?"person":"people"} that ${p.name} is available?`))return;
+          btn.disabled=true;btn.textContent="Sending…";
+          try{const {data:s}=await db.auth.getSession();
+            const r=await fetch("/api/send-campaign",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+(s.session&&s.session.access_token)},body:JSON.stringify({restock_product_id:p.id})});
+            const j=await r.json().catch(()=>({}));
+            if(!r.ok)throw new Error(j.error||("Error "+r.status));
+            toast(`Told ${j.sent} ${j.sent===1?"person":"people"}`);pProduct(id);
+          }catch(e){toast(e.message,true);btn.disabled=false;btn.textContent="Try again"}}}
+    });
+  }
   ["eFit","eMaterial","eCare","eBenefits","eGuide"].forEach(id=>{const el=$("#"+id);if(el)el.addEventListener("input",mark)});
   ["eName","eDesc","ePrice","eCat","eActive"].forEach(id=>$("#"+id).addEventListener("input",mark));
   $$("#eRel input").forEach(i=>i.addEventListener("change",mark));
@@ -897,6 +925,7 @@ async function pProduct(id){
     if(new Set(colors.map(c=>c.name.toLowerCase())).size!==colors.length)return err("Two colours have the same name.");
     if(colors.some(c=>!c.images.length))return err("Every colour needs at least one photo.");
     const row={related:$$("#eRel input:checked").map(i=>i.value).slice(0,8),
+      coming_soon:$("#eSoon").checked,coming_soon_note:$("#eSoonNote").value.trim()||null,
       fit:$("#eFit").value.trim()||null,material:$("#eMaterial").value.trim()||null,care:$("#eCare").value.trim()||null,
       benefits:$("#eBenefits").value.trim()||null,size_guide_id:$("#eGuide").value||null,name,price,sale_price:sale,category:$("#eCat").value,description:$("#eDesc").value.trim(),sizes:sz,colors,active:$("#eActive").checked};
     $("#eSave").disabled=true;let res;
@@ -1014,6 +1043,119 @@ function editInfluencer(i){
     const res=i?await db.from("influencers").update(row).eq("id",i.id):await db.from("influencers").insert(row);
     if(res.error)return $("#inErr",m).textContent=res.error.message;
     m.remove();toast("Saved");location.hash==="#/influencers"?pInfluencers():router()};
+}
+
+/* =============== ACCOUNTS =============== */
+let acF={q:"",news:"all"};
+async function pAccounts(){
+  const [{data:accs,error},{data:ords}]=await Promise.all([
+    db.from("accounts").select("*").order("created_at",{ascending:false}).limit(5000),
+    db.from("orders").select("account_id,status,total,subtotal,delivered_revenue,created_at").not("account_id","is",null).limit(5000)]);
+  if(error)throw error;
+  const A=accs||[],O=ords||[];
+  const stat={};O.forEach(o=>{const s=stat[o.account_id]||(stat[o.account_id]={orders:0,spent:0,last:null});
+    s.orders++;if(!["cancelled","returned","refunded"].includes(o.status))s.spent+=Number(o.total??o.subtotal??0);
+    if(!s.last||new Date(o.created_at)>new Date(s.last))s.last=o.created_at});
+  const withOrders=A.filter(x=>stat[x.id]).length;
+  const subs=A.filter(x=>x.marketing_opt_in).length;
+  const last7=A.filter(x=>new Date(x.created_at)>new Date(Date.now()-7*86400000)).length;
+  V.innerHTML=`<div class="pagehead"><h1>Accounts</h1><a class="btn ghost sm" href="#/emails">Write an email</a><button class="btn ghost sm" id="acExport">Export CSV</button></div>
+    <p class="help" style="margin:-8px 0 14px">Customers who created an account on the website. The welcome discount is set in <a class="link" href="#/settings">Settings</a>.</p>
+    <div class="metrics">
+      <div class="metric"><div class="k">Accounts</div><div class="v">${A.length}</div><div class="muted" style="font-size:12px;margin-top:3px">${last7} this week</div></div>
+      <div class="metric"><div class="k">Have ordered</div><div class="v">${withOrders}</div></div>
+      <div class="metric"><div class="k">Want emails</div><div class="v">${subs}</div></div>
+      <div class="metric"><div class="k">Welcome discount used</div><div class="v">${A.filter(x=>x.welcome_used).length}</div></div>
+    </div>
+    <div class="toolbar"><input type="search" id="acQ" placeholder="Search name, email, phone" value="${esc(acF.q)}">
+      <select id="acNews"><option value="all">Everyone</option><option value="yes" ${acF.news==="yes"?"selected":""}>Wants emails</option><option value="no" ${acF.news==="no"?"selected":""}>Unsubscribed</option></select></div>
+    <div id="acOut"></div>`;
+  const draw=()=>{
+    const q=acF.q.toLowerCase();
+    const list=A.filter(x=>(acF.news==="all"||(acF.news==="yes")===!!x.marketing_opt_in)&&(!q||[x.email,x.first_name,x.last_name,x.phone,x.city].join(" ").toLowerCase().includes(q)));
+    $("#acOut").innerHTML=list.length?`<div class="tblwrap resp"><table class="tbl"><thead><tr><th>Customer</th><th>Phone</th><th>City</th><th class="num">Orders</th><th class="num">Spent</th><th>Emails</th><th>Welcome</th><th>Joined</th></tr></thead><tbody>
+      ${list.map(x=>{const s=stat[x.id]||{orders:0,spent:0};return `<tr><td><b>${esc([x.first_name,x.last_name].filter(Boolean).join(" ")||"—")}</b><div class="muted" style="font-size:12px">${esc(x.email)}</div></td>
+        <td class="nowrap">${esc(x.phone||"")}</td><td>${esc(x.city||"")}</td><td class="num">${s.orders}</td><td class="num"><b>${money(s.spent)}</b></td>
+        <td>${x.marketing_opt_in?pill("active","Yes"):pill("cancelled","No")}</td><td>${x.welcome_used?pill("paid","Used"):pill("unpaid","Unused")}</td>
+        <td class="nowrap muted">${fmtDate(x.created_at)}</td></tr>`}).join("")}</tbody></table></div>`
+      :`<div class="empty">${A.length?"Nobody matches.":"No accounts yet. Turn the welcome discount on in Settings to give people a reason to sign up."}</div>`;
+  };
+  draw();
+  $("#acQ").oninput=e=>{acF.q=e.target.value;draw()};$("#acNews").onchange=e=>{acF.news=e.target.value;draw()};
+  $("#acExport").onclick=()=>{const rows=[["First name","Last name","Email","Phone","City","Orders","Spent","Wants emails","Welcome used","Joined"]];
+    A.forEach(x=>{const s=stat[x.id]||{orders:0,spent:0};rows.push([x.first_name,x.last_name,x.email,x.phone,x.city,s.orders,s.spent,x.marketing_opt_in?"yes":"no",x.welcome_used?"yes":"no",new Date(x.created_at).toISOString().slice(0,10)])});
+    csv(rows,`ace-accounts-${new Date().toISOString().slice(0,10)}.csv`)};
+}
+
+/* =============== EMAILS TO CUSTOMERS =============== */
+async function pEmails(){
+  const {data,error}=await db.from("campaigns").select("*").order("created_at",{ascending:false}).limit(100);
+  if(error)throw error;
+  const C2=data||[];
+  V.innerHTML=`<div class="pagehead"><h1>Emails</h1><button class="btn sm" id="emNew">Write an email</button></div>
+    <p class="help" style="margin:-8px 0 14px">Emails go only to people who asked for them, and every email carries an unsubscribe link. Order confirmations are separate and always sent.</p>
+    <div id="emOut"></div>`;
+  $("#emOut").innerHTML=C2.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Subject</th><th>To</th><th>Status</th><th class="num">Sent</th><th>When</th></tr></thead><tbody>
+    ${C2.map(c=>`<tr data-id="${c.id}"><td><b>${esc(c.subject)}</b></td><td>${({accounts:"Account holders",waitlist:"Early access list",everyone:"Everyone"})[c.audience]}</td>
+      <td>${c.status==="sent"?pill("paid","Sent"):c.status==="sending"?pill("unpaid","Sending"):c.status==="failed"?pill("new","Failed"):pill("cancelled","Draft")}</td>
+      <td class="num">${c.sent_count}${c.failed_count?` <span style="color:var(--bad)">+${c.failed_count} failed</span>`:""}</td>
+      <td class="nowrap muted">${c.sent_at?fmtDT(c.sent_at):fmtDate(c.created_at)}</td></tr>`).join("")}</tbody></table></div>`
+    :`<div class="empty">No emails yet. Write one to tell your customers about a drop.</div>`;
+  $$("#emOut [data-id]").forEach(r=>r.onclick=()=>editEmail(C2.find(c=>c.id===r.dataset.id)));
+  $("#emNew").onclick=()=>editEmail(null);
+}
+function editEmail(c){
+  const sent=c&&c.status==="sent";
+  const m=modal(`<h2>${sent?"Email sent":c?"Edit email":"Write an email"}</h2>
+    ${sent?`<p class="help" style="margin:-6px 0 12px">Sent to ${c.sent_count} people on ${fmtDT(c.sent_at)}.</p>`:""}
+    <label class="fld"><span>Subject</span><input type="text" id="emSubj" maxlength="140" value="${esc(c?c.subject:"")}" ${sent?"readonly":""} placeholder="New drop: winter gloves"></label>
+    <label class="fld"><span>Short line under the subject (optional)</span><input type="text" id="emPre" maxlength="140" value="${esc(c?c.preheader||"":"")}" ${sent?"readonly":""}></label>
+    <label class="fld"><span>Message</span><textarea id="emBody" rows="7" ${sent?"readonly":""} placeholder="Write it the way you'd say it. One empty line starts a new paragraph.">${esc(c?c.body:"")}</textarea></label>
+    <div class="grid2"><label class="fld"><span>Button text (optional)</span><input type="text" id="emBtn" maxlength="40" value="${esc(c?c.button_label||"":"")}" ${sent?"readonly":""}></label>
+      <label class="fld"><span>Button link</span><input type="url" id="emUrl" value="${esc(c?c.button_url||"https://aceforathletes.com/":"https://aceforathletes.com/")}" ${sent?"readonly":""}></label></div>
+    <label class="fld"><span>Send to</span><select id="emAud" ${sent?"disabled":""}>
+      <option value="accounts" ${!c||c.audience==="accounts"?"selected":""}>Account holders who want emails</option>
+      <option value="waitlist" ${c&&c.audience==="waitlist"?"selected":""}>Early access list</option>
+      <option value="everyone" ${c&&c.audience==="everyone"?"selected":""}>Everyone</option></select>
+      <small id="emCount" class="help"></small></label>
+    <div class="err" id="emErr"></div>
+    <div class="row between" style="margin-top:12px">${c&&!sent?`<button class="btn danger sm" id="emDel">Delete</button>`:"<span></span>"}
+      <span class="row"><button class="btn ghost" id="emCancel">Close</button>
+      ${sent?"":`<button class="btn ghost" id="emTest">Send me a test</button><button class="btn" id="emSend">Send to everyone</button>`}</span></div>`);
+  const count=async()=>{const {data}=await db.rpc("campaign_audience",{p_audience:$("#emAud",m).value});
+    const n=(data||[]).length;const el=$("#emCount",m);if(el)el.textContent=`${n} ${n===1?"person":"people"} will receive it.`};
+  count();$("#emAud",m).onchange=count;
+  $("#emCancel",m).onclick=()=>m.remove();
+  const payload=()=>({subject:$("#emSubj",m).value.trim(),preheader:$("#emPre",m).value.trim()||null,body:$("#emBody",m).value.trim(),
+    button_label:$("#emBtn",m).value.trim()||null,button_url:$("#emUrl",m).value.trim()||null,audience:$("#emAud",m).value,created_by:ME});
+  let current=c;   // after the first save we keep editing the same email, never a second copy
+  const saveDraft=async()=>{const row=payload();
+    if(!row.subject)throw new Error("Add a subject.");
+    if(row.body.length<10)throw new Error("Write a message first.");
+    const res=current
+      ? await db.from("campaigns").update(row).eq("id",current.id).select().single()
+      : await db.from("campaigns").insert(row).select().single();
+    if(res.error)throw new Error(res.error.message);
+    current=res.data;return current;
+  };
+  const call=async(body)=>{const {data}=await db.auth.getSession();
+    const r=await fetch("/api/send-campaign",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+(data.session&&data.session.access_token)},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("Error "+r.status));return j};
+  if(!sent){
+    $("#emTest",m).onclick=async()=>{const b=$("#emTest",m);b.disabled=true;$("#emErr",m).textContent="";
+      try{const saved=await saveDraft();const r=await call({campaign_id:saved.id,test:true});toast("Test sent to "+(r.to||"you"))}
+      catch(e){$("#emErr",m).textContent=e.message}b.disabled=false};
+    $("#emSend",m).onclick=async()=>{
+      $("#emErr",m).textContent="";
+      try{const saved=await saveDraft();
+        const {data:aud}=await db.rpc("campaign_audience",{p_audience:saved.audience});
+        if(!confirm(`Send "${saved.subject}" to ${(aud||[]).length} people now?`))return;
+        const b=$("#emSend",m);b.disabled=true;b.textContent="Sending…";
+        const r=await call({campaign_id:saved.id});
+        m.remove();toast(`Sent to ${r.sent} people${r.failed?`, ${r.failed} failed`:""}`);pEmails();
+      }catch(e){$("#emErr",m).textContent=e.message;const b=$("#emSend",m);if(b){b.disabled=false;b.textContent="Send to everyone"}}};
+    if(c)$("#emDel",m).onclick=async()=>{if(!confirm("Delete this draft?"))return;await db.from("campaigns").delete().eq("id",c.id);m.remove();pEmails()};
+  }
 }
 
 /* =============== EARLY ACCESS LIST =============== */
@@ -1557,6 +1699,15 @@ async function pSettings(){
       <p class="help" style="margin:-4px 0 10px">Leave the fee empty to agree on delivery with each customer on WhatsApp. Put 0 for free delivery on every order.</p>
       <label class="fld"><span>Delivery note shown at checkout</span><input type="text" id="sDt" value="${esc(SETTINGS.delivery_text)}"></label>
     </div>
+    <div class="card"><h2>Accounts &amp; welcome discount</h2>
+      <p class="help" style="margin:-4px 0 10px">Given once per account, automatically, on their first order. The server checks it, so it can't be reused.</p>
+      <label class="toggle" style="margin-bottom:10px"><input type="checkbox" id="sWelOn" ${SETTINGS.welcome_enabled==="true"?"checked":""}> Give a welcome discount to new accounts</label>
+      <div class="grid2"><label class="fld"><span>Type</span><select id="sWelKind"><option value="percent" ${SETTINGS.welcome_kind!=="fixed"?"selected":""}>Percentage off</option><option value="fixed" ${SETTINGS.welcome_kind==="fixed"?"selected":""}>Fixed amount off</option></select></label>
+        <label class="fld"><span>Value</span><input type="number" id="sWelVal" min="0" step="0.01" value="${esc(SETTINGS.welcome_value||"10")}"></label></div>
+      <div class="grid2"><label class="fld"><span>Minimum order ($)</span><input type="number" id="sWelMin" min="0" step="0.01" value="${esc(SETTINGS.welcome_min_order||"0")}"></label>
+        <label class="fld"><span>Name shown to customers</span><input type="text" id="sWelLabel" maxlength="60" value="${esc(SETTINGS.welcome_label||"Welcome discount")}"></label></div>
+      <label class="fld"><span>Invitation line on the website</span><input type="text" id="sWelCta" maxlength="120" value="${esc(SETTINGS.account_cta||"")}" placeholder="Create an account and get 10% off your first order"></label>
+    </div>
     <div class="card"><h2>Analytics</h2>
       <p class="help" style="margin:-4px 0 10px">These IDs are public (they're visible in any website's code). Tracking only starts for visitors who accept cookies.</p>
       <label class="fld"><span>Google Analytics 4 · Measurement ID</span><input type="text" id="sGa" value="${esc(SETTINGS.ga4_measurement_id||"")}" placeholder="G-XXXXXXXXXX"></label>
@@ -1594,7 +1745,9 @@ async function pSettings(){
     if(ga&&!/^G-[A-Z0-9]{4,}$/.test(ga))return $("#sErr").textContent="The GA4 Measurement ID should look like G-XXXXXXXXXX.";
     if(ph&&!/^phc_[A-Za-z0-9]{10,}$/.test(ph))return $("#sErr").textContent="The PostHog key should start with phc_.";
     const val=(id,d="")=>{const el=$("#"+id);return el?el.value:d};
-    const rows=[["low_stock_threshold",String(Math.max(1,parseInt(val("sLow","3"))||3))],["delivery_days",val("sDays").trim()],["ga4_measurement_id",ga],["posthog_key",ph],["posthog_region",$("#sPhR").value],["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
+    const rows=[["welcome_enabled",$("#sWelOn").checked?"true":"false"],["welcome_kind",$("#sWelKind").value],
+      ["welcome_value",String(Math.max(0,parseFloat($("#sWelVal").value)||0))],["welcome_min_order",String(Math.max(0,parseFloat($("#sWelMin").value)||0))],
+      ["welcome_label",$("#sWelLabel").value.trim()],["account_cta",$("#sWelCta").value.trim()],["low_stock_threshold",String(Math.max(1,parseInt(val("sLow","3"))||3))],["delivery_days",val("sDays").trim()],["ga4_measurement_id",ga],["posthog_key",ph],["posthog_region",$("#sPhR").value],["whatsapp_number",wa],["instagram_url",ig],["delivery_fee",fee],["free_delivery_over",free],["delivery_text",$("#sDt").value.trim()],["payment_text",$("#sPt").value.trim()]].map(([key,value])=>({key,value}));
     const {error}=await db.from("settings").upsert(rows);if(error)return $("#sErr").textContent="Couldn't save: "+error.message;toast("Settings saved");
   };
   $$("[data-rmadmin]").forEach(b=>b.onclick=async()=>{if(!confirm(`Remove ${b.dataset.rmadmin} from the admin?`))return;const {error}=await db.from("admins").delete().eq("email",b.dataset.rmadmin);if(error)return toast(error.message,true);toast("Removed");pSettings()});
