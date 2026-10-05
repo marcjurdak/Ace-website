@@ -85,6 +85,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px var(--pad);padding-top:max(14px,env(safe-area-inset-top));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top a img{height:22px;width:auto}
 .top .lhs{display:flex;align-items:center;gap:14px}
+.top .rhs{display:flex;align-items:center;gap:4px}
 .menubtn{width:40px;height:40px;margin-left:-8px;display:grid;place-items:center;border-radius:6px}
 .menubtn span{display:block;width:20px;height:2px;background:currentColor;position:relative}
 .menubtn span::before,.menubtn span::after{content:"";position:absolute;left:0;width:20px;height:2px;background:currentColor}
@@ -105,7 +106,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .sale-tag{position:absolute;right:10px;top:10px;background:#d93b30;color:#fff;font-size:12px;font-weight:700;padding:5px 9px;border-radius:2px}
 .sale-tag[hidden]{display:none}
 .chip.sale-chip[aria-pressed="false"]{color:#d93b30;border-color:#d93b30}
-.bagbtn{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;padding:8px 0}
+.bagbtn{display:flex;align-items:center;gap:7px;font-weight:600;font-size:15px;padding:8px 0}
 .bagbtn .count{min-width:26px;height:26px;border-radius:13px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:13px;padding:0 7px;transition:transform .25s}
 .bagbtn .count.bump{transform:scale(1.25)}
 
@@ -600,7 +601,7 @@ section.co-sec{padding:28px 0 0}
 /* a hidden element must always be hidden, even when a class sets display */
 [hidden]{display:none!important}
 /* ===================== accounts & coming soon products ===================== */
-.acctbtn{position:relative;display:grid;place-items:center;width:40px;height:40px;margin-right:2px}
+.acctbtn{position:relative;display:grid;place-items:center;width:38px;height:38px}
 .acctbtn svg{width:23px;height:23px;display:block}
 .acct-dot{position:absolute;right:7px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--fg);border:1.5px solid var(--surface)}
 .acct-dot[hidden]{display:none}
@@ -805,12 +806,14 @@ footer small{font-size:12px;letter-spacing:.04em}
   <div class="lhs"><button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
   <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
   </div>
+  <div class="rhs">
   <button class="acctbtn" id="acctOpen" aria-label="Your account" title="Your account">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.75"/><path d="M4.5 20c.9-3.8 3.9-5.9 7.5-5.9s6.6 2.1 7.5 5.9"/></svg>
     <span class="acct-dot" id="acctDot" hidden></span></button>
   <button class="bagbtn" id="bagOpen" aria-label="Open bag" title="Your bag">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.3 7.5h13.4l1.05 12.1a1.4 1.4 0 0 1-1.4 1.5H5.65a1.4 1.4 0 0 1-1.4-1.5L5.3 7.5z"/><path d="M8.9 10V6.6a3.1 3.1 0 0 1 6.2 0V10"/></svg>
     <span class="count" id="bagCount">0</span></button>
+  </div>
 </header>
 
 <main>
@@ -1268,7 +1271,16 @@ function renderAcct(view){
           track("login",{method:"email"});
         }
         await refreshMe();renderAcct("home");
-      }catch(ex){err.textContent=/invalid/i.test(ex.message||"")?"Wrong email or password.":(ex.message||"Something went wrong.")}
+      }catch(ex){
+        const msg=String(ex.message||"");
+        if(/not confirmed|confirm/i.test(msg)){
+          err.innerHTML=`Your email isn't confirmed yet. Check your inbox and spam folder. <button type="button" id="acResend" class="linkbtn">Send the email again</button>`;
+          const rb=document.getElementById("acResend");
+          if(rb)rb.onclick=async()=>{rb.disabled=true;
+            const {error}=await db.auth.resend({type:"signup",email});
+            err.textContent=error?error.message:"Sent. It can take a minute to arrive."};
+        } else err.textContent=/invalid/i.test(msg)?"Wrong email or password.":(msg||"Something went wrong.");
+      }
       btn.disabled=false;
     };
     const fg=$("#acForgot");
