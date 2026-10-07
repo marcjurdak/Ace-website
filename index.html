@@ -627,10 +627,10 @@ section.co-sec{padding:28px 0 0}
 .btn-line.sm{min-height:38px;padding:0 14px;font-size:11.5px}
 #searchOut{margin-top:10px}
 /* ===================== category carousels ===================== */
-.crow-sec{padding:0;margin-bottom:clamp(24px,3.4vw,38px)}
+.crow-sec{padding:0;margin-bottom:clamp(42px,6vw,68px)}
 #catRows{margin-top:18px}
 #catRows .crow-sec:last-child{margin-bottom:0}
-.crow-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:9px}
+.crow-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:12px}
 .crow-head h3{font-family:var(--display);font-size:clamp(17px,2.4vw,24px);text-transform:uppercase;letter-spacing:-.01em;line-height:1}
 .crow-head a{font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap}
 .crow-head a:hover{color:var(--fg)}
@@ -638,7 +638,7 @@ section.co-sec{padding:28px 0 0}
 .crow{--crow-gap:clamp(10px,2.4vw,20px);display:flex;gap:var(--crow-gap);
   overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;overscroll-behavior-y:auto;
   align-items:flex-start;scroll-snap-type:x proximity;
-  -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:0}
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:18px;align-items:flex-start}
 .crow::-webkit-scrollbar{display:none}
 /* exactly two products fit on screen, the third peeks in from the fade */
 .crow>.card{flex:0 0 calc((100% - var(--crow-gap)) / 2);scroll-snap-align:start;max-width:none}
@@ -742,7 +742,9 @@ h2{font-size:clamp(24px,4.4vw,44px);line-height:1.02}
 .card .frame{background:var(--studio);overflow:hidden}
 .card .frame img{transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .35s}
 @media(hover:hover){.card:hover .frame img.front{transform:scale(1.04)}}
-.card .meta{margin-top:14px;align-items:flex-start}
+.card .meta{margin-top:14px;align-items:flex-start;gap:12px}
+.crow>.card .name{line-height:1.25}
+.crow>.card .swatches{margin-top:12px;margin-bottom:2px}
 .card .name{font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
 .card .price{font-size:13px;font-family:var(--body);font-weight:600;font-variant-numeric:tabular-nums}
 .card .price .now{color:var(--fg)}
@@ -1271,13 +1273,31 @@ function setupHero(h){
 }
 addEventListener("pagehide",()=>{const v=document.getElementById("heroVideo");if(v){try{v.pause()}catch(e){}v.removeAttribute("src")}});
 /* ---------- favourites ---------- */
-function favIds(){try{return JSON.parse(localStorage.getItem("ace-fav")||"[]")}catch(e){return[]}}
-function favSave(list){try{localStorage.setItem("ace-fav",JSON.stringify(list.slice(0,100)))}catch(e){}
-  paintFavCount();paintFavHearts()}
+let FAVS=[];
+function favIds(){return ME?FAVS:[]}
 function isFav(id){return favIds().includes(id)}
-function toggleFav(id){const l=favIds();const i=l.indexOf(id);
-  if(i>=0){l.splice(i,1);track("remove_from_wishlist",{item_id:id})}else{l.unshift(id);track("add_to_wishlist",{item_id:id})}
-  favSave(l);return l.includes(id)}
+let favSaveTimer=null;
+function favPush(){
+  clearTimeout(favSaveTimer);
+  favSaveTimer=setTimeout(()=>{db.rpc("set_favourites",{p:{ids:FAVS}}).then(()=>{},()=>{})},500);
+}
+function toggleFav(id){
+  if(!ME){askToSignIn();return false}
+  const i=FAVS.indexOf(id);
+  if(i>=0){FAVS.splice(i,1);track("remove_from_wishlist",{item_id:id})}
+  else{FAVS.unshift(id);FAVS=FAVS.slice(0,100);track("add_to_wishlist",{item_id:id})}
+  favPush();paintFavCount();paintFavHearts();
+  return FAVS.includes(id);
+}
+function askToSignIn(){
+  const body=$("#favBody");
+  body.innerHTML=`<h4>Save your favourites</h4>
+    <p class="muted-p">Sign in or create a free account to keep your favourites, on any phone or computer.</p>
+    <button type="button" class="px-add" id="favSignin"><span>Log in or sign up</span><span aria-hidden="true">→</span></button>`;
+  $("#favSignin").onclick=()=>{closeAll(false);openAcct("signin")};
+  openSheet($("#favs"));
+  track("favourites_signin_prompt",{});
+}
 function paintFavCount(){const n=favIds().filter(id=>PRODUCTS.some(p=>p.id===id)).length;
   const el=$("#favCount");if(!el)return;el.textContent=n;el.hidden=n===0}
 function paintFavHearts(){
@@ -1287,6 +1307,7 @@ function paintFavHearts(){
     b.setAttribute("aria-label",on?"Remove from favourites":"Save to favourites")});
 }
 function openFavs(){
+  if(!ME){askToSignIn();return}
   const ids=favIds();const items=ids.map(id=>PRODUCTS.find(p=>p.id===id)).filter(Boolean);
   const body=$("#favBody");
   body.innerHTML=items.length
@@ -1388,7 +1409,9 @@ async function refreshMe(){
   const {data:{session}}=await db.auth.getSession();
   if(!session){ME=null;paintAcctBtn();return null}
   const {data,error}=await db.rpc("ensure_account",{p:{}});
-  ME=error?{email:session.user.email}:data;paintAcctBtn();return ME;
+  ME=error?{email:session.user.email}:data;
+  FAVS=(ME&&Array.isArray(ME.favourites))?ME.favourites.slice():[];
+  paintAcctBtn();paintFavCount();paintFavHearts();return ME;
 }
 function paintAcctBtn(){
   const d=$("#acctDot"),b=$("#acctOpen");if(!b)return;
@@ -1521,7 +1544,7 @@ function renderAcct(view){
     $("#adErr").textContent=error?error.message:"Saved.";$("#adErr").style.color=error?"":"var(--muted)";
     if(!error&&data){ME=data;paintAcctBtn();draft=JSON.parse(JSON.stringify(ME.addresses||[]));drawAddr()}
   };
-  $("#adOut").onclick=async()=>{await db.auth.signOut();ME=null;paintAcctBtn();renderAcct("signin")};
+  $("#adOut").onclick=async()=>{await db.auth.signOut();ME=null;FAVS=[];paintAcctBtn();paintFavCount();paintFavHearts();renderAcct("signin")};
   db.rpc("my_orders").then(({data})=>{
     const el=$("#acctOrders");if(!el)return;
     const list=data||[];
@@ -1805,6 +1828,7 @@ function buildCatRows(){
     sec.querySelector(".next").onclick=()=>row.scrollBy({left:step(),behavior:"smooth"});
     watchFade(row);
   });
+  paintFavHearts();
   box.hidden=!any;$("#grid").hidden=any;
   if(!any){cardsToGrid();$("#grid").hidden=false}
 }
@@ -2440,7 +2464,7 @@ function initFade(){
 updateCount();setContact();
 (async function init(){
   try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories(),loadRatings(),loadGuides(),loadWelcome()]);
-    wireAccounts();wireHeaderExtras();paintFavCount();paintFavHearts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute()}
+    wireAccounts();wireHeaderExtras();paintFavCount();paintFavHearts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute();paintFavCount();paintFavHearts()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   setContact();initFade();
   new MutationObserver(()=>fadeTick&&fadeTick()).observe(document.getElementById("detGrid"),{childList:true});
