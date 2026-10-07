@@ -66,7 +66,10 @@ window.ACE_DEFAULT_CONTENT = {
     logo_full_light: "/logo-full-black.png", logo_full_dark: "/logo-full-white.png",
     favicon: "/icon.png",
     // The picture that appears with the link on WhatsApp, Instagram, Facebook etc.
-    share_image: "/share-default.jpg"
+    share_image: "/share-default.jpg",
+    share_source: "",            // the original upload, kept so the look can be changed later
+    share_fit: "contain",        // "contain" = show the whole logo · "cover" = fill the frame
+    share_bg: "#ffffff"          // background behind it, or "transparent"
   },
   announcement: { show: false, text: "", items: [], interval: 5 },
   hero: {
