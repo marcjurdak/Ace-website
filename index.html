@@ -5,9 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ACE — Built for athletes</title>
 <meta name="description" id="metaDesc" content="ACE sportswear for footballers. Tees, shorts, hoodies, socks and winter gloves in black and white.">
+<!-- Link preview (WhatsApp, Instagram, Facebook, Messenger, iMessage, Telegram, X).
+     These crawlers do NOT run JavaScript, so every tag here has to be plain HTML.
+     og:image points at a fixed address; the picture it serves is the one chosen in
+     the admin screen under Online store > Logos > "Share link photo". -->
+<meta property="og:site_name" content="ACE">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://aceforathletes.com/">
 <meta property="og:title" content="ACE — Built for athletes">
-<meta property="og:description" content="Training and match-day wear for footballers.">
-<meta property="og:image" id="ogImage" content="">
+<meta property="og:description" content="Training and match-day wear for footballers. Delivered across Lebanon.">
+<meta property="og:image" content="https://aceforathletes.com/api/share-image">
+<meta property="og:image:secure_url" content="https://aceforathletes.com/api/share-image">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ACE — built for athletes">
+<meta property="og:locale" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ACE — Built for athletes">
+<meta name="twitter:description" content="Training and match-day wear for footballers. Delivered across Lebanon.">
+<meta name="twitter:image" content="https://aceforathletes.com/api/share-image">
+<link rel="canonical" href="https://aceforathletes.com/" id="canonical">
 <meta name="theme-color" content="#000000">
 <link rel="icon" type="image/png" href="/icon.png" id="favicon">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -1212,8 +1229,8 @@ function applyContent(c,fresh){
   document.getElementById("detGrid").innerHTML=(d.tiles||[]).filter(x=>x&&x.image).map(x=>`<figure class="${x.wide?"wide":"sq"}">${x.image2?`<div class="pair"><img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy"><img src="${esc(x.image2)}" alt="" loading="lazy"></div>`:`<img src="${esc(x.image)}" alt="${esc(x.title)}" loading="lazy">`}<figcaption><b>${esc(x.title)}</b>${esc(x.text)}</figcaption></figure>`).join("");
   const st=c.store||{},sv=document.getElementById("storeVisual"),si=document.getElementById("storeImg");
   if(st.image){sv.classList.add("photo");si.src=st.image;si.alt=st.title||""}else{sv.classList.remove("photo");si.src=(c.brand&&c.brand.logo_full_light)||"/logo-full-black.png";si.alt=""}
-  const og=document.getElementById("ogImage");const ogSrc=(c.hero&&(c.hero.image||c.hero.image_mobile))||(c.story&&c.story.image)||"";
-  if(og){if(ogSrc)og.setAttribute("content",ogSrc);else og.removeAttribute("content")}
+  // The link-preview picture is a static <meta> tag pointing at /api/share-image,
+  // because WhatsApp and Facebook never run this script. Nothing to set here.
   const seo=c.seo||{};if(seo.title)document.title=seo.title;
   if(CS_ON){const cs=c.coming_soon||{};document.title=`${cs.title||seo.title||"ACE"} — ${cs.headline||"Coming soon"}`}if(seo.description)document.getElementById("metaDesc").setAttribute("content",seo.description);
   if(c.brand&&c.brand.favicon)document.getElementById("favicon").setAttribute("href",c.brand.favicon);
@@ -1613,7 +1630,8 @@ function parsePath(){
 }
 function showOnly(list){SECTIONS.forEach(sel=>{const el=document.querySelector(sel);if(!el)return;
   const want=list.includes(sel);if(want){el.hidden=false;el.dataset.routeHidden="";}else{el.hidden=true;el.dataset.routeHidden="1"}})}
-function setMeta(title,desc){document.title=title;const m=document.getElementById("metaDesc");if(m&&desc)m.setAttribute("content",desc)}
+function setMeta(title,desc){document.title=title;const m=document.getElementById("metaDesc");if(m&&desc)m.setAttribute("content",desc);
+  const cn=document.getElementById("canonical");if(cn)cn.setAttribute("href",location.origin+location.pathname)}
 function navigate(path,replace){
   const to=String(path||"/");
   if(location.pathname!==to){history[replace?"replaceState":"pushState"]({},"",to)}

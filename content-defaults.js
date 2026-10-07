@@ -64,7 +64,9 @@ window.ACE_DEFAULT_CONTENT = {
   brand: {
     logo_word_light: "/logo-word-black.png", logo_word_dark: "/logo-word-white.png",
     logo_full_light: "/logo-full-black.png", logo_full_dark: "/logo-full-white.png",
-    favicon: "/icon.png"
+    favicon: "/icon.png",
+    // The picture that appears with the link on WhatsApp, Instagram, Facebook etc.
+    share_image: "/share-default.jpg"
   },
   announcement: { show: false, text: "", items: [], interval: 5 },
   hero: {
