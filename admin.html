@@ -191,6 +191,12 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
 .imgpick:has(.pv.wide){grid-template-columns:190px 1fr}
 .imgpick .pv.wide{width:190px;height:100px;background-size:cover;background-color:#fff}
 #shareBg .btn.on{background:var(--ink,#111);color:#fff;border-color:var(--ink,#111)}
+.sharepv{max-width:330px;border-radius:10px;overflow:hidden;background:#fff;border:1px solid var(--line);margin:4px 0 2px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.sharepv-img{aspect-ratio:1200/630;background:#fff center/cover no-repeat}
+.sharepv-b{padding:8px 10px 10px;display:grid;gap:3px}
+.sharepv-b b{font-size:13px;line-height:1.3;color:#111;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sharepv-b span{font-size:12px;line-height:1.35;color:#5b5b5b;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sharepv-b small{font-size:11px;color:#8a8a8a;text-transform:uppercase;letter-spacing:.04em}
 hr.sep{border:0;border-top:1px solid var(--line);margin:16px 0 12px}
 .upl{display:inline-flex}
 .tile{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px}
@@ -1653,6 +1659,15 @@ async function pStore(){
           .map(([v,l])=>`<button type="button" class="btn ghost sm${(c.brand.share_bg||"#ffffff")===v?" on":""}" data-sharebg="${v}">${l}</button>`).join("")}
       </div>
       <p class="help">A see-through logo stays see-through on Instagram, iMessage and Google. <b>WhatsApp does not support see-through pictures</b> — it puts white behind it, so "White" gives you the same result everywhere and is the safe choice.</p>
+      <hr class="sep">
+      <span class="lbl">Words next to the photo</span>
+      <p class="help" style="margin:-2px 0 10px">The bold line and the sentence under it, in the WhatsApp message.</p>
+      ${text("brand.share_title","Title",{help:"Keep it under about 60 characters, longer gets cut off."})}
+      ${text("brand.share_text","Sentence underneath",{area:true,help:"Keep it under about 110 characters. WhatsApp shows roughly two lines."})}
+      <div class="sharepv">
+        <div class="sharepv-img" data-pv2="brand.share_image" style="background-image:${c.brand.share_image?`url('${esc(c.brand.share_image)}')`:"none"}"></div>
+        <div class="sharepv-b"><b id="spvT">${esc(c.brand.share_title||"")}</b><span id="spvD">${esc(c.brand.share_text||"")}</span><small>aceforathletes.com</small></div>
+      </div>
       <p class="help" style="margin-top:8px">After you publish, WhatsApp keeps showing the old picture for a while because it remembers previews. To see the new one straight away, share the link with <code>?v=2</code> at the end (aceforathletes.com/?v=2), then <code>?v=3</code> next time.</p>`,"")}
     ${acc("announcement","Announcement bar",`${tog("announcement.show","Show the bar at the top")}
       <span class="lbl">Messages</span><p class="help" style="margin:-2px 0 8px">Each message shows on its own, then fades into the next one.</p>
@@ -1762,6 +1777,10 @@ async function pStore(){
       try{await bakeShare()}catch(e){toast("Couldn't update the background: "+(e.message||e),true)}
       rebuild();
     });
+    /* live WhatsApp-style preview of the words */
+    const spv=(id,p)=>{const el=$("#"+id),src=$(`#seAcc [data-p="${p}"]`);
+      if(!el||!src)return;const paint=()=>{el.textContent=src.value};src.addEventListener("input",paint);paint()};
+    spv("spvT","brand.share_title");spv("spvD","brand.share_text");
     const fitSel=$('#seAcc [data-p="brand.share_fit"]');
     if(fitSel)fitSel.addEventListener("change",async()=>{
       set("brand.share_fit",fitSel.value);

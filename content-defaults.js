@@ -69,7 +69,9 @@ window.ACE_DEFAULT_CONTENT = {
     share_image: "/share-default.jpg",
     share_source: "",            // the original upload, kept so the look can be changed later
     share_fit: "contain",        // "contain" = show the whole logo · "cover" = fill the frame
-    share_bg: "#ffffff"          // background behind it, or "transparent"
+    share_bg: "#ffffff",         // background behind it, or "transparent"
+    share_title: "ACE — Built for athletes",
+    share_text: "Training and match-day wear for footballers. Delivered across Lebanon."
   },
   announcement: { show: false, text: "", items: [], interval: 5 },
   hero: {
