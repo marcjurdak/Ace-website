@@ -142,26 +142,13 @@ window.ACE_DEFAULT_CONTENT = {
   },
   account_menu: {
     show: true,
+    auto: true,
+    delay: 5,
+    again_days: 14,
     title: "Join the ACE club",
     text: "Create your free account for 20% off your first order, early access to every drop, and faster checkout.",
     button: "Login or join now",
     close: "Close"
-  },
-  popup: {
-    on: false,
-    mode: "email",
-    delay: 6,
-    again_days: 14,
-    image: "",
-    layout: "image_left",
-    title: "10% off your first order",
-    text: "Join the ACE list and get 10% off your first order, plus first access to new drops.",
-    button: "Claim my 10%",
-    note: "One email when we drop something new. Unsubscribe any time.",
-    dismiss: "No thanks",
-    code: "",
-    success_title: "Here's your code",
-    success_text: "Use it at checkout. We've also added it to your bag automatically."
   },
   story: {
     show: true,

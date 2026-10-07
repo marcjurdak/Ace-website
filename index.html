@@ -90,28 +90,30 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .brandmark{justify-self:center;display:block;line-height:0}
 .brandmark img{height:22px;width:auto}
 @media(min-width:700px){.brandmark img{height:26px}}
-.iconbtn{position:relative;display:grid;place-items:center;width:40px;height:40px}
+.iconbtn{position:relative;display:grid;place-items:center;width:37px;height:40px}
 .iconbtn svg{width:23px;height:23px;display:block}
 .badge{position:absolute;top:1px;right:1px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--fg);color:var(--bg);
   font-family:var(--body);font-size:11px;font-weight:700;line-height:18px;text-align:center;border:1.5px solid var(--surface)}
 .badge[hidden]{display:none}
-/* the join-the-club card that drops from the account icon */
-.acct-pop{position:absolute;top:calc(100% - 6px);right:var(--pad);left:var(--pad);z-index:30;background:var(--surface);border:1px solid var(--fg);
-  padding:22px;box-shadow:0 18px 40px rgba(0,0,0,.14)}
-@media(min-width:700px){.acct-pop{left:auto;width:min(420px,calc(100vw - 2 * var(--pad)))}}
+/* the join-the-club card that drops from the account icon — one solid black block */
+.acct-pop{position:absolute;top:calc(100% + 8px);right:var(--pad);left:var(--pad);z-index:30;
+  background:#0B0B0B;color:#fff;padding:26px 24px 24px;border-radius:var(--radius,0);
+  box-shadow:0 22px 50px rgba(0,0,0,.3);opacity:0;transform:translateY(-8px);transition:opacity .22s,transform .22s}
+.acct-pop.on{opacity:1;transform:none}
+@media(min-width:700px){.acct-pop{left:auto;width:min(390px,calc(100vw - 2 * var(--pad)))}}
 .acct-pop[hidden]{display:none}
-.acct-pop::before{content:"";position:absolute;top:-9px;right:var(--pop-arrow,86px);width:16px;height:16px;background:var(--surface);
-  border-left:1px solid var(--fg);border-top:1px solid var(--fg);transform:rotate(45deg)}
-.acct-pop h3{font-family:var(--display);text-transform:uppercase;font-size:clamp(16px,2.2vw,19px);letter-spacing:.02em;margin-bottom:10px}
-.acct-pop p{color:var(--muted);font-size:14.5px;line-height:1.55;margin-bottom:18px}
-.acct-pop-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.pop-cta{flex:1;min-width:200px;min-height:50px;background:var(--fg);color:var(--bg);display:flex;align-items:center;justify-content:space-between;
-  gap:14px;padding:0 18px;font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  box-shadow:4px 4px 0 var(--fg);transition:box-shadow .15s,transform .15s}
-.pop-cta:hover{box-shadow:0 0 0 var(--fg);transform:translate(3px,3px)}
-.pop-close{font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px}
+.acct-pop::before{content:"";position:absolute;top:-8px;right:var(--pop-arrow,86px);width:17px;height:17px;background:#0B0B0B;transform:rotate(45deg)}
+.acct-pop h3{font-family:var(--display);text-transform:uppercase;font-size:clamp(17px,2.3vw,21px);line-height:1.15;letter-spacing:.01em;margin-bottom:10px;color:#fff}
+.acct-pop p{color:rgba(255,255,255,.72);font-size:14.5px;line-height:1.55;margin-bottom:20px}
+.acct-pop-row{display:flex;flex-direction:column;gap:14px;align-items:stretch}
+.pop-cta{width:100%;min-height:52px;background:#fff;color:#0B0B0B;display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:0 20px;font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;transition:opacity .15s}
+.pop-cta:hover{opacity:.85}
+.pop-close{align-self:center;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.62);text-decoration:underline;text-underline-offset:4px}
+.pop-close:hover{color:#fff}
+@media (prefers-reduced-motion:reduce){.acct-pop{transition:none}}
 .top .lhs{display:flex;align-items:center;gap:2px}
-.top .rhs{display:flex;align-items:center;gap:4px}
+.top .rhs{display:flex;align-items:center;gap:0;margin-right:-10px}
 .menubtn{width:40px;height:40px;margin-left:-6px;display:grid;place-items:center;border-radius:6px}
 .menubtn span{display:block;width:26px;height:2px;background:currentColor;position:relative}
 .menubtn span::before,.menubtn span::after{content:"";position:absolute;left:0;width:26px;height:2px;background:currentColor}
@@ -577,25 +579,6 @@ section.co-sec{padding:28px 0 0}
 .hero-over .cta.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.7)}
 .hero-over .cta.ghost:hover{background:#fff;color:#000}
 .hero-over .cta[hidden]{display:none}
-/* ===================== welcome pop-up ===================== */
-.pop{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.55);display:grid;place-items:center;padding:16px;opacity:0;transition:opacity .3s}
-.pop.on{opacity:1}
-.pop[hidden]{display:none}
-.pop-box{position:relative;background:var(--surface);width:min(820px,100%);max-height:92vh;overflow:auto;display:grid;transform:translateY(12px);transition:transform .35s cubic-bezier(.3,.7,.2,1)}
-.pop.on .pop-box{transform:none}
-@media(min-width:760px){.pop-box.has-img{grid-template-columns:1fr 1fr}.pop-box.has-img.right .pop-img{order:2}}
-.pop-img{background:var(--studio) center/cover no-repeat;min-height:180px}
-.pop-img.empty{display:none}
-.pop-in{padding:clamp(24px,4vw,40px)}
-.pop-in h2{font-size:clamp(22px,3vw,32px);line-height:1.05;margin-bottom:12px}
-.pop-in p{color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:18px}
-.pop-in .fld span{font-size:11px}
-.pop-x{position:absolute;right:10px;top:10px;z-index:2;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--line);font-size:14px}
-.pop-note{font-size:12px;color:var(--muted);margin:12px 0 0}
-.pop-no{display:block;margin:12px auto 0;font-size:12px;color:var(--muted);text-decoration:underline}
-.pop-code{font-family:var(--display);font-size:clamp(22px,4vw,30px);letter-spacing:.14em;border:1px dashed var(--fg);padding:14px;text-align:center;margin:14px 0}
-#popDone h3{font-size:clamp(20px,2.6vw,26px);margin-bottom:8px}
-@media (prefers-reduced-motion:reduce){.pop,.pop-box{transition:none}}
 /* ===================== product media & details ===================== */
 .px-gallery .media-wrap{position:relative;flex:0 0 100%;scroll-snap-align:start}
 .px-gallery video{width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--studio);display:block}
@@ -987,26 +970,6 @@ footer small{font-size:12px;letter-spacing:.04em}
   <p>We use cookies to measure our ads and improve the website. You can change this any time.</p>
   <div class="consent-btns"><button type="button" class="btn-lite" id="consentNo">Only necessary</button><button type="button" class="btn-dark" id="consentYes">Accept</button></div>
 </div>
-<div class="pop" id="pop" hidden role="dialog" aria-modal="true" aria-labelledby="popTitle">
-  <div class="pop-box">
-    <button class="pop-x" id="popX" aria-label="Close">✕</button>
-    <div class="pop-img" id="popImg"></div>
-    <div class="pop-in">
-      <h2 id="popTitle" data-c="popup.title"></h2>
-      <p id="popText" data-c="popup.text"></p>
-      <form id="popForm">
-        <label class="fld"><span>Email</span><input type="email" id="popEmail" inputmode="email" autocomplete="email" placeholder="you@example.com" required></label>
-        <div class="form-err" id="popErr" aria-live="polite"></div>
-        <button type="submit" class="px-add" id="popSend"><span data-c="popup.button">Claim my 10%</span><span aria-hidden="true">→</span></button>
-      </form>
-      <button type="button" class="px-add" id="popJoin" hidden><span>Create my account</span><span aria-hidden="true">→</span></button>
-      <div id="popDone" hidden><h3 id="popDoneT"></h3><p id="popDoneX"></p><div class="pop-code" id="popCode" hidden></div>
-        <button type="button" class="px-add" id="popShop"><span>Start shopping</span><span aria-hidden="true">→</span></button></div>
-      <p class="pop-note" id="popNote" data-c="popup.note"></p>
-      <button type="button" class="pop-no" id="popNo" data-c="popup.dismiss"></button>
-    </div>
-  </div>
-</div>
 <aside class="sheet acct" id="acct" role="dialog" aria-modal="true" aria-labelledby="acctTitle" aria-hidden="true">
   <div class="sheet-head"><h3 id="acctTitle">Your account</h3><button class="x" data-close>Close</button></div>
   <div class="sheet-body" id="acctBody"></div>
@@ -1240,7 +1203,7 @@ function applyContent(c,fresh){
   setupAnnouncements(c.announcement||{});
   setupStory(c.story||{});
   setupComingSoon(c.coming_soon||{});
-  setupPopup(c.popup||{});
+  setupJoinCard(c.account_menu||{});
   setupHero(c.hero||{});
   // the hero poster is handled in setupHero(), from your settings only
   const d=c.details||{};
@@ -1364,23 +1327,46 @@ function runSearch(q){
 /* ---------- the join-the-club card under the account icon ---------- */
 let acctPopWired=false;
 function acctMenu(){return (C.account_menu)||{}}
-function toggleAcctPop(force){
+function joinSeen(){try{const s=JSON.parse(localStorage.getItem("ace-join")||"null");
+  if(!s)return false;if(s.done)return true;return Date.now()-s.at<Number(s.days||14)*864e5}catch(e){return false}}
+function joinRemember(done,days){try{localStorage.setItem("ace-join",JSON.stringify({at:Date.now(),done:!!done,days:days||14}))}catch(e){}}
+function toggleAcctPop(force,auto){
   const pop=$("#acctPop"),btn=$("#acctOpen");
   const show=force!==undefined?force:pop.hidden;
-  pop.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");
   if(show){
-    const r=btn.getBoundingClientRect();
-    pop.style.setProperty("--pop-arrow",Math.max(16,Math.round(innerWidth-r.left-r.width/2-8))+"px");
-    track("account_menu_shown",{});
+    pop.hidden=false;
+    // the arrow sits exactly under the middle of the account icon
+    const r=btn.getBoundingClientRect(),pr=pop.getBoundingClientRect();
+    pop.style.setProperty("--pop-arrow",Math.max(14,Math.round(pr.right-(r.left+r.width/2)-8.5))+"px");
+    requestAnimationFrame(()=>pop.classList.add("on"));
+    btn.setAttribute("aria-expanded","true");
+    track("join_card_shown",{auto:!!auto});
+  }else{
+    pop.classList.remove("on");btn.setAttribute("aria-expanded","false");
+    setTimeout(()=>{if(!pop.classList.contains("on"))pop.hidden=true},230);
   }
+}
+let joinTimer=null;
+function setupJoinCard(m){
+  clearTimeout(joinTimer);
+  if(m.show===false||m.auto===false||CS_ON||ME||joinSeen())return;
+  const wait=Math.max(1,Number(m.delay)||5)*1000;
+  const tryOpen=()=>{
+    if(!$("#acctPop").hidden||$("#checkout").classList.contains("on"))return;
+    if(!$("#consent").hidden){joinTimer=setTimeout(tryOpen,3000);return} // let them answer the cookie bar first
+    if(ME)return;
+    toggleAcctPop(true,true);
+    joinRemember(false,Number(m.again_days)||14);
+  };
+  joinTimer=setTimeout(tryOpen,wait);
 }
 function wireHeaderExtras(){
   if(acctPopWired)return;acctPopWired=true;
   $("#favOpen").onclick=openFavs;
   $("#searchOpen").onclick=openSearch;
   $("#searchInput").addEventListener("input",e=>runSearch(e.target.value));
-  $("#acctPopClose").onclick=()=>toggleAcctPop(false);
-  $("#acctPopCta").onclick=()=>{toggleAcctPop(false);openAcct(ME?"home":"signup")};
+  $("#acctPopClose").onclick=()=>{joinRemember(false,Number(acctMenu().again_days)||14);toggleAcctPop(false)};
+  $("#acctPopCta").onclick=()=>{joinRemember(true);toggleAcctPop(false);openAcct(ME?"home":"signup")};
   document.addEventListener("click",e=>{
     const pop=$("#acctPop");
     if(pop.hidden)return;
@@ -1544,56 +1530,6 @@ function renderAcct(view){
       <div style="font-size:12.5px;margin-top:4px">${esc(({new:"Submitted",confirmed:"Confirmed",preparing:"Preparing",out_for_delivery:"Shipped",delivered:"Delivered",cancelled:"Cancelled",returned:"Returned",refunded:"Refunded"})[o.status]||o.status)}</div></div>`).join("")
       :`<p class="muted-p" style="margin-top:22px">No orders yet.</p>`;
   });
-}
-/* ---------- welcome pop-up ---------- */
-let popWired=false,popTimer=null;
-function popSeen(){try{const s=JSON.parse(localStorage.getItem("ace-pop")||"null");
-  if(!s)return false;if(s.done)return true;const days=Number(s.days||14);return Date.now()-s.at<days*864e5}catch(e){return false}}
-function popRemember(done,days){try{localStorage.setItem("ace-pop",JSON.stringify({at:Date.now(),done:!!done,days:days}))}catch(e){}}
-function closePop(remember){const p=$("#pop");p.classList.remove("on");setTimeout(()=>{p.hidden=true},300);
-  if(remember)popRemember(false,(C.popup||{}).again_days||14);
-  if(!$("#pdp").classList.contains("on")&&!$("#checkout").classList.contains("on"))document.body.style.overflow="";}
-function openPop(){
-  const s=C.popup||{};const box=$(".pop-box");
-  const accountMode=s.mode==="account";
-  box.classList.toggle("has-img",!!s.image);box.classList.toggle("right",s.layout==="image_right");
-  const im=$("#popImg");im.classList.toggle("empty",!s.image);if(s.image)im.style.backgroundImage=`url('${s.image}')`;
-  $("#popDoneT").textContent=s.success_title||"";$("#popDoneX").textContent=s.success_text||"";
-  $("#popForm").hidden=accountMode;$("#popJoin").hidden=!accountMode;
-  $("#popDone").hidden=true;$("#popErr").textContent="";$("#popNote").hidden=!s.note;$("#popNo").hidden=!s.dismiss;
-  if(accountMode)$("#popJoin").querySelector("span").textContent=s.button||"Create my account";
-  const p=$("#pop");p.hidden=false;requestAnimationFrame(()=>p.classList.add("on"));
-  document.body.style.overflow="hidden";setTimeout(()=>$("#popEmail").focus({preventScroll:true}),350);
-  track("popup_shown",{});
-}
-function setupPopup(s){
-  s=s||{};clearTimeout(popTimer);
-  if(!popWired){popWired=true;
-    $("#popX").onclick=()=>closePop(true);
-    $("#popJoin").onclick=()=>{popRemember(true);closePop(false);openAcct("signup");track("popup_join",{})};
-    $("#popNo").onclick=()=>closePop(true);
-    $("#popShop").onclick=()=>closePop(false);
-    $("#pop").addEventListener("click",e=>{if(e.target.id==="pop")closePop(true)});
-    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#pop").hidden){e.stopPropagation();closePop(true)}},true);
-    $("#popForm").addEventListener("submit",async e=>{
-      e.preventDefault();const err=$("#popErr");err.textContent="";const btn=$("#popSend");btn.disabled=true;
-      const {error}=await db.rpc("subscribe_email",{p:{email:$("#popEmail").value,attribution:window.aceAttribution()}});
-      btn.disabled=false;
-      if(error){err.textContent=error.message||"Something went wrong. Please try again.";return}
-      const cs=C.popup||{};const code=String(cs.code||"").trim().toUpperCase();
-      $("#popForm").hidden=true;$("#popDone").hidden=false;$("#popNote").hidden=true;$("#popNo").hidden=true;
-      if(code){$("#popCode").hidden=false;$("#popCode").textContent=code;
-        try{localStorage.setItem("ace-code",JSON.stringify({code,at:Date.now()}))}catch(e2){}}
-      popRemember(true);track("popup_signup",{});
-    });
-  }
-  if(CS_ON||!s.on||popSeen())return;
-  const tryOpen=()=>{
-    if(!$("#pop").hidden||$("#checkout").classList.contains("on"))return;
-    if(!$("#consent").hidden){popTimer=setTimeout(tryOpen,3000);return}  // let them answer the cookie bar first
-    openPop();
-  };
-  popTimer=setTimeout(tryOpen,Math.max(1,Number(s.delay)||6)*1000);
 }
 /* ---------- coming soon ---------- */
 let CS_ON=false;

@@ -1596,19 +1596,11 @@ async function pStore(){
     ${acc("accountmenu","Account menu (drops from the person icon)",`${tog("account_menu.show","Show the join card when a visitor taps the account icon")}
       <p class="help" style="margin:-4px 0 12px">Signed-in customers go straight to their account instead. The discount you mention here comes from <a class="link" href="#/settings">Settings → welcome discount</a>.</p>
       ${text("account_menu.title","Title")}${text("account_menu.text","Text",{area:true})}
-      ${text("account_menu.button","Button")}${text("account_menu.close","Close link")}`,"")}
-    ${acc("popup","Welcome pop-up",`${tog("popup.on","Show the pop-up to new visitors")}
-      ${sel("popup.mode","What the pop-up asks for",[["email","Just their email"],["account","Create an account (bigger offer)"]])}
-      <p class="help" style="margin:-2px 0 10px">"Create an account" sends them straight to the sign-up form, where your welcome discount from <a class="link" href="#/settings">Settings</a> applies to their first order.</p>
-      <p class="help" style="margin:-4px 0 12px">Appears once per visitor. After they sign up it never shows again on that phone or computer, and their email lands in <a class="link" href="#/waitlist">Early access</a>.</p>
-      ${img("popup.image","Photo (optional)",{help:"A portrait photo works best. Leave empty for a text-only pop-up."})}
-      ${sel("popup.layout","Photo position",[["image_left","Photo on the left"],["image_right","Photo on the right"]])}
-      ${text("popup.title","Title")}${text("popup.text","Text",{area:true})}${text("popup.button","Button")}
-      ${text("popup.note","Small line under the button")}${text("popup.dismiss","\"No thanks\" link")}
-      ${text("popup.code","Discount code to reveal",{help:"Type an existing code, for example WELCOME10. Create it in Discounts first. It is filled in automatically at checkout."})}
-      ${text("popup.success_title","Thank-you title")}${text("popup.success_text","Thank-you text",{area:true})}
-      ${range("popup.delay","Show after",1,30,1," s")}
-      ${range("popup.again_days","If they close it, ask again after",1,60,1," days")}`,"")}
+      ${text("account_menu.button","Button")}${text("account_menu.close","Close link")}
+      <span class="lbl" style="margin-top:14px">Show it automatically</span>
+      ${tog("account_menu.auto","Open it by itself for new visitors (this replaces the old welcome pop-up)")}
+      ${range("account_menu.delay","Show after",1,30,1," s")}
+      ${range("account_menu.again_days","If they close it, ask again after",1,60,1," days")}`,"")}
     ${acc("theme","Theme",`
       ${sel("theme.mode","Colour mode",[["auto","Automatic (follows the visitor's phone)"],["light","Always light"],["dark","Always dark"]])}
       ${sel("theme.font_display","Title font",Object.keys(F.display).map(k=>[k,k]))}
