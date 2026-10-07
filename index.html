@@ -84,12 +84,38 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* header */
 .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:14px var(--pad);padding-top:max(14px,env(safe-area-inset-top));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top a img{height:22px;width:auto}
-.top .lhs{display:flex;align-items:center;gap:14px}
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.top .lhs{display:flex;align-items:center;gap:2px;justify-self:start}
+.top .rhs{justify-self:end}
+.brandmark{justify-self:center;display:block;line-height:0}
+.brandmark img{height:22px;width:auto}
+@media(min-width:700px){.brandmark img{height:26px}}
+.iconbtn{position:relative;display:grid;place-items:center;width:40px;height:40px}
+.iconbtn svg{width:23px;height:23px;display:block}
+.badge{position:absolute;top:1px;right:1px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--fg);color:var(--bg);
+  font-family:var(--body);font-size:11px;font-weight:700;line-height:18px;text-align:center;border:1.5px solid var(--surface)}
+.badge[hidden]{display:none}
+/* the join-the-club card that drops from the account icon */
+.acct-pop{position:absolute;top:calc(100% - 6px);right:var(--pad);left:var(--pad);z-index:30;background:var(--surface);border:1px solid var(--fg);
+  padding:22px;box-shadow:0 18px 40px rgba(0,0,0,.14)}
+@media(min-width:700px){.acct-pop{left:auto;width:min(420px,calc(100vw - 2 * var(--pad)))}}
+.acct-pop[hidden]{display:none}
+.acct-pop::before{content:"";position:absolute;top:-9px;right:var(--pop-arrow,86px);width:16px;height:16px;background:var(--surface);
+  border-left:1px solid var(--fg);border-top:1px solid var(--fg);transform:rotate(45deg)}
+.acct-pop h3{font-family:var(--display);text-transform:uppercase;font-size:clamp(16px,2.2vw,19px);letter-spacing:.02em;margin-bottom:10px}
+.acct-pop p{color:var(--muted);font-size:14.5px;line-height:1.55;margin-bottom:18px}
+.acct-pop-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.pop-cta{flex:1;min-width:200px;min-height:50px;background:var(--fg);color:var(--bg);display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:0 18px;font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  box-shadow:4px 4px 0 var(--fg);transition:box-shadow .15s,transform .15s}
+.pop-cta:hover{box-shadow:0 0 0 var(--fg);transform:translate(3px,3px)}
+.pop-close{font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px}
+.top .lhs{display:flex;align-items:center;gap:2px}
 .top .rhs{display:flex;align-items:center;gap:4px}
-.menubtn{width:40px;height:40px;margin-left:-8px;display:grid;place-items:center;border-radius:6px}
-.menubtn span{display:block;width:20px;height:2px;background:currentColor;position:relative}
-.menubtn span::before,.menubtn span::after{content:"";position:absolute;left:0;width:20px;height:2px;background:currentColor}
-.menubtn span::before{top:-6px}.menubtn span::after{top:6px}
+.menubtn{width:40px;height:40px;margin-left:-6px;display:grid;place-items:center;border-radius:6px}
+.menubtn span{display:block;width:26px;height:2px;background:currentColor;position:relative}
+.menubtn span::before,.menubtn span::after{content:"";position:absolute;left:0;width:26px;height:2px;background:currentColor}
+.menubtn span::before{top:-7px}.menubtn span::after{top:7px}
 .menu{top:0;left:0;bottom:0;width:min(360px,88%);transform:translateX(-105%)}
 .menu.on{transform:translateX(0)}
 .menu nav{display:flex;flex-direction:column;padding:8px 0}
@@ -106,9 +132,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .sale-tag{position:absolute;right:10px;top:10px;background:#d93b30;color:#fff;font-size:12px;font-weight:700;padding:5px 9px;border-radius:2px}
 .sale-tag[hidden]{display:none}
 .chip.sale-chip[aria-pressed="false"]{color:#d93b30;border-color:#d93b30}
-.bagbtn{display:flex;align-items:center;gap:7px;font-weight:600;font-size:15px;padding:8px 0}
-.bagbtn .count{min-width:26px;height:26px;border-radius:13px;background:var(--fg);color:var(--bg);display:grid;place-items:center;font-size:13px;padding:0 7px;transition:transform .25s}
-.bagbtn .count.bump{transform:scale(1.25)}
+.badge.bump{transform:scale(1.3)}
+.badge{transition:transform .25s}
 
 /* watermark */
 .wm{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:0}
@@ -600,6 +625,24 @@ section.co-sec{padding:28px 0 0}
 .zoom-dots i.on{background:var(--fg)}
 /* a hidden element must always be hidden, even when a class sets display */
 [hidden]{display:none!important}
+/* ===================== favourites & search ===================== */
+.card{position:relative}
+.fav-heart{position:absolute;right:8px;top:8px;z-index:3;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:color-mix(in srgb,var(--surface) 82%,transparent);backdrop-filter:blur(3px)}
+.fav-heart svg{width:19px;height:19px;fill:none;stroke:var(--fg);stroke-width:1.7}
+.fav-heart.on svg{fill:var(--fg)}
+.px-fav{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line);padding:11px 15px;margin-top:10px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.px-fav svg{width:18px;height:18px;fill:none;stroke:var(--fg);stroke-width:1.7}
+.px-fav.on{border-color:var(--fg)}
+.px-fav.on svg{fill:var(--fg)}
+.fav-list{display:flex;flex-direction:column;gap:4px}
+.fav-row{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line);width:100%;text-align:left;background:none}
+.fav-img{flex:0 0 84px;background:var(--studio);display:block}
+.fav-img img{width:84px;height:105px;object-fit:cover;display:block}
+.fav-meta{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fav-name{font-family:var(--display);text-transform:uppercase;font-size:13px;letter-spacing:.06em;text-decoration:none;color:var(--fg)}
+.fav-price{font-size:13.5px;font-weight:600}
+.btn-line.sm{min-height:38px;padding:0 14px;font-size:11.5px}
+#searchOut{margin-top:10px}
 /* ===================== category carousels ===================== */
 .crow-sec{padding:0;margin-bottom:clamp(24px,3.4vw,38px)}
 #catRows{margin-top:18px}
@@ -623,12 +666,8 @@ section.co-sec{padding:28px 0 0}
 @media(hover:hover) and (min-width:700px){.crow-wrap:hover .crow-nav:not([hidden]){display:grid}}
 .crow-nav.prev{left:-8px}.crow-nav.next{right:-8px}
 /* ===================== accounts & coming soon products ===================== */
-.acctbtn{position:relative;display:grid;place-items:center;width:38px;height:38px}
-.acctbtn svg{width:23px;height:23px;display:block}
-.acct-dot{position:absolute;right:7px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--fg);border:1.5px solid var(--surface)}
+.acct-dot{position:absolute;right:4px;top:4px;width:8px;height:8px;border-radius:50%;background:var(--fg);border:1.5px solid var(--surface)}
 .acct-dot[hidden]{display:none}
-.bagbtn svg{width:23px;height:23px;display:block}
-.bagbtn .count{min-width:20px;height:20px;border-radius:10px;font-size:11px;font-weight:700}
 .acct{top:0;right:0;bottom:0;width:min(460px,100%);transform:translateX(105%)}
 .acct.on{transform:none}
 .acct .sheet-body{padding:22px var(--pad) 40px}
@@ -701,9 +740,7 @@ h2{font-size:clamp(24px,4.4vw,44px);line-height:1.02}
 /* header */
 .top{padding:16px var(--pad);border-bottom:var(--hair)}
 .top a img{height:20px}
-.bagbtn{font-size:12px;letter-spacing:.14em;text-transform:uppercase}
-.bagbtn .count{background:transparent;color:var(--fg);border:1px solid var(--fg);font-size:11px;font-weight:600}
-.menubtn span,.menubtn span::before,.menubtn span::after{width:18px;height:1.5px}
+.menubtn span,.menubtn span::before,.menubtn span::after{width:26px;height:2px}
 /* hero */
 .hero-copy{padding:30px var(--pad) 34px;gap:22px 40px;border-bottom:none}
 .hero-copy p{font-size:clamp(15px,1.9vw,18px);line-height:1.6;color:#cfcecb}
@@ -835,16 +872,32 @@ footer small{font-size:12px;letter-spacing:.04em}
   </div>
 </section>
 <header class="top">
-  <div class="lhs"><button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
-  <a href="#" aria-label="Home"><img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE"><img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
+  <div class="lhs">
+    <button class="menubtn" id="menuOpen" aria-label="Open menu" aria-controls="menu"><span></span></button>
+    <button class="iconbtn" id="favOpen" aria-label="Your favourites" title="Your favourites">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.3S3.8 15.4 3.8 9.9A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 8.2 2.3c0 5.5-8.2 10.4-8.2 10.4z"/></svg>
+      <span class="badge" id="favCount" hidden>0</span></button>
   </div>
+  <a class="brandmark" href="/" data-nav aria-label="ACE home">
+    <img class="logo-light" data-img="brand.logo_word_light" src="/logo-word-black.png" alt="ACE">
+    <img class="logo-dark" data-img="brand.logo_word_dark" src="/logo-word-white.png" alt="ACE"></a>
   <div class="rhs">
-  <button class="acctbtn" id="acctOpen" aria-label="Your account" title="Your account">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.75"/><path d="M4.5 20c.9-3.8 3.9-5.9 7.5-5.9s6.6 2.1 7.5 5.9"/></svg>
-    <span class="acct-dot" id="acctDot" hidden></span></button>
-  <button class="bagbtn" id="bagOpen" aria-label="Open bag" title="Your bag">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.3 7.5h13.4l1.05 12.1a1.4 1.4 0 0 1-1.4 1.5H5.65a1.4 1.4 0 0 1-1.4-1.5L5.3 7.5z"/><path d="M8.9 10V6.6a3.1 3.1 0 0 1 6.2 0V10"/></svg>
-    <span class="count" id="bagCount">0</span></button>
+    <button class="iconbtn" id="acctOpen" aria-label="Your account" title="Your account" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.75"/><path d="M4.5 20c.9-3.8 3.9-5.9 7.5-5.9s6.6 2.1 7.5 5.9"/></svg>
+      <span class="acct-dot" id="acctDot" hidden></span></button>
+    <button class="iconbtn" id="searchOpen" aria-label="Search" title="Search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.4"/><path d="M15.8 15.8L21 21"/></svg></button>
+    <button class="iconbtn bagbtn" id="bagOpen" aria-label="Open bag" title="Your bag">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.3 7.5h13.4l1.05 12.1a1.4 1.4 0 0 1-1.4 1.5H5.65a1.4 1.4 0 0 1-1.4-1.5L5.3 7.5z"/><path d="M8.9 10V6.6a3.1 3.1 0 0 1 6.2 0V10"/></svg>
+      <span class="badge" id="bagCount">0</span></button>
+  </div>
+  <div class="acct-pop" id="acctPop" hidden role="dialog" aria-labelledby="acctPopTitle">
+    <h3 id="acctPopTitle" data-c="account_menu.title">Join the ACE club</h3>
+    <p data-c="account_menu.text"></p>
+    <div class="acct-pop-row">
+      <button type="button" class="pop-cta" id="acctPopCta"><span data-c="account_menu.button">Login or join now</span><span aria-hidden="true">→</span></button>
+      <button type="button" class="pop-close" id="acctPopClose" data-c="account_menu.close">Close</button>
+    </div>
   </div>
 </header>
 
@@ -958,6 +1011,17 @@ footer small{font-size:12px;letter-spacing:.04em}
   <div class="sheet-head"><h3 id="acctTitle">Your account</h3><button class="x" data-close>Close</button></div>
   <div class="sheet-body" id="acctBody"></div>
 </aside>
+<aside class="sheet acct" id="favs" role="dialog" aria-modal="true" aria-labelledby="favsTitle" aria-hidden="true">
+  <div class="sheet-head"><h3 id="favsTitle">Your favourites</h3><button class="x" data-close>Close</button></div>
+  <div class="sheet-body" id="favBody"></div>
+</aside>
+<aside class="sheet acct" id="search" role="dialog" aria-modal="true" aria-labelledby="searchTitle" aria-hidden="true">
+  <div class="sheet-head"><h3 id="searchTitle">Search</h3><button class="x" data-close>Close</button></div>
+  <div class="sheet-body">
+    <label class="fld"><span>What are you looking for?</span><input type="search" id="searchInput" placeholder="t-shirt, hoodie, socks…" autocomplete="off"></label>
+    <div id="searchOut"></div>
+  </div>
+</aside>
 <div class="scrim" id="scrim"></div>
 <aside class="sheet menu" id="menu" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">
   <div class="sheet-head"><h3>Shop</h3><button class="x" data-close>Close</button></div>
@@ -999,6 +1063,7 @@ footer small{font-size:12px;letter-spacing:.04em}
         <ul class="px-usp" id="pxUsp"></ul>
         <div id="pxBundle"></div>
         <div class="px-share" id="pxShare"></div>
+        <button type="button" class="px-fav" id="pxFav" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3S3.8 15.4 3.8 9.9A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 8.2 2.3c0 5.5-8.2 10.4-8.2 10.4z"/></svg><span>Save to favourites</span></button>
         <details class="px-acc" open><summary>Description</summary><p id="pdpDesc"></p></details>
         <details class="px-acc" id="accFit" hidden><summary>Fit &amp; sizing</summary><div id="pxFit"></div></details>
         <details class="px-acc" id="accMat" hidden><summary>Material &amp; care</summary><div id="pxMat"></div></details>
@@ -1242,6 +1307,87 @@ function setupHero(h){
   heroCtl={stop(){try{v.pause()}catch(e){}if(io)io.disconnect();document.removeEventListener("visibilitychange",onVis);removeEventListener("resize",onResize)}};
 }
 addEventListener("pagehide",()=>{const v=document.getElementById("heroVideo");if(v){try{v.pause()}catch(e){}v.removeAttribute("src")}});
+/* ---------- favourites ---------- */
+function favIds(){try{return JSON.parse(localStorage.getItem("ace-fav")||"[]")}catch(e){return[]}}
+function favSave(list){try{localStorage.setItem("ace-fav",JSON.stringify(list.slice(0,100)))}catch(e){}
+  paintFavCount();paintFavHearts()}
+function isFav(id){return favIds().includes(id)}
+function toggleFav(id){const l=favIds();const i=l.indexOf(id);
+  if(i>=0){l.splice(i,1);track("remove_from_wishlist",{item_id:id})}else{l.unshift(id);track("add_to_wishlist",{item_id:id})}
+  favSave(l);return l.includes(id)}
+function paintFavCount(){const n=favIds().filter(id=>PRODUCTS.some(p=>p.id===id)).length;
+  const el=$("#favCount");if(!el)return;el.textContent=n;el.hidden=n===0}
+function paintFavHearts(){
+  const ids=favIds();
+  document.querySelectorAll("[data-fav]").forEach(b=>{const on=ids.includes(b.dataset.fav);
+    b.classList.toggle("on",on);b.setAttribute("aria-pressed",on?"true":"false");
+    b.setAttribute("aria-label",on?"Remove from favourites":"Save to favourites")});
+}
+function openFavs(){
+  const ids=favIds();const items=ids.map(id=>PRODUCTS.find(p=>p.id===id)).filter(Boolean);
+  const body=$("#favBody");
+  body.innerHTML=items.length
+    ? `<div class="fav-list">${items.map(p=>{const c=p.colors[cardColor[p.id]||0]||p.colors[0];
+        return `<div class="fav-row"><a href="/p/${esc(p.slug)}" data-nav class="fav-img"><img src="${esc((c&&c.imgs[0])||"")}" alt="${esc(p.name)}" loading="lazy"></a>
+        <div class="fav-meta"><a href="/p/${esc(p.slug)}" data-nav class="fav-name">${esc(p.name)}</a>
+          <span class="fav-price">${p.coming_soon?"Coming soon":priceHtml(p)}</span>
+          <div class="row" style="gap:10px;margin-top:8px"><button type="button" class="btn-line sm" data-favopen="${esc(p.slug)}">View</button>
+            <button type="button" class="linkbtn" data-favrm="${p.id}">Remove</button></div></div></div>`}).join("")}</div>`
+    : `<p class="muted-p">Nothing saved yet. Tap the heart on a product to keep it here.</p>`;
+  body.querySelectorAll("[data-favrm]").forEach(b=>b.onclick=()=>{toggleFav(b.dataset.favrm);openFavs()});
+  body.querySelectorAll("[data-favopen]").forEach(b=>b.onclick=()=>{closeAll(false);navigate("/p/"+b.dataset.favopen)});
+  openSheet($("#favs"));
+  track("view_wishlist",{});
+}
+/* ---------- search ---------- */
+function openSearch(){
+  openSheet($("#search"));
+  const inp=$("#searchInput");inp.value="";runSearch("");
+  setTimeout(()=>inp.focus({preventScroll:true}),320);
+}
+function runSearch(q){
+  const s=String(q||"").trim().toLowerCase();
+  const out=$("#searchOut");
+  if(!s){out.innerHTML=`<p class="muted-p">Start typing to find a product.</p>
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">${CATS.map(c=>`<button type="button" class="chip" data-scat="${esc(c.slug)}">${esc(c.name)}</button>`).join("")}</div>`;
+    out.querySelectorAll("[data-scat]").forEach(b=>b.onclick=()=>{closeAll(false);navigate("/"+b.dataset.scat)});
+    return}
+  const hits=PRODUCTS.filter(p=>[p.name,p.desc,catLabel(p.cat),(p.colors||[]).map(c=>c.n).join(" ")].join(" ").toLowerCase().includes(s)).slice(0,12);
+  out.innerHTML=hits.length?`<div class="fav-list">${hits.map(p=>{const c=p.colors[0];
+      return `<button type="button" class="fav-row as-btn" data-sopen="${esc(p.slug)}"><span class="fav-img"><img src="${esc((c&&c.imgs[0])||"")}" alt="" loading="lazy"></span>
+        <span class="fav-meta"><span class="fav-name">${esc(p.name)}</span><span class="muted" style="font-size:12.5px">${esc(catLabel(p.cat))}</span>
+        <span class="fav-price">${p.coming_soon?"Coming soon":priceHtml(p)}</span></span></button>`}).join("")}</div>`
+    :`<p class="muted-p">Nothing matches “${esc(s)}”.</p>`;
+  out.querySelectorAll("[data-sopen]").forEach(b=>b.onclick=()=>{closeAll(false);navigate("/p/"+b.dataset.sopen)});
+  track("search",{search_term:s});
+}
+/* ---------- the join-the-club card under the account icon ---------- */
+let acctPopWired=false;
+function acctMenu(){return (C.account_menu)||{}}
+function toggleAcctPop(force){
+  const pop=$("#acctPop"),btn=$("#acctOpen");
+  const show=force!==undefined?force:pop.hidden;
+  pop.hidden=!show;btn.setAttribute("aria-expanded",show?"true":"false");
+  if(show){
+    const r=btn.getBoundingClientRect();
+    pop.style.setProperty("--pop-arrow",Math.max(16,Math.round(innerWidth-r.left-r.width/2-8))+"px");
+    track("account_menu_shown",{});
+  }
+}
+function wireHeaderExtras(){
+  if(acctPopWired)return;acctPopWired=true;
+  $("#favOpen").onclick=openFavs;
+  $("#searchOpen").onclick=openSearch;
+  $("#searchInput").addEventListener("input",e=>runSearch(e.target.value));
+  $("#acctPopClose").onclick=()=>toggleAcctPop(false);
+  $("#acctPopCta").onclick=()=>{toggleAcctPop(false);openAcct(ME?"home":"signup")};
+  document.addEventListener("click",e=>{
+    const pop=$("#acctPop");
+    if(pop.hidden)return;
+    if(!pop.contains(e.target)&&!$("#acctOpen").contains(e.target))toggleAcctPop(false);
+  });
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#acctPop").hidden){e.stopPropagation();toggleAcctPop(false)}},true);
+}
 /* ---------- customer accounts ---------- */
 let ME=null,WELCOME={};
 async function loadWelcome(){const {data}=await db.rpc("welcome_offer");WELCOME=data||{}}
@@ -1268,7 +1414,11 @@ function openAcct(view){renderAcct(view||(ME?"home":"signin"));openSheet($("#acc
 let acctWired=false;
 function wireAccounts(){
   if(acctWired)return;acctWired=true;
-  document.getElementById("acctOpen").onclick=()=>openAcct();
+  document.getElementById("acctOpen").onclick=()=>{
+    const m=acctMenu();
+    if(!ME&&m.show!==false){toggleAcctPop();return}
+    openAcct();
+  };
   db.auth.onAuthStateChange(()=>{refreshMe()});
 }
 function acctField2(f,label,val){return `<label class="fld"><span>${label}</span><input type="text" data-f="${f}" value="${esc(val||"")}"></label>`}
@@ -1670,12 +1820,14 @@ function buildGrid(){
   if(!PRODUCTS.length){g.innerHTML=`<p class="grid-msg">${esc((C.collection&&C.collection.empty_text)||"New pieces are coming soon.")}</p>`;return}
   PRODUCTS.forEach(p=>{
     const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";
-    el.innerHTML=`<button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
+    el.innerHTML=`<button type="button" class="fav-heart" data-fav="${p.id}" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3S3.8 15.4 3.8 9.9A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 8.2 2.3c0 5.5-8.2 10.4-8.2 10.4z"/></svg></button><button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
       <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${p.coming_soon?"":priceHtml(p)}</span></div><div class="sub">${p.colors.map(x=>esc(x.n)).join(" or ")}</div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
     el.querySelector(".card-open").onclick=()=>{const ci=cardColor[p.id]||0;track("select_item",{item_list_id:cat,item_list_name:catLabel(cat),items:[gaItem(p,p.colors[ci],null,1,PRODUCTS.indexOf(p))]});openPdp(p,ci)};
     el.querySelectorAll(".sw").forEach(s=>s.onclick=e=>{e.stopPropagation();cardColor[p.id]=+s.dataset.i;paintCard(p)});
     cardEls[p.id]=el;g.appendChild(el);paintCard(p);
+    const fh=el.querySelector("[data-fav]");
+    if(fh)fh.onclick=ev=>{ev.stopPropagation();const on=toggleFav(p.id);fh.classList.toggle("on",on)};
   });
 }
 function cardsToGrid(){
@@ -1877,6 +2029,13 @@ function renderPdpExtras(){
     if(k==="copy"){try{await navigator.clipboard.writeText(url);b.textContent="Link copied";setTimeout(()=>b.textContent="Copy link",1800)}catch(e){}return}
     open(`https://wa.me/${waNum}?text=${encodeURIComponent(`Hi ACE, a question about ${p.name}: ${url}`)}`,"_blank","noopener");
   });
+  const pf=$("#pxFav");
+  pf.dataset.fav=p.id;pf.classList.toggle("on",isFav(p.id));
+  pf.setAttribute("aria-pressed",isFav(p.id)?"true":"false");
+  pf.querySelector("span").textContent=isFav(p.id)?"Saved to favourites":"Save to favourites";
+  pf.onclick=()=>{const on=toggleFav(p.id);pf.classList.toggle("on",on);
+    pf.setAttribute("aria-pressed",on?"true":"false");
+    pf.querySelector("span").textContent=on?"Saved to favourites":"Save to favourites"};
   const rec=recentProducts(p.id);
   $("#pxRecent").innerHTML=rec.length?`<h2>Recently viewed</h2><div class="prow">${rec.map(miniCard).join("")}</div>`:"";
   wireMini($("#pxRecent"));pushRecent(p);
@@ -2042,7 +2201,7 @@ $("#bsAdd").onclick=()=>{
 /* bag */
 function lineInfo(l){const p=PRODUCTS.find(x=>x.id===l.id);const c=p&&p.colors.find(x=>x.n===l.color);return{p,c}}
 function cleanBag(){const before=bag.length;bag=bag.filter(l=>{const {p,c}=lineInfo(l);return p&&c&&!c.soldOut&&p.sizes.includes(l.size)});if(bag.length!==before)save()}
-function updateCount(bump){const n=bag.reduce((a,l)=>a+l.qty,0),c=$("#bagCount");c.textContent=n;$("#pxBagCount").textContent=n;if(bump){c.classList.add("bump");setTimeout(()=>c.classList.remove("bump"),250)}}
+function updateCount(bump){const n=bag.reduce((a,l)=>a+l.qty,0),c=$("#bagCount");c.textContent=n;c.hidden=n===0;$("#pxBagCount").textContent=n;if(bump){c.classList.add("bump");setTimeout(()=>c.classList.remove("bump"),250)}}
 function openBag(){renderBag();openSheet($("#bag"));if(bag.length)track("view_cart",{value:bagTotal(),items:bagItems()})}
 $("#bagOpen").onclick=openBag;
 function waLink(text){return `https://wa.me/${String(SETTINGS.whatsapp_number||"").replace(/\D/g,"")}?text=${encodeURIComponent(text)}`}
@@ -2345,7 +2504,7 @@ function initFade(){
 updateCount();setContact();
 (async function init(){
   try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories(),loadRatings(),loadGuides(),loadWelcome()]);
-    wireAccounts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute()}
+    wireAccounts();wireHeaderExtras();paintFavCount();paintFavHearts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   setContact();initFade();
   new MutationObserver(()=>fadeTick&&fadeTick()).observe(document.getElementById("detGrid"),{childList:true});

@@ -1593,6 +1593,10 @@ async function pStore(){
       ${range("coming_soon.logo_opacity","Watermark strength",0,60,1,"%")}
       ${img("coming_soon.background","Background photo (optional)",{help:"Leave empty for a plain background."})}
       ${range("coming_soon.overlay","Darken the photo",0,95,1,"%")}`,"")}
+    ${acc("accountmenu","Account menu (drops from the person icon)",`${tog("account_menu.show","Show the join card when a visitor taps the account icon")}
+      <p class="help" style="margin:-4px 0 12px">Signed-in customers go straight to their account instead. The discount you mention here comes from <a class="link" href="#/settings">Settings → welcome discount</a>.</p>
+      ${text("account_menu.title","Title")}${text("account_menu.text","Text",{area:true})}
+      ${text("account_menu.button","Button")}${text("account_menu.close","Close link")}`,"")}
     ${acc("popup","Welcome pop-up",`${tog("popup.on","Show the pop-up to new visitors")}
       ${sel("popup.mode","What the pop-up asks for",[["email","Just their email"],["account","Create an account (bigger offer)"]])}
       <p class="help" style="margin:-2px 0 10px">"Create an account" sends them straight to the sign-up form, where your welcome discount from <a class="link" href="#/settings">Settings</a> applies to their first order.</p>

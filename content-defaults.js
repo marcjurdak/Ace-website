@@ -140,6 +140,13 @@ window.ACE_DEFAULT_CONTENT = {
     sports: "Football, Padel, Gym, Other",
     show_socials: true
   },
+  account_menu: {
+    show: true,
+    title: "Join the ACE club",
+    text: "Create your free account for 20% off your first order, early access to every drop, and faster checkout.",
+    button: "Login or join now",
+    close: "Close"
+  },
   popup: {
     on: false,
     mode: "email",
