@@ -22,12 +22,20 @@ async function timed(url, opts = {}, ms = 5000) {
   finally { clearTimeout(t); }
 }
 
-function origin(req) {
+const ALLOWED_HOSTS = ["aceforathletes.com", "www.aceforathletes.com"];
+/* Never trust Host / X-Forwarded-Host blindly: a forged header would make this
+   function fetch an attacker's page and serve it under the ACE domain. Use
+   SITE_URL when set, otherwise only a host we recognise, including the Vercel
+   deployment domains so previews keep working. */
+function safeHost(req) {
   const fromEnv = env("SITE_URL").replace(/\/+$/, "");
   if (fromEnv) return fromEnv;
-  const host = req.headers["x-forwarded-host"] || req.headers.host || "";
-  return host ? `https://${host}` : "";
+  const raw = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim().toLowerCase();
+  const host = raw.replace(/:\d+$/, "");
+  const ok = ALLOWED_HOSTS.includes(host) || /^[a-z0-9-]+\.vercel\.app$/.test(host);
+  return ok ? `https://${host}` : "https://" + ALLOWED_HOSTS[0];
 }
+const origin = safeHost;
 
 /* The words chosen in the admin screen. */
 async function shareText() {

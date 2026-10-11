@@ -6,6 +6,10 @@ const env = (k) => (process.env[k] || "").trim();
 const GRAPH = "https://graph.facebook.com/v21.0";
 
 function log(level, msg, extra) { console[level](`[mcp] ${msg}` + (extra ? " " + JSON.stringify(extra) : "")); }
+// Failed-key counter, per serverless instance. Keyed by caller IP.
+const failures = new Map();
+const RATE_WINDOW_MS = 10 * 60 * 1000;
+const MAX_FAILURES = 10;
 function safeEqual(a, b) { const x = Buffer.from(String(a || "")), y = Buffer.from(String(b || "")); return x.length > 0 && x.length === y.length && crypto.timingSafeEqual(x, y); }
 function sbHeaders() { const key = env("SUPABASE_SERVICE_ROLE_KEY"); const h = { apikey: key, "Content-Type": "application/json" }; if (key.startsWith("eyJ")) h.Authorization = `Bearer ${key}`; return h; }
 async function sb(path, opts = {}) {
@@ -216,15 +220,31 @@ module.exports = async function handler(req, res) {
   if (req.method !== "POST") { res.setHeader("Allow", "POST"); return sendJson(405, { error: "Method not allowed" }); }
 
   if (!env("ACE_MCP_TOKEN")) { log("error", "ACE_MCP_TOKEN missing"); return sendJson(500, { error: "Server not configured" }); }
+
+  // Slow down key guessing. Serverless instances are short-lived, so this is a
+  // speed bump rather than a wall, but it turns millions of tries an hour into
+  // a handful and makes the attempts visible in the logs.
+  const who = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "unknown";
+  const nowMs = Date.now();
+  for (const [k, v] of failures) if (nowMs - v.first > RATE_WINDOW_MS) failures.delete(k);
+  const seen = failures.get(who);
+  if (seen && seen.count >= MAX_FAILURES && nowMs - seen.first < RATE_WINDOW_MS) {
+    log("warn", "too many bad keys, refusing for now", { tries: seen.count });
+    res.setHeader("Retry-After", "600");
+    return sendJson(429, { jsonrpc: "2.0", id: null, error: { code: -32002, message: "Too many attempts. Try again later." } });
+  }
   // the key may arrive as a header OR in the address (?key=...), because some
   // MCP clients cannot add custom headers
   const headerToken = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "").trim();
   const urlToken = (url.searchParams.get("key") || url.searchParams.get("token") || "").trim();
   if (!safeEqual(headerToken, env("ACE_MCP_TOKEN")) && !safeEqual(urlToken, env("ACE_MCP_TOKEN"))) {
+    const prev = failures.get(who);
+    failures.set(who, prev ? { first: prev.first, count: prev.count + 1 } : { first: nowMs, count: 1 });
     log("warn", "rejected a call with a wrong or missing key");
     res.setHeader("WWW-Authenticate", 'Bearer realm="ace-ads"');
     return sendJson(401, { jsonrpc: "2.0", id: null, error: { code: -32001, message: "Unauthorized" } });
   }
+  failures.delete(who);
   res.setHeader("Mcp-Session-Id", String(req.headers["mcp-session-id"] || "ace-" + crypto.randomBytes(8).toString("hex")));
 
   let body = req.body;

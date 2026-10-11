@@ -67,8 +67,9 @@ async function isAdmin(req) {
   const m = String(req.headers.authorization || "").match(/^Bearer\s+(.+)$/i); if (!m) return false;
   const r = await fetch(`${env("SUPABASE_URL")}/auth/v1/user`, { headers: { apikey: env("SUPABASE_SERVICE_ROLE_KEY"), Authorization: `Bearer ${m[1]}` } });
   if (!r.ok) return false; const u = await r.json().catch(() => null); if (!u || !u.email) return false;
-  const rows = await sb(`admins?select=email&email=ilike.${encodeURIComponent(u.email.replace(/[%_*]/g, ""))}`);
-  return !!(rows && rows.length);
+  const want = u.email.trim().toLowerCase();
+  const rows = await sb("admins?select=email");
+  return (rows || []).some((r) => String(r.email || "").trim().toLowerCase() === want);
 }
 
 module.exports = async function handler(req, res) {

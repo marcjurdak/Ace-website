@@ -65,8 +65,12 @@ async function isAdmin(req) {
   const m = String(req.headers.authorization || "").match(/^Bearer\s+(.+)$/i); if (!m) return null;
   const r = await fetch(`${env("SUPABASE_URL")}/auth/v1/user`, { headers: { apikey: env("SUPABASE_SERVICE_ROLE_KEY"), Authorization: `Bearer ${m[1]}` } });
   if (!r.ok) return null; const u = await r.json().catch(() => null); if (!u || !u.email) return null;
-  const rows = await sb(`admins?select=email&email=ilike.${encodeURIComponent(u.email.replace(/[%_*]/g, ""))}`);
-  return rows && rows.length ? u.email : null;
+  // Exact, case-insensitive match done here rather than with a SQL pattern:
+  // a pattern match let "a_b@x.com" match the admin "ab@x.com".
+  const want = u.email.trim().toLowerCase();
+  const rows = await sb("admins?select=email");
+  const hit = (rows || []).some((r) => String(r.email || "").trim().toLowerCase() === want);
+  return hit ? u.email : null;
 }
 
 module.exports = async function handler(req, res) {

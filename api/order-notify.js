@@ -256,8 +256,10 @@ async function adminEmail(req) {
   const user = await r.json().catch(() => null);
   const email = user && user.email;
   if (!email) return null;
-  const rows = await sb(`admins?select=email&email=ilike.${encodeURIComponent(email.replace(/[%_*]/g, ""))}`);
-  return rows && rows.length ? email : null;
+  const want = email.trim().toLowerCase();
+  const rows = await sb("admins?select=email");
+  const hit = (rows || []).some((r) => String(r.email || "").trim().toLowerCase() === want);
+  return hit ? email : null;
 }
 
 function readBody(req) {
