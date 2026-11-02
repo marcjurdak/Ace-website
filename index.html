@@ -736,6 +736,54 @@ section.co-sec{padding:28px 0 0}
 .notify-done{border:1px solid var(--fg);padding:16px;font-size:14px;line-height:1.6}
 .px-sticky .notify-open{min-height:50px}
 /* ===================== coming soon ===================== */
+/* ===== find my size ===== */
+.px-links{display:inline-flex;gap:14px}
+.fit-hint{margin-top:10px;font-size:13px;color:var(--muted)}
+.fit-hint b{color:var(--fg)}
+.fit[hidden]{display:none}
+.fit{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.55);
+  display:grid;place-items:end center;padding:0}
+@media(min-width:700px){.fit{place-items:center}}
+.fit-box{background:var(--bg);width:min(560px,100%);max-height:94vh;overflow:auto;
+  border:1px solid var(--line)}
+.fit-head{display:flex;align-items:center;justify-content:space-between;
+  padding:18px var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
+.fit-head h3{font-family:var(--display);text-transform:uppercase;font-size:16px;letter-spacing:.06em}
+.fit-body{padding:var(--pad) var(--pad) 26px}
+.fit-stage{position:relative;display:grid;place-items:center;background:var(--studio);
+  padding:22px 0 14px;margin-bottom:22px}
+#fitFig{width:180px;height:300px;display:block}
+#fitFig .sil{fill:var(--fg);transition:d .18s ease}
+.fit-readout{display:flex;gap:18px;margin-top:4px;font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+.fit-readout b{color:var(--fg);font-weight:700}
+.fit-ctl{display:block;margin-bottom:18px}
+.fit-ctl>span{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:13px;margin-bottom:8px}
+.fit-ctl output{font-weight:700;font-variant-numeric:tabular-nums}
+.fit-ctl input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:2px;
+  background:var(--line);outline:none;margin:10px 0}
+.fit-ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+  width:26px;height:26px;border-radius:50%;background:var(--fg);cursor:grab;border:0}
+.fit-ctl input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;
+  background:var(--fg);cursor:grab;border:0}
+.fit-ctl input[type=range]:focus-visible::-webkit-slider-thumb{outline:3px solid var(--fg);outline-offset:3px}
+.fit-num{width:84px;text-align:center;font-variant-numeric:tabular-nums}
+.fit-ctl .fit-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
+.fit-chips{display:flex;gap:8px;flex-wrap:wrap}
+.fit-chip{flex:1 1 0;border:1px solid var(--line);background:none;color:inherit;
+  padding:10px 8px;font-size:13px;cursor:pointer;white-space:nowrap}
+.fit-chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.fit-units{background:none;border:0;color:var(--muted);font-size:13px;text-decoration:underline;
+  cursor:pointer;padding:0}
+.fit-result{margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.fit-size{font-family:var(--display);font-size:clamp(30px,8vw,44px);line-height:1;text-transform:uppercase}
+.fit-why{margin-top:10px;font-size:14.5px;line-height:1.55;color:var(--muted)}
+.fit-use{margin-top:16px;width:100%}
+.fit-none{font-size:14.5px;line-height:1.55;color:var(--muted)}
+.fit-small{margin-top:18px;font-size:12px;line-height:1.5;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){#fitFig .sil{transition:none}}
+
 /* ===== a collection that hasn't launched yet ===== */
 .teaser{padding:0}
 .teaser[hidden]{display:none}
@@ -1171,7 +1219,7 @@ footer small{font-size:12px;letter-spacing:.04em}
         <button type="button" class="px-rating" id="pxRating" hidden></button>
         <div class="px-price" id="pdpPrice"></div>
         <div class="px-opt"><div class="px-label">Colour <b id="pdpColorName"></b></div><div class="px-colors" id="pdpColors"></div></div>
-        <div class="px-opt"><div class="px-label">Size <button type="button" class="px-link" id="sizeGuideBtn">Size guide</button></div><div class="px-sizes" id="pdpSizes"></div></div>
+        <div class="px-opt"><div class="px-label">Size <span class="px-links"><button type="button" class="px-link" id="fitBtn" hidden>Get my size</button><button type="button" class="px-link" id="sizeGuideBtn">Size guide</button></span></div><div class="px-sizes" id="pdpSizes"></div><p class="fit-hint" id="fitHint" hidden></p></div>
         <div class="px-stock" id="pxStock" aria-live="polite"></div>
         <div class="px-row"><div class="qty"><button id="qMinus" aria-label="Decrease quantity">−</button><output id="qVal">1</output><button id="qPlus" aria-label="Increase quantity">+</button></div>
           <button class="px-add" id="addBtn"><span>Add to bag</span><span aria-hidden="true">→</span></button></div>
@@ -1225,6 +1273,48 @@ footer small{font-size:12px;letter-spacing:.04em}
   <button class="zoom-x" id="zoomX" aria-label="Close">✕</button>
   <div class="zoom-track" id="zoomTrack"></div>
   <div class="zoom-dots" id="zoomDots"></div>
+</div>
+<!-- Find my size: height and weight sliders with a figure that changes shape,
+     then a recommended size. Nothing is sent anywhere; it is worked out in the page. -->
+<div class="fit" id="fitDlg" hidden role="dialog" aria-modal="true" aria-labelledby="fitTitle">
+  <div class="fit-box">
+    <div class="fit-head">
+      <h3 id="fitTitle">Find my size</h3>
+      <button class="x" id="fitClose" aria-label="Close">Close</button>
+    </div>
+    <div class="fit-body">
+      <div class="fit-stage">
+        <svg id="fitFig" viewBox="0 0 160 320" aria-hidden="true" preserveAspectRatio="xMidYMax meet"></svg>
+        <div class="fit-readout">
+          <b id="fitH">175 cm</b>
+          <b id="fitW">72 kg</b>
+        </div>
+      </div>
+      <div class="fit-controls">
+        <div class="fit-ctl">
+          <div class="fit-top"><label for="fitHeight">Height</label>
+            <span><input class="fit-num" id="fitHNum" type="number" inputmode="numeric" aria-label="Your height, type it in"> <output id="fitHOut"></output></span></div>
+          <input type="range" id="fitHeight" min="140" max="210" step="1" value="175" aria-label="Your height">
+        </div>
+        <div class="fit-ctl">
+          <div class="fit-top"><label for="fitWeight">Weight</label>
+            <span><input class="fit-num" id="fitWNum" type="number" inputmode="numeric" aria-label="Your weight, type it in"> <output id="fitWOut"></output></span></div>
+          <input type="range" id="fitWeight" min="40" max="140" step="1" value="72" aria-label="Your weight">
+        </div>
+        <div class="fit-ctl">
+          <span>How do you like it to sit?</span>
+          <div class="fit-chips" id="fitFeel">
+            <button type="button" class="fit-chip" data-feel="-1">Close fitting</button>
+            <button type="button" class="fit-chip" aria-pressed="true" data-feel="0">As designed</button>
+            <button type="button" class="fit-chip" data-feel="1">Roomy</button>
+          </div>
+        </div>
+        <button type="button" class="fit-units" id="fitUnits">Show in feet and pounds</button>
+      </div>
+      <div class="fit-result" id="fitResult" aria-live="polite"></div>
+      <p class="fit-small">A guide, not a promise &mdash; bodies of the same height and weight are shaped differently. Your height and weight stay on this device.</p>
+    </div>
+  </div>
 </div>
 <div class="dlg" id="dlg" hidden role="dialog" aria-modal="true" aria-labelledby="dlgTitle"><div class="dlg-box"><div class="dlg-head"><h3 id="dlgTitle"></h3><button class="x" id="dlgClose">Close</button></div><div class="dlg-body" id="dlgBody"></div></div></div>
 
@@ -1538,8 +1628,9 @@ function setupJoinCard(m){
   if(m.show===false||m.auto===false||CS_ON||ME||joinSeen())return;
   const wait=Math.max(1,Number(m.delay)||5)*1000;
   const tryOpen=()=>{
-    if(!$("#acctPop").hidden||$("#checkout").classList.contains("on"))return;
-    if(!$("#consent").hidden){joinTimer=setTimeout(tryOpen,3000);return} // let them answer the cookie bar first
+    const pop=$("#acctPop"),co=$("#checkout"),cons=$("#consent");
+    if((pop&&!pop.hidden)||(co&&co.classList.contains("on")))return;
+    if(cons&&!cons.hidden){joinTimer=setTimeout(tryOpen,3000);return} // let them answer the cookie bar first
     if(ME)return;
     toggleAcctPop(true,true);
     joinRemember(false,Number(m.again_days)||14);
@@ -1917,6 +2008,187 @@ try{bag=JSON.parse(localStorage.getItem("ace-bag2")||"[]");if(!Array.isArray(bag
 function save(){try{localStorage.setItem("ace-bag2",JSON.stringify(bag))}catch(e){}}
 
 /* filters + grid */
+/* ================= find my size =================
+   Height and weight go in, a size comes out. Everything happens in the page:
+   nothing about anyone's body is sent to a server or stored anywhere but their
+   own device. */
+const FIT_KEY="ace-fit";
+let FIT={cm:175,kg:72,feel:0,imperial:false};
+try{const o=JSON.parse(localStorage.getItem(FIT_KEY)||"null");if(o&&o.cm)FIT={...FIT,...o}}catch(e){}
+
+/* The figure. Taller as the height goes up, wider as the weight goes up.
+   Eight heads tall, which is the usual drawing proportion. */
+function fitFigure(cm,kg){
+  const H=Math.max(140,Math.min(210,cm)),W=Math.max(40,Math.min(140,kg));
+  const bmi=W/Math.pow(H/100,2);
+  const b=Math.max(0,Math.min(1,(bmi-16)/(36-16)));   // 0 slim .. 1 heavy
+  const total=198+(H-140)/70*104, base=314, top=base-total;
+  const u=total/7.7, cx=80;                            // 7.7 heads tall
+  const k=0.86+0.46*b;                                 // how wide the body gets
+  const y=n=>top+u*n, r=n=>Math.round(n*10)/10;
+  const headR=u*0.40, headCy=y(0.44);
+  const shY=y(1.32), chY=y(1.95), waY=y(2.95), hiY=y(3.80), crY=y(4.10);
+  const sh=u*0.90*k, ch=u*1.00*k, wa=u*0.70*k, hi=u*0.93*k;
+  const armTop=u*0.22*k, armLow=u*0.17*k, gap=u*0.06;
+  const legW=u*0.40*k;
+
+  // torso: rounded shoulders, chest, waist, hips
+  const torso=
+    `M ${r(cx-sh)} ${r(shY)}`+
+    ` C ${r(cx-ch)} ${r(chY-u*0.15)} ${r(cx-wa*1.02)} ${r(chY+u*0.55)} ${r(cx-wa)} ${r(waY)}`+
+    ` C ${r(cx-hi*0.98)} ${r(waY+u*0.45)} ${r(cx-hi)} ${r(hiY-u*0.2)} ${r(cx-hi*0.92)} ${r(crY)}`+
+    ` L ${r(cx+hi*0.92)} ${r(crY)}`+
+    ` C ${r(cx+hi)} ${r(hiY-u*0.2)} ${r(cx+hi*0.98)} ${r(waY+u*0.45)} ${r(cx+wa)} ${r(waY)}`+
+    ` C ${r(cx+wa*1.02)} ${r(chY+u*0.55)} ${r(cx+ch)} ${r(chY-u*0.15)} ${r(cx+sh)} ${r(shY)}`+
+    ` C ${r(cx+sh*0.55)} ${r(shY-u*0.30)} ${r(cx-sh*0.55)} ${r(shY-u*0.30)} ${r(cx-sh)} ${r(shY)} Z`;
+
+  // arms hang clear of the body, with a gap so they read as arms
+  const arm=side=>{
+    const xi=cx+side*(ch+gap), xo=cx+side*(ch+gap+armTop);
+    const xi2=cx+side*(hi*0.90+gap), xo2=cx+side*(hi*0.90+gap+armLow);
+    return `M ${r(xi)} ${r(shY+u*0.06)} C ${r(xo+side*u*0.06)} ${r(shY+u*0.5)} ${r(xo2)} ${r(waY)} ${r(xo2)} ${r(crY+u*0.80)}`+
+      ` L ${r(xi2)} ${r(crY+u*0.80)} C ${r(xi2)} ${r(waY)} ${r(xi)} ${r(shY+u*0.7)} ${r(xi)} ${r(shY+u*0.06)} Z`;
+  };
+
+  // legs, slightly tapered, small gap between them
+  const leg=side=>{
+    const xh=cx+side*(hi*0.46), xa=cx+side*(hi*0.40);
+    return `M ${r(xh-legW/2)} ${r(crY-u*0.05)} C ${r(xh-legW/2)} ${r(crY+u*1.6)} ${r(xa-legW*0.36)} ${r(base-u*1.2)} ${r(xa-legW*0.32)} ${r(base)}`+
+      ` L ${r(xa+legW*0.32)} ${r(base)} C ${r(xa+legW*0.36)} ${r(base-u*1.2)} ${r(xh+legW/2)} ${r(crY+u*1.6)} ${r(xh+legW/2)} ${r(crY-u*0.05)} Z`;
+  };
+
+  return `<g class="sil">
+    <circle cx="${cx}" cy="${r(headCy)}" r="${r(headR)}"/>
+    <path d="M ${r(cx-u*0.16)} ${r(headCy+headR*0.62)} L ${r(cx+u*0.16)} ${r(headCy+headR*0.62)} L ${r(cx+u*0.20)} ${r(shY)} L ${r(cx-u*0.20)} ${r(shY)} Z"/>
+    <path d="${torso}"/><path d="${arm(-1)}"/><path d="${arm(1)}"/>
+    <path d="${leg(-1)}"/><path d="${leg(1)}"/>
+    <ellipse cx="${r(cx-hi*0.40)}" cy="${r(base-u*0.04)}" rx="${r(legW*0.46)}" ry="${r(u*0.10)}"/>
+    <ellipse cx="${r(cx+hi*0.40)}" cy="${r(base-u*0.04)}" rx="${r(legW*0.46)}" ry="${r(u*0.10)}"/></g>`;
+}
+
+/* Estimating a chest measurement from height and weight.
+   Body mass goes roughly with (girth squared x height), so girth goes with
+   sqrt(weight / height). One constant calibrates the curve, set so an average
+   build - 175 cm, 72 kg - lands on a 98 cm chest, the middle of a men's M/L.
+   It is an estimate, not a measurement, which is why the panel says so. */
+function fitChest(cm,kg){
+  const h=Math.max(1.3,cm/100);
+  return Math.round(15.28*Math.sqrt(kg/h)*10)/10;
+}
+/* Which size that chest falls into, using the bands set in the admin. */
+function fitBands(){
+  const f=(C.fit&&Array.isArray(C.fit.sizes)&&C.fit.sizes.length)?C.fit.sizes:
+    [{size:"XS",max:86},{size:"S",max:93},{size:"M",max:100},{size:"L",max:108},{size:"XL",max:117},{size:"XXL",max:999}];
+  return f.map(x=>({size:String(x.size||"").trim(),max:Number(x.max)||0})).filter(x=>x.size);
+}
+/* Works out the size, honouring how loose they like it and what is actually
+   in stock for this product. */
+function fitRecommend(p,colour,cm,kg,feel){
+  const bands=fitBands(), chest=fitChest(cm,kg);
+  let i=bands.findIndex(b=>chest<=b.max);
+  if(i<0)i=bands.length-1;
+  const onBoundary=i>0&&chest<=bands[i].max&&chest>bands[i].max-2.0;
+  i=Math.max(0,Math.min(bands.length-1,i+(Number(feel)||0)));
+  const want=bands[i].size;
+  const have=(p.sizes||[]).map(x=>String(x).trim());
+  const norm=x=>x.toUpperCase().replace(/\s+/g,"");
+  const exact=have.find(x=>norm(x)===norm(want));
+  // nearest size the product actually carries
+  let pick=exact,note="";
+  if(!pick){
+    const order=bands.map(b=>norm(b.size));
+    const hi=have.map(x=>({x,i:order.indexOf(norm(x))})).filter(o=>o.i>=0).sort((a,b)=>a.i-b.i);
+    if(hi.length){
+      const target=order.indexOf(norm(want));
+      pick=hi.reduce((a,b)=>Math.abs(b.i-target)<Math.abs(a.i-target)?b:a).x;
+      note=`We'd normally say ${want}, but this piece only comes in ${have.join(", ")}.`;
+    }
+  }
+  const soldOut=pick&&colour&&sizeOut(p,colour,pick);
+  return {chest,size:pick||null,want,note,soldOut:!!soldOut,
+    between:onBoundary&&i>0?bands[i-1].size:null};
+}
+
+const fitCmToFtIn=cm=>{const t=Math.round(cm/2.54),f=Math.floor(t/12);return f+"'"+(t-f*12)+'"'};
+const fitKgToLb=kg=>Math.round(kg*2.20462);
+
+/* ---- the Find my size panel ---- */
+function fitPaint(){
+  const cm=FIT.cm,kg=FIT.kg;
+  $("#fitFig").innerHTML=fitFigure(cm,kg);
+  const imp=FIT.imperial;
+  $("#fitHOut").textContent=imp?fitCmToFtIn(cm):"cm";
+  $("#fitWOut").textContent=imp?"lb":"kg";
+  const hn=$("#fitHNum"),wn=$("#fitWNum");
+  if(hn&&document.activeElement!==hn)hn.value=imp?Math.round(cm/2.54):cm;
+  if(wn&&document.activeElement!==wn)wn.value=imp?fitKgToLb(kg):kg;
+  if(hn){hn.min=imp?55:140;hn.max=imp?83:210}
+  if(wn){wn.min=imp?88:40;wn.max=imp?309:140}
+  // screen readers should hear "178 centimetres", not "178"
+  $("#fitHeight").setAttribute("aria-valuetext",imp?fitCmToFtIn(cm):cm+" centimetres");
+  $("#fitWeight").setAttribute("aria-valuetext",imp?fitKgToLb(kg)+" pounds":kg+" kilos");
+  $("#fitH").textContent=imp?fitCmToFtIn(cm):cm+" cm";
+  $("#fitW").textContent=imp?fitKgToLb(kg)+" lb":kg+" kg";
+  $("#fitUnits").textContent=imp?"Show in centimetres and kilos":"Show in feet and pounds";
+  const p=cur&&cur.p;
+  const box=$("#fitResult");
+  if(!p){box.innerHTML="";return}
+  const colour=p.colors[(cur.ci)||0];
+  const r=fitRecommend(p,colour,cm,kg,FIT.feel);
+  if(!r.size){box.innerHTML=`<p class="fit-none">We can't match a size for this piece. Have a look at the size guide instead.</p>`;return}
+  const bits=[];
+  if(r.between)bits.push(`You're between ${esc(r.between)} and ${esc(r.size)} — we've gone with the larger one.`);
+  if(r.note)bits.push(esc(r.note));
+  if(r.soldOut)bits.push(`That size is sold out in this colour right now.`);
+  bits.push(`Based on an estimated ${r.chest} cm chest.`);
+  box.innerHTML=`<div class="fit-size">${esc(r.size)}</div>
+    <p class="fit-why">${bits.join(" ")}</p>
+    <button type="button" class="px-add fit-use" id="fitUse"${r.soldOut?" disabled":""}>
+      <span>${r.soldOut?"Sold out in this colour":"Use "+esc(r.size)}</span></button>`;
+  const use=$("#fitUse");
+  if(use&&!r.soldOut)use.onclick=()=>{
+    const btn=[...document.querySelectorAll("#pdpSizes button")]
+      .find(b=>String(b.textContent).trim().toUpperCase()===String(r.size).trim().toUpperCase());
+    if(btn)btn.click();
+    $("#fitHint").hidden=false;
+    $("#fitHint").innerHTML=`Your size from the fit finder: <b>${esc(r.size)}</b>`;
+    fitClose();
+  };
+}
+function fitSave(){try{localStorage.setItem(FIT_KEY,JSON.stringify(FIT))}catch(e){}}
+function fitOpen(){
+  $("#fitHeight").value=FIT.cm;$("#fitWeight").value=FIT.kg;
+  document.querySelectorAll("#fitFeel .fit-chip").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.feel===FIT.feel)));
+  $("#fitDlg").hidden=false;
+  fitPaint();setTimeout(()=>$("#fitClose").focus(),30);
+  track("view_fit_finder",{});
+}
+function fitClose(){$("#fitDlg").hidden=true}
+function wireFit(){
+  const d=$("#fitDlg");if(!d)return;
+  $("#fitClose").onclick=fitClose;
+  d.addEventListener("click",e=>{if(e.target===d)fitClose()});
+  addEventListener("keydown",e=>{if(e.key==="Escape"&&!d.hidden)fitClose()});
+  $("#fitHeight").addEventListener("input",e=>{FIT.cm=+e.target.value;fitPaint();fitSave()});
+  $("#fitWeight").addEventListener("input",e=>{FIT.kg=+e.target.value;fitPaint();fitSave()});
+  document.querySelectorAll("#fitFeel .fit-chip").forEach(b=>b.onclick=()=>{
+    FIT.feel=+b.dataset.feel;
+    document.querySelectorAll("#fitFeel .fit-chip").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    fitPaint();fitSave();
+  });
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  $("#fitHNum").addEventListener("input",e=>{
+    const n=Number(e.target.value);if(!n)return;
+    FIT.cm=clamp(Math.round(FIT.imperial?n*2.54:n),140,210);
+    $("#fitHeight").value=FIT.cm;fitPaint();fitSave()});
+  $("#fitWNum").addEventListener("input",e=>{
+    const n=Number(e.target.value);if(!n)return;
+    FIT.kg=clamp(Math.round(FIT.imperial?n/2.20462:n),40,140);
+    $("#fitWeight").value=FIT.kg;fitPaint();fitSave()});
+  $("#fitUnits").onclick=()=>{FIT.imperial=!FIT.imperial;fitPaint();fitSave()};
+  $("#fitBtn").onclick=fitOpen;
+}
+
 /* ---- a collection that hasn't launched yet ---- */
 let tzWant="";
 function renderTeaser(c){
@@ -2132,6 +2404,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#dlg").hidden)$
 
 /* ---------- product page ---------- */
 function openPdp(p,ci,fromRoute){
+  const fh=document.getElementById("fitHint");if(fh){fh.hidden=true;fh.innerHTML=""}
   ci=ci||0;
   if(!fromRoute&&p.slug&&location.pathname!=="/p/"+p.slug)history.pushState({},"","/p/"+p.slug);
   ROUTE={v:"product",slug:p.slug};
@@ -2171,6 +2444,11 @@ function renderPdp(){
   if(c.soldOut)msg="Sold out in this colour.";
   else if(cur.size){const v=c.stock?c.stock[cur.size]:undefined;if(v!==undefined&&v!==null&&v!==""&&Number(v)>0&&Number(v)<=Math.max(1,parseInt(SETTINGS.low_stock_threshold)||3))msg=`Only ${Number(v)} left in size ${cur.size}.`}
   $("#pxStock").textContent=msg;
+  // the fit finder only makes sense when there is more than one size to choose from
+  const fitOn=(C.fit?C.fit.show!==false:true)&&!p.coming_soon&&(p.sizes||[]).length>1;
+  $("#fitBtn").hidden=!fitOn;
+  $("#fitBtn").textContent=(C.fit&&C.fit.button)||"Get my size";
+  if(!fitOn)$("#fitHint").hidden=true;
   $("#qVal").textContent=cur.qty;
   const soon=!!p.coming_soon;
   const P2=C.product||{};
@@ -2726,7 +3004,7 @@ window.aceEndBoot=function(){
   const content=loadContent();
   Promise.race([content.catch(()=>{}),new Promise(r=>setTimeout(r,2500))]).then(window.aceEndBoot);
   try{await Promise.all([loadProducts(),loadSettings(),content,loadCategories(),loadRatings(),loadGuides(),loadWelcome()]);
-    wireAccounts();wireHeaderExtras();paintFavCount();paintFavHearts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute();paintFavCount();paintFavHearts()}
+    wireAccounts();wireHeaderExtras();wireFit();paintFavCount();paintFavHearts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute();paintFavCount();paintFavHearts()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   window.aceEndBoot();
   setContact();initFade();

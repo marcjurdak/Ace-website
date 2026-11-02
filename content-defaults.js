@@ -175,6 +175,20 @@ window.ACE_DEFAULT_CONTENT = {
   // It also hides the moment where the shop would otherwise flash before the
   // coming-soon page, so turning it off brings that flash back for new visitors.
   boot: { show: true, ms: 1600, once: false },
+  // "Get my size": height + weight sliders on the product page.
+  // The bands are the top chest measurement (cm) that each size still fits.
+  fit: {
+    show: true,
+    button: "Get my size",
+    sizes: [
+      { size: "XS",  max: 86 },
+      { size: "S",   max: 93 },
+      { size: "M",   max: 100 },
+      { size: "L",   max: 108 },
+      { size: "XL",  max: 117 },
+      { size: "XXL", max: 999 }
+    ]
+  },
   checkout: {
     // The Google Maps pin is optional by default — it helps the driver but
     // should not stop someone ordering. Turn it on to make it compulsory.

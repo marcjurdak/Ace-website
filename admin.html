@@ -1899,6 +1899,20 @@ async function pStore(){
     ${acc("bundlesec","Bundles section",`${text("bundles.title","Title")}${text("bundles.text","Text under the title")}<p class="help">Create bundles in <a class="link" href="#/bundles">Bundles</a>. The section only shows when at least one bundle is active.</p>`,"#bundlesSec")}
     ${acc("store","Store section",`${tog("store.show","Show this section")}${text("store.title","Title")}${text("store.text","Text",{area:true})}
       ${img("store.image","Store photo or render",{help:"Leave empty to show the logo instead."})}${text("store.caption","Caption on the photo")}${text("store.button","Button text")}`,"#store")}
+    ${acc("fit","Get my size (fit finder)",`${tog("fit.show","Show it on product pages")}
+      <p class="help" style="margin:-4px 0 12px">A button next to "Size guide". The shopper sets their height and weight with two sliders, a figure changes shape as they drag, and it suggests a size. It only appears on products with more than one size. Nothing about their body leaves their phone.</p>
+      ${text("fit.button","Button wording")}
+      <hr class="sep">
+      <span class="lbl">Size bands</span>
+      <p class="help" style="margin:-2px 0 12px">We estimate the shopper's chest from their height and weight, then find the first band it fits into. Set the <b>largest chest in cm</b> that each size still suits. Use your own garment measurements if you have them — these are a sensible starting point, not gospel.</p>
+      <div id="fitBands">${((c.fit&&c.fit.sizes)||[]).map((r,i)=>`<div class="row" style="flex-wrap:nowrap;margin-bottom:8px" data-fb="${i}">
+        <input type="text" data-fbs value="${esc(r.size)}" maxlength="8" style="width:90px" aria-label="Size name">
+        <span class="muted" style="font-size:13px;white-space:nowrap">fits up to</span>
+        <input type="number" data-fbm value="${esc(r.max)}" min="40" max="999" step="1" style="width:100px" aria-label="Largest chest in cm">
+        <span class="muted" style="font-size:13px">cm chest</span>
+        <button type="button" class="btn ghost sm" data-fbrm aria-label="Remove">✕</button></div>`).join("")}</div>
+      <button type="button" class="btn ghost sm" id="fitBandAdd">+ Add a size</button>
+      <p class="help" style="margin-top:12px">Leave the last one very high (999) so the biggest size catches everyone above it.</p>`,"")}
     ${acc("checkout","Checkout",`${tog("checkout.require_map","Make the Google Maps pin compulsory")}
       <p class="help" style="margin:-4px 0 12px">Off by default. The pin helps the driver, but forcing it stops people who do not know how to share a pin from finishing their order. A pin that <i>is</i> pasted is still checked for being a real Maps link.</p>
       ${text("checkout.button","Button after the details")}${text("checkout.review_title","Review page title")}${text("checkout.review_text","Review page text")}${text("checkout.confirm_button","Confirm button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
@@ -1939,6 +1953,24 @@ async function pStore(){
         else if(t==="hex"){let v=el.value.trim();if(!v.startsWith("#"))v="#"+v;if(/^#[0-9a-f]{6}$/i.test(v)){set(p,v);const k=$(`[data-p="${p}"][data-t="color"]`);if(k)k.value=v}}
         else set(p,el.value);
       });});
+    /* ---- size bands for the fit finder ---- */
+    const fbSync=()=>{
+      const rows=[...document.querySelectorAll("#fitBands [data-fb]")].map(r=>({
+        size:$("[data-fbs]",r).value.trim(),
+        max:Math.max(40,Math.min(999,Number($("[data-fbm]",r).value)||0))
+      })).filter(r=>r.size);
+      set("fit.sizes",rows);
+    };
+    $$("#fitBands [data-fb]").forEach(r=>{
+      $("[data-fbs]",r).onchange=fbSync;$("[data-fbm]",r).onchange=fbSync;
+      $("[data-fbrm]",r).onclick=()=>{r.remove();fbSync();};
+    });
+    const fba=$("#fitBandAdd");
+    if(fba)fba.onclick=()=>{
+      const rows=(get("fit.sizes")||[]).slice();
+      rows.push({size:"New",max:(rows.length?Math.min(999,(rows[rows.length-1].max||100)+8):90)});
+      set("fit.sizes",rows);rebuild();
+    };
     /* ---- launch-page sections (ACE for Her and any other) ---- */
     LAUNCHERS.forEach(k=>{
       const msg=$(`[data-lxmsg="${k.slug}"]`);
