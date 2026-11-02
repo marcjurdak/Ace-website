@@ -188,6 +188,12 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
 .imgpick{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center;margin-bottom:12px}
 .imgpick .pv{width:64px;height:64px;border-radius:6px;background:var(--studio) center/contain no-repeat;border:1px solid var(--line)}
 .imgpick .pv.dark{background-color:#111}
+.fitgrid{border-collapse:collapse;font-size:13px}
+.fitgrid th,.fitgrid td{border:1px solid var(--line);padding:4px;text-align:center}
+.fitgrid thead th{background:var(--bg2,#f6f6f5);font-weight:600}
+.fitgrid input[type=number]{width:62px;text-align:center;padding:5px 4px}
+.fitgrid input[type=text]{width:62px;text-align:center;padding:6px 4px;text-transform:uppercase}
+.fitgrid small{display:block;font-size:10px;color:var(--muted);margin-top:2px}
 .imgpick:has(.pv.wide){grid-template-columns:190px 1fr}
 .imgpick .pv.wide{width:190px;height:100px;background-size:cover;background-color:#fff}
 #shareBg .btn.on{background:var(--ink,#111);color:#fff;border-color:var(--ink,#111)}
@@ -1905,6 +1911,22 @@ async function pStore(){
       <hr class="sep">
       <span class="lbl">Size bands</span>
       <p class="help" style="margin:-2px 0 12px">We estimate the shopper's chest from their height and weight, then find the first band it fits into. Set the <b>largest chest in cm</b> that each size still suits. Use your own garment measurements if you have them — these are a sensible starting point, not gospel.</p>
+      ${sel("fit.mode","How the size is decided",[["table","From a height and weight chart (below)"],["auto","Worked out from height and weight automatically"]])}
+      <div id="fitTableWrap">
+        <span class="lbl">Height and weight chart</span>
+        <p class="help" style="margin:-2px 0 10px">Down the side is height, across the top is weight. Put the size you would give someone in each square. Leave a square empty to let the automatic calculation handle it.</p>
+        <div style="overflow-x:auto"><table class="fitgrid"><thead><tr><th></th>
+          ${(((c.fit||{}).table||{}).weights||[]).map((w,ci)=>`<th><input type="number" data-ftw="${ci}" value="${esc(w)}" min="30" max="400" aria-label="Top weight of this column"><small>kg</small></th>`).join("")}
+          <th><button type="button" class="btn ghost sm" id="ftAddCol" title="Add a weight column">+</button></th></tr></thead>
+          <tbody>${(((c.fit||{}).table||{}).cells||[]).map((row,ri)=>`<tr>
+            <th><input type="number" data-fth="${ri}" value="${esc((((c.fit||{}).table||{}).heights||[])[ri])}" min="100" max="300" aria-label="Top height of this row"><small>cm</small></th>
+            ${row.map((v,ci)=>`<td><input type="text" data-ftc="${ri}.${ci}" value="${esc(v)}" maxlength="8" aria-label="Size for this height and weight"></td>`).join("")}
+            <td><button type="button" class="btn ghost sm" data-ftrmrow="${ri}" title="Remove this row">✕</button></td></tr>`).join("")}
+          <tr><th><button type="button" class="btn ghost sm" id="ftAddRow" title="Add a height row">+</button></th></tr></tbody></table></div>
+        <p class="help" style="margin-top:8px">Each number is the <b>top</b> of its band, so 169 means "up to 169 cm". Leave the last row and column very high (999) to catch everyone above.</p>
+      </div>
+      <hr class="sep">
+      <span class="lbl">If the chart is off (automatic mode)</span>
       <div id="fitBands">${((c.fit&&c.fit.sizes)||[]).map((r,i)=>`<div class="row" style="flex-wrap:nowrap;margin-bottom:8px" data-fb="${i}">
         <input type="text" data-fbs value="${esc(r.size)}" maxlength="8" style="width:90px" aria-label="Size name">
         <span class="muted" style="font-size:13px;white-space:nowrap">fits up to</span>
@@ -1953,6 +1975,36 @@ async function pStore(){
         else if(t==="hex"){let v=el.value.trim();if(!v.startsWith("#"))v="#"+v;if(/^#[0-9a-f]{6}$/i.test(v)){set(p,v);const k=$(`[data-p="${p}"][data-t="color"]`);if(k)k.value=v}}
         else set(p,el.value);
       });});
+    /* ---- the height x weight chart ---- */
+    const ftGet=()=>{const t=get("fit.table")||{};return {
+      heights:(t.heights||[]).slice(),weights:(t.weights||[]).slice(),
+      cells:(t.cells||[]).map(r=>r.slice())}};
+    const ftSync=()=>{
+      const t=ftGet();
+      document.querySelectorAll("[data-fth]").forEach(el=>{t.heights[+el.dataset.fth]=Number(el.value)||0});
+      document.querySelectorAll("[data-ftw]").forEach(el=>{t.weights[+el.dataset.ftw]=Number(el.value)||0});
+      document.querySelectorAll("[data-ftc]").forEach(el=>{
+        const [r,c]=el.dataset.ftc.split(".").map(Number);
+        t.cells[r]=t.cells[r]||[];t.cells[r][c]=el.value.trim();
+      });
+      set("fit.table",t);
+    };
+    document.querySelectorAll("[data-fth],[data-ftw],[data-ftc]").forEach(el=>el.onchange=ftSync);
+    const ftAddRow=$("#ftAddRow");
+    if(ftAddRow)ftAddRow.onclick=()=>{const t=ftGet();
+      t.heights.push(999);t.cells.push(new Array((t.weights||[]).length).fill(""));
+      set("fit.table",t);rebuild()};
+    const ftAddCol=$("#ftAddCol");
+    if(ftAddCol)ftAddCol.onclick=()=>{const t=ftGet();
+      t.weights.push(999);t.cells=t.cells.map(r=>r.concat(""));
+      set("fit.table",t);rebuild()};
+    document.querySelectorAll("[data-ftrmrow]").forEach(b=>b.onclick=()=>{
+      const t=ftGet(),i=+b.dataset.ftrmrow;
+      t.heights.splice(i,1);t.cells.splice(i,1);set("fit.table",t);rebuild()});
+    const ftWrap=$("#fitTableWrap"),ftMode=$('#seAcc [data-p="fit.mode"]');
+    const ftToggle=()=>{if(ftWrap)ftWrap.style.opacity=(get("fit.mode")==="auto")?".45":""};
+    if(ftMode)ftMode.addEventListener("change",()=>setTimeout(ftToggle,0));
+    ftToggle();
     /* ---- size bands for the fit finder ---- */
     const fbSync=()=>{
       const rows=[...document.querySelectorAll("#fitBands [data-fb]")].map(r=>({

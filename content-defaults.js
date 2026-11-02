@@ -187,7 +187,23 @@ window.ACE_DEFAULT_CONTENT = {
       { size: "L",   max: 108 },
       { size: "XL",  max: 117 },
       { size: "XXL", max: 999 }
-    ]
+    ],
+    // "table" reads the grid below: you set which size suits each height and
+    // weight. "auto" works it out from an estimated chest instead.
+    mode: "table",
+    // heights/weights are the TOP of each band, in cm and kg.
+    // cells[heightRow][weightColumn] is the size for that square.
+    table: {
+      heights: [159, 169, 179, 189, 999],
+      weights: [54, 64, 74, 84, 94, 109, 999],
+      cells: [
+        ["S",  "M",  "L", "XL", "XL",  "XXL", "XXL"],
+        ["XS", "S",  "M", "L",  "XL",  "XXL", "XXL"],
+        ["XS", "S",  "M", "L",  "XL",  "XL",  "XXL"],
+        ["XS", "S",  "M", "L",  "L",   "XL",  "XXL"],
+        ["XS", "XS", "S", "M",  "L",   "XL",  "XXL"]
+      ]
+    }
   },
   checkout: {
     // The Google Maps pin is optional by default — it helps the driver but
