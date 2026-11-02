@@ -1333,14 +1333,40 @@ const slugify=s=>s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,""
 async function pCategories(){
   await Promise.all([loadCategories(),loadProducts()]);
   const count=s=>PRODUCTS.filter(p=>p.category===s).length;
+  const tz=c=>c.teaser||{};
   V.innerHTML=`<div class="pagehead"><h1>Categories</h1></div>
-    <p class="help" style="margin:-8px 0 14px">Categories appear in the website's menu (top left) and as filters above the products, in this order. A category only shows on the website once it has products. "Discounts" appears by itself when a product is on sale.</p>
+    <p class="help" style="margin:-8px 0 14px">Categories appear in the website's menu (top left) and as filters above the products, in this order. A category only shows on the website once it has products — unless you turn on <b>"Show before it has products"</b>, which gives it a launch page instead of an empty grid. "Discounts" appears by itself when a product is on sale.</p>
     <div class="card" style="max-width:720px">
-      ${CATEGORIES.map((c,i)=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap" data-i="${i}">
+      ${CATEGORIES.map((c,i)=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)" data-i="${i}">
+        <div class="row" style="flex-wrap:nowrap">
         <input type="text" value="${esc(c.name)}" data-name maxlength="40" style="flex:1" aria-label="Category name">
         <span class="muted nowrap" style="font-size:12.5px;width:84px;text-align:right">${count(c.slug)} product${count(c.slug)===1?"":"s"}</span>
         <button class="btn ghost sm" data-mv="-1" ${i===0?"disabled":""} aria-label="Move up">↑</button><button class="btn ghost sm" data-mv="1" ${i===CATEGORIES.length-1?"disabled":""} aria-label="Move down">↓</button>
-        <button class="btn danger sm" data-del aria-label="Delete category">✕</button></div>`).join("")||`<p class="muted">No categories yet.</p>`}
+        <button class="btn ghost sm" data-tzopen aria-label="Launch page settings">${count(c.slug)===0?"Launch page":"⚙"}</button>
+        <button class="btn danger sm" data-del aria-label="Delete category">✕</button></div>
+        <div data-tzbox hidden style="padding:14px 0 6px">
+          <label class="chk"><input type="checkbox" data-tzshow ${c.always_show?"checked":""}><span>Show in the menu before it has products</span></label>
+          <p class="help" style="margin:6px 0 12px">On: visitors see it in the menu with a small "Soon" tag, and clicking it opens the launch page below instead of an empty grid. It stays out of the filter buttons above the products until real items exist — then the launch page disappears by itself and it behaves like any other category.</p>
+          <div class="grid2">
+            <label class="fld"><span>Small label above the title</span><input type="text" data-tzk="kicker" value="${esc(tz(c).kicker||"")}" maxlength="40" placeholder="Coming soon"></label>
+            <label class="fld"><span>Menu tag</span><input type="text" data-tzk="pill" value="${esc(tz(c).pill||"")}" maxlength="12" placeholder="Soon"></label>
+          </div>
+          <label class="fld"><span>Big title</span><input type="text" data-tzk="title" value="${esc(tz(c).title||"")}" maxlength="60" placeholder="ACE FOR HER"></label>
+          <label class="fld"><span>Text</span><textarea data-tzk="text" rows="3" maxlength="400" placeholder="One or two lines in your brand voice.">${esc(tz(c).text||"")}</textarea></label>
+          <label class="fld"><span>When it lands</span><input type="text" data-tzk="date" value="${esc(tz(c).date||"")}" maxlength="60" placeholder="First drop — spring 2026"><small class="help">Use a month or a season, never an exact day. A date that slips and is left sitting there makes the page look abandoned.</small></label>
+          <div class="imgpick"><div class="pv" data-tzpv style="background-image:${tz(c).image?`url('${esc(tz(c).image)}')`:"none"}"></div>
+            <div><span class="lbl">Photo at the top</span><div class="row"><label class="btn ghost sm upl">Upload<input type="file" accept="image/*" data-tzimg></label>${tz(c).image?`<button class="btn ghost sm" type="button" data-tzimgclear>Remove</button>`:""}</div></div></div>
+          <label class="fld"><span>Coming-soon tiles</span><input type="text" data-tzk="tiles" value="${esc((tz(c).tiles||[]).join(", "))}" placeholder="Tops, Leggings, Shorts, Sports bras"><small class="help">Separate with commas. These show as greyed-out product tiles, so the page has the shape of a real collection.</small></label>
+          <label class="fld"><span>Sign-up line</span><input type="text" data-tzk="cta" value="${esc(tz(c).cta||"")}" maxlength="140" placeholder="Join the list and get 15% off the first drop."><small class="help">A real offer works far better than "be the first to know".</small></label>
+          <div class="grid2">
+            <label class="fld"><span>Button</span><input type="text" data-tzk="button" value="${esc(tz(c).button||"")}" maxlength="30" placeholder="Notify me"></label>
+            <label class="fld"><span>Message after signing up</span><input type="text" data-tzk="thanks" value="${esc(tz(c).thanks||"")}" maxlength="120" placeholder="You're on the list."></label>
+          </div>
+          <label class="fld"><span>Question you ask them</span><input type="text" data-tzk="ask" value="${esc(tz(c).ask||"")}" maxlength="80" placeholder="What do you want first?"></label>
+          <label class="fld"><span>Answers they can pick</span><input type="text" data-tzk="options" value="${esc((tz(c).options||[]).join(", "))}" placeholder="Leggings, Tops, Shorts, Sets"><small class="help">Separate with commas. Their answer is saved with their email in <a class="link" href="#/waitlist">Early access</a>, so you learn what to make first.</small></label>
+          <button class="btn sm" type="button" data-tzsave>Save launch page</button>
+          <span class="muted" data-tzmsg style="margin-left:10px;font-size:13px"></span>
+        </div></div>`).join("")||`<p class="muted">No categories yet.</p>`}
       <div class="row" style="margin-top:14px;flex-wrap:nowrap"><input type="text" id="catNew" placeholder="New category, e.g. Hoodies" maxlength="40"><button class="btn sm" id="catAdd">Add</button></div>
     </div>`;
   $$("[data-i]").forEach(r=>{const c=CATEGORIES[+r.dataset.i];
@@ -1348,6 +1374,32 @@ async function pCategories(){
     $$("[data-mv]",r).forEach(b=>b.onclick=async()=>{const i=+r.dataset.i,j=i+Number(b.dataset.mv);[CATEGORIES[i],CATEGORIES[j]]=[CATEGORIES[j],CATEGORIES[i]];
       const res=await Promise.all(CATEGORIES.map((x,k)=>db.from("categories").update({position:k+1}).eq("id",x.id)));if(res.find(x=>x.error))toast("Couldn't reorder",true);pCategories()});
     $("[data-del]",r).onclick=()=>delCategory(c,count(c.slug));
+    /* ---- launch page (shown before a collection has products) ---- */
+    const box=$("[data-tzbox]",r),msg=$("[data-tzmsg]",r);
+    $("[data-tzopen]",r).onclick=()=>{box.hidden=!box.hidden};
+    const list=v=>String(v||"").split(",").map(x=>x.trim()).filter(Boolean);
+    let img=(c.teaser||{}).image||"";
+    const saveTz=async()=>{
+      const t={};
+      $$("[data-tzk]",r).forEach(el=>{const k=el.dataset.tzk;
+        t[k]=(k==="tiles"||k==="options")?list(el.value):el.value.trim()});
+      t.image=img;
+      const {error}=await db.from("categories")
+        .update({teaser:t,always_show:$("[data-tzshow]",r).checked}).eq("id",c.id);
+      if(error){msg.textContent="Couldn't save: "+error.message;msg.style.color="var(--bad)";return}
+      c.teaser=t;c.always_show=$("[data-tzshow]",r).checked;
+      msg.style.color="";msg.textContent="Saved";setTimeout(()=>msg.textContent="",2500);
+    };
+    $("[data-tzsave]",r).onclick=saveTz;
+    $("[data-tzshow]",r).onchange=saveTz;
+    const imgIn=$("[data-tzimg]",r);
+    if(imgIn)imgIn.onchange=async()=>{const f=imgIn.files[0];if(!f)return;
+      const lab=imgIn.closest("label");lab.classList.add("uploading");lab.firstChild.textContent="Uploading…";
+      try{img=await uploadImage(f,{max:1800});$("[data-tzpv]",r).style.backgroundImage=`url('${img}')`;await saveTz()}
+      catch(e){toast("Upload failed: "+(e.message||e),true)}
+      lab.classList.remove("uploading");lab.firstChild.textContent="Upload"};
+    const clr=$("[data-tzimgclear]",r);
+    if(clr)clr.onclick=async()=>{img="";$("[data-tzpv]",r).style.backgroundImage="none";await saveTz();pCategories()};
   });
   const add=async()=>{const n=$("#catNew").value.trim();if(!n)return;let s=slugify(n),k=2;while(CATEGORIES.some(c=>c.slug===s))s=slugify(n)+"-"+k++;
     const {error}=await db.from("categories").insert({name:n,slug:s,position:CATEGORIES.length+1});if(error)return toast(error.message,true);toast("Category added");pCategories()};
@@ -1675,6 +1727,11 @@ async function pStore(){
         <button type="button" class="btn ghost sm" data-anmv="-1" data-i="${i}" ${i===0?"disabled":""} aria-label="Move up">↑</button><button type="button" class="btn ghost sm" data-anmv="1" data-i="${i}" ${i===arr.length-1?"disabled":""} aria-label="Move down">↓</button><button type="button" class="btn ghost sm" data-anrm="${i}" aria-label="Remove message">✕</button></div>`).join("")}</div>
       <button type="button" class="btn ghost sm" id="anAdd" style="margin-bottom:14px">+ Add announcement</button>
       ${range("announcement.interval","Change message every",2,15,1," seconds")}`,"#announce")}
+    ${acc("boot","Opening screen (logo animation)",`${tog("boot.show","Show the opening screen")}
+      <p class="help" style="margin:-4px 0 12px">Your logo draws itself from left to right while the site loads. It also covers the split second where the shop would otherwise flash before the coming-soon page, so leaving it on keeps that clean.</p>
+      ${range("boot.ms","How long it lasts",600,3000,100,"ms")}
+      ${tog("boot.once","Only the first time someone opens the site")}
+      <p class="help">With this off, it plays every time the page is opened or refreshed. With it on, it plays once per visit, so someone browsing and refreshing is not held up each time.</p>`,"")}
     ${acc("hero","Opening video / photo",`${tog("hero.show","Show this section")}
       <p class="help" style="margin:-2px 0 12px"><b>Videos:</b> 5–10 seconds, no sound, seamless loop. <b>Desktop:</b> landscape 1920×1080, under 4 MB (6 MB max). <b>Phone:</b> portrait 1080×1350 or 1080×1920, under 2 MB (3 MB max). MP4 (H.264) works everywhere; WebM is smaller where supported.</p>
       ${vid("hero.video_desktop","Desktop video (MP4)","desktop","Shown on computers and tablets.")}
@@ -1711,7 +1768,9 @@ async function pStore(){
     ${acc("bundlesec","Bundles section",`${text("bundles.title","Title")}${text("bundles.text","Text under the title")}<p class="help">Create bundles in <a class="link" href="#/bundles">Bundles</a>. The section only shows when at least one bundle is active.</p>`,"#bundlesSec")}
     ${acc("store","Store section",`${tog("store.show","Show this section")}${text("store.title","Title")}${text("store.text","Text",{area:true})}
       ${img("store.image","Store photo or render",{help:"Leave empty to show the logo instead."})}${text("store.caption","Caption on the photo")}${text("store.button","Button text")}`,"#store")}
-    ${acc("checkout","Checkout",`${text("checkout.button","Button after the details")}${text("checkout.review_title","Review page title")}${text("checkout.review_text","Review page text")}${text("checkout.confirm_button","Confirm button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
+    ${acc("checkout","Checkout",`${tog("checkout.require_map","Make the Google Maps pin compulsory")}
+      <p class="help" style="margin:-4px 0 12px">Off by default. The pin helps the driver, but forcing it stops people who do not know how to share a pin from finishing their order. A pin that <i>is</i> pasted is still checked for being a real Maps link.</p>
+      ${text("checkout.button","Button after the details")}${text("checkout.review_title","Review page title")}${text("checkout.review_text","Review page text")}${text("checkout.confirm_button","Confirm button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
       <p class="help">Delivery fees and payment text are in <a class="link" href="#/settings">Settings</a>.</p>`,"")}
     ${acc("footer","Footer",text("footer.copyright","Copyright line"),"footer")}
     ${acc("seo","Search engines",`${text("seo.title","Page title",{help:"Shown in the browser tab and on Google."})}${text("seo.description","Description",{area:true,help:"The short text under your link on Google."})}`,"")}`;
