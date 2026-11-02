@@ -34,6 +34,34 @@
 <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet" id="fontLink">
 <script src="/content-defaults.js"></script>
 <script>
+/* Runs before anything is drawn.
+   It does two jobs, and both have to happen here rather than later:
+   1. If the last visit saw the coming-soon page, switch it on straight away, so
+      the shop never flashes for a moment before it.
+   2. Put the opening screen up, so the first thing anyone sees is the logo. */
+(function(){
+  var d=document.documentElement,cfg={};
+  try{cfg=JSON.parse(localStorage.getItem("ace-site")||"{}")||{}}catch(e){}
+  try{
+    var q=new URLSearchParams(location.search);
+    if(q.has("see"))sessionStorage.setItem("ace-see","1");
+    var bypass=sessionStorage.getItem("ace-see")==="1";
+    if(cfg.coming_soon&&cfg.coming_soon.on&&!bypass)d.classList.add("cs-on");
+  }catch(e){}
+  var b=cfg.boot||{},on=b.show!==false;
+  try{if(b.once===true&&sessionStorage.getItem("ace-boot")==="1")on=false}catch(e){}
+  var slow=false;
+  try{slow=matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){}
+  var ms=Math.max(500,Math.min(5000,Number(b.ms)||1600));
+  if(slow)ms=400;
+  if(on){d.classList.add("booting");d.style.setProperty("--boot-ms",ms+"ms");window.__bootMs=ms}
+  window.__bootAt=Date.now();
+  /* Last-resort release: whatever happens next, the page is never stuck behind it. */
+  setTimeout(function(){try{window.aceEndBoot&&window.aceEndBoot()}catch(e){}
+    d.classList.remove("booting");var el=document.getElementById("boot");if(el)el.style.display="none"},4000);
+})();
+</script>
+<script>
 /* ===== ACE attribution: first + last touch (first-party, stays on this site) ===== */
 (function(){
   try{
@@ -708,6 +736,61 @@ section.co-sec{padding:28px 0 0}
 .notify-done{border:1px solid var(--fg);padding:16px;font-size:14px;line-height:1.6}
 .px-sticky .notify-open{min-height:50px}
 /* ===================== coming soon ===================== */
+/* ===== a collection that hasn't launched yet ===== */
+.teaser{padding:var(--space) var(--pad);max-width:760px;margin:0 auto}
+.teaser[hidden]{display:none}
+.tz-hero{margin:18px 0 26px;aspect-ratio:16/10;background:var(--studio);overflow:hidden}
+.tz-hero img{width:100%;height:100%;object-fit:cover;display:block}
+.tz-hero.empty{display:none}
+.teaser .kicker{display:block;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.teaser h1{font-family:var(--display);font-size:clamp(30px,6vw,52px);line-height:1.05;letter-spacing:.01em;text-transform:uppercase}
+.tz-text{margin-top:14px;font-size:16px;line-height:1.6;color:var(--muted);max-width:52ch}
+.tz-date{margin-top:18px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.tz-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin:28px 0 8px}
+.tz-tile{aspect-ratio:3/4;background:var(--studio);display:grid;place-items:end start;padding:14px;
+  font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);position:relative}
+.tz-tile::after{content:"Soon";position:absolute;top:10px;right:10px;font-size:10px;letter-spacing:.14em;
+  padding:3px 7px;border:1px solid currentColor;opacity:.45}
+.tz-join{margin-top:34px;padding-top:26px;border-top:1px solid var(--line)}
+.tz-cta{font-size:15.5px;line-height:1.5;margin-bottom:14px;max-width:46ch}
+.tz-row{display:flex;gap:10px;flex-wrap:wrap}
+.tz-row input{flex:1 1 220px;min-width:0}
+.tz-ask{margin-top:18px;font-size:13px;color:var(--muted)}
+.tz-opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.tz-opt{border:1px solid var(--line);background:none;color:inherit;padding:8px 14px;font-size:13px;cursor:pointer}
+.tz-opt[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tz-msg{margin-top:14px;font-size:14px}
+.tz-msg.bad{color:var(--bad,#c0392b)}
+#menuCats a.soon{display:flex;align-items:center;gap:8px}
+#menuCats a.soon::after{content:attr(data-pill);font-size:9.5px;letter-spacing:.14em;
+  border:1px solid currentColor;padding:2px 6px;opacity:.5}
+#menuCats a.sep{margin-top:10px;padding-top:14px;border-top:1px solid var(--line)}
+
+/* ===== opening screen ===== */
+.boot{display:none}
+html.booting .boot{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;gap:0;
+  background:var(--bg);opacity:1;transition:opacity .45s ease}
+.boot-mark{position:relative;width:min(44vw,250px);line-height:0}
+.boot-img{position:absolute;inset:0;width:100%;height:auto;object-fit:contain}
+.boot-mark .boot-ghost{position:relative;opacity:.1}
+.boot-wipe{clip-path:inset(0 100% 0 0);animation:bootWipe var(--boot-ms,1600ms) cubic-bezier(.33,1,.68,1) forwards}
+@keyframes bootWipe{to{clip-path:inset(0 0 0 0)}}
+.boot-bar{position:absolute;left:50%;transform:translateX(-50%);bottom:clamp(60px,14vh,130px);
+  width:min(44vw,250px);height:1px;background:currentColor;opacity:.12;overflow:hidden}
+.boot-bar i{display:block;height:100%;background:currentColor;transform-origin:left center;
+  transform:scaleX(0);animation:bootBar var(--boot-ms,1600ms) cubic-bezier(.33,1,.68,1) forwards}
+@keyframes bootBar{to{transform:scaleX(1)}}
+.boot.done{opacity:0;pointer-events:none}
+html.booting body{overflow:hidden}
+/* Until the opening screen has gone, keep the page underneath from showing */
+html.booting .top,html.booting main,html.booting footer,html.booting .announce,
+html.booting .wm,html.booting .cs,html.booting .consent{visibility:hidden}
+@media (prefers-reduced-motion:reduce){
+  .boot-wipe{animation:none;clip-path:none}
+  .boot-mark .boot-ghost{opacity:0}
+  .boot-bar{display:none}
+  .boot{transition:none}
+}
 html.cs-on body{overflow:hidden}
 html.cs-on .top,html.cs-on main,html.cs-on footer,html.cs-on .wm,html.cs-on .announce{display:none!important}
 .cs{position:fixed;inset:0;z-index:40;display:grid;place-items:center;text-align:center;padding:max(24px,env(safe-area-inset-top)) var(--pad) calc(24px + env(safe-area-inset-bottom));background:var(--bg);overflow-y:auto}
@@ -809,7 +892,7 @@ h2{font-size:clamp(24px,4.4vw,44px);line-height:1.02}
 .sp-img.empty{display:none}
 .sp-text p{font-size:clamp(16px,1.8vw,19px);line-height:1.75;margin-bottom:22px;max-width:62ch}
 .sp-text p:first-child{font-size:clamp(18px,2.1vw,22px);line-height:1.6}
-.storypage .px-back{display:inline-block;margin-bottom:18px;color:var(--muted)}
+.storypage .px-back,.teaser .px-back{display:inline-block;margin-bottom:18px;color:var(--muted)}
 .storypage .btn-line{margin-top:18px}
 .story{padding:var(--space) var(--pad)}
 .story-in{display:grid;gap:clamp(24px,4vw,56px);align-items:center;max-width:1280px;margin:0 auto}
@@ -851,6 +934,18 @@ footer small{font-size:12px;letter-spacing:.04em}
 <style id="themeVars"></style>
 </head>
 <body>
+<!-- Opening screen. It covers the page from the first paint until we know whether
+     this visitor should see the shop or the coming-soon page, so neither one ever
+     flashes before the other. -->
+<div class="boot" id="boot" aria-hidden="true">
+  <div class="boot-mark">
+    <img class="boot-img boot-ghost logo-light" id="bootGhostL" src="/logo-word-black.png" alt="">
+    <img class="boot-img boot-ghost logo-dark"  id="bootGhostD" src="/logo-word-white.png" alt="">
+    <img class="boot-img boot-wipe logo-light"  id="bootWipeL"  src="/logo-word-black.png" alt="ACE">
+    <img class="boot-img boot-wipe logo-dark"   id="bootWipeD"  src="/logo-word-white.png" alt="ACE">
+  </div>
+  <div class="boot-bar"><i></i></div>
+</div>
 <script>document.documentElement.classList.add("js")</script>
 <div class="wm" id="wm" aria-hidden="true"><img class="logo-light" data-img="brand.logo_full_light" src="/logo-full-black.png" alt=""><img class="logo-dark" data-img="brand.logo_full_dark" src="/logo-full-white.png" alt=""></div>
 <div class="announce" id="announce" hidden aria-label="Announcements"><div class="an-track" id="anTrack"></div></div>
@@ -926,6 +1021,30 @@ footer small{font-size:12px;letter-spacing:.04em}
   </div>
 </div>
 
+<!-- A collection that has not launched yet: shown instead of an empty product grid. -->
+<section class="teaser" id="teaserPage" hidden>
+  <a class="px-back" href="/" data-nav>&larr; Back</a>
+  <figure class="tz-hero" id="tzFig"><img id="tzImg" alt=""></figure>
+  <span class="kicker" id="tzKicker"></span>
+  <h1 id="tzTitle"></h1>
+  <p class="tz-text" id="tzText"></p>
+  <p class="tz-date" id="tzDate"></p>
+  <div class="tz-tiles" id="tzTiles"></div>
+  <div class="tz-join">
+    <p class="tz-cta" id="tzCta"></p>
+    <form id="tzForm" novalidate>
+      <div class="tz-row">
+        <input type="email" id="tzEmail" placeholder="your@email.com" autocomplete="email" aria-label="Your email">
+        <button class="cta" type="submit" id="tzBtn">Notify me</button>
+      </div>
+      <div class="tz-ask" id="tzAsk" hidden>
+        <span id="tzAskLabel"></span>
+        <div class="tz-opts" id="tzOpts"></div>
+      </div>
+      <p class="tz-msg" id="tzMsg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
 <section class="storypage" id="storyPage" hidden>
   <a class="px-back" href="/" data-nav>← Back</a>
   <span class="kicker" id="spKicker"></span>
@@ -1137,13 +1256,13 @@ footer small{font-size:12px;letter-spacing:.04em}
         </div>
         <label class="fld"><span>Phone</span><input id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+961 70 123 456"></label>
         <div class="fld">
-          <span>Location pin</span>
+          <span id="mapLabel">Location pin <em>(optional)</em></span>
           <div class="pin-row">
             <button type="button" class="pin-btn" id="pinMe">Use my current location</button>
             <a class="pin-btn ghost" href="https://www.google.com/maps" target="_blank" rel="noopener">Open Google Maps</a>
           </div>
           <input id="fMap" type="url" inputmode="url" placeholder="Paste your Google Maps link" aria-describedby="mapHelp" aria-label="Google Maps link">
-          <small id="mapHelp">In Google Maps, drop a pin on your address, tap Share, copy the link and paste it here.</small>
+          <small id="mapHelp">Helps the driver find you. In Google Maps, drop a pin on your address, tap Share, copy the link and paste it here. You can skip this.</small>
         </div>
         <label class="fld"><span>Delivery instructions <em>(optional)</em></span><textarea id="fNotes" rows="2" placeholder="Landmarks, best time to deliver, anything else"></textarea></label>
         <label class="chk"><input type="checkbox" id="fSave" checked><span>Save this information for next time</span></label>
@@ -1227,6 +1346,9 @@ function applyContent(c,fresh){
   document.querySelectorAll("[data-show]").forEach(el=>{el.hidden=getPath(c,el.dataset.show)===false});
   setupAnnouncements(c.announcement||{});
   setupStory(c.story||{});
+  // the location pin says whether it is optional, so the wording matches the rule
+  const mapReq=!!(c.checkout&&c.checkout.require_map),mapLab=document.getElementById("mapLabel");
+  if(mapLab)mapLab.innerHTML=mapReq?"Location pin":'Location pin <em>(optional)</em>';
   setupComingSoon(c.coming_soon||{});
   setupJoinCard(c.account_menu||{});
   setupHero(c.hero||{});
@@ -1624,7 +1746,7 @@ function wireComingSoon(){
 });
 }
 /* ---------- pages (real web addresses) ---------- */
-const SECTIONS=["#storyPage",".hero","#shop","#storySec","#bundlesSec",".details","#store"];
+const SECTIONS=["#teaserPage","#storyPage",".hero","#shop","#storySec","#bundlesSec",".details","#store"];
 let ROUTE={v:"home"};
 function pathFor(r){return r.v==="home"?"/":r.v==="story"?"/story":r.v==="product"?"/p/"+r.slug:"/"+r.slug}
 function parsePath(){
@@ -1663,6 +1785,14 @@ function applyRoute(){
   }else if(r.v==="cat"){
     const known=[...CATS.map(c=>c.slug),"sale"];
     if(CATS.length&&!known.includes(r.slug)){navigate("/",true);return}
+    // A collection with nothing in it yet gets its own page rather than an empty
+    // grid, so it reads as deliberate instead of broken.
+    const teaseCat=CATS.find(c=>c.slug===r.slug);
+    if(teaseCat&&PRODUCTS.length&&!PRODUCTS.some(p=>p.cat===r.slug)&&teaseCat.teaser&&teaseCat.teaser.title){
+      cat=r.slug;showOnly(["#teaserPage"]);renderTeaser(teaseCat);
+      setMeta(`${teaseCat.name} — ${seo.title||"ACE"}`,(teaseCat.teaser.text||"").slice(0,150));
+      buildFilters();return;
+    }
     cat=r.slug;showOnly(["#shop"]);
     $("#catRows").hidden=true;$("#grid").hidden=false;cardsToGrid();
     $("#shopTitle").textContent=catLabel(r.slug);
@@ -1767,20 +1897,72 @@ try{bag=JSON.parse(localStorage.getItem("ace-bag2")||"[]");if(!Array.isArray(bag
 function save(){try{localStorage.setItem("ace-bag2",JSON.stringify(bag))}catch(e){}}
 
 /* filters + grid */
+/* ---- a collection that hasn't launched yet ---- */
+let tzWant="";
+function renderTeaser(c){
+  const t=c.teaser||{};
+  const fig=$("#tzFig");fig.classList.toggle("empty",!t.image);
+  if(t.image)$("#tzImg").src=t.image;$("#tzImg").alt=c.name||"";
+  $("#tzKicker").textContent=t.kicker||"";
+  $("#tzTitle").textContent=t.title||c.name||"";
+  $("#tzText").textContent=t.text||"";
+  $("#tzDate").textContent=t.date||"";$("#tzDate").hidden=!t.date;
+  const tiles=Array.isArray(t.tiles)?t.tiles.filter(Boolean):[];
+  $("#tzTiles").innerHTML=tiles.map(x=>`<div class="tz-tile">${esc(x)}</div>`).join("");
+  $("#tzTiles").hidden=!tiles.length;
+  $("#tzCta").textContent=t.cta||"";$("#tzCta").hidden=!t.cta;
+  $("#tzBtn").textContent=t.button||"Notify me";
+  const opts=Array.isArray(t.options)?t.options.filter(Boolean):[];
+  $("#tzAsk").hidden=!opts.length;
+  $("#tzAskLabel").textContent=t.ask||"";
+  tzWant="";
+  $("#tzOpts").innerHTML=opts.map(o=>`<button type="button" class="tz-opt" aria-pressed="false" data-o="${esc(o)}">${esc(o)}</button>`).join("");
+  $("#tzOpts").querySelectorAll(".tz-opt").forEach(b=>b.onclick=()=>{
+    const on=b.getAttribute("aria-pressed")==="true";
+    $("#tzOpts").querySelectorAll(".tz-opt").forEach(x=>x.setAttribute("aria-pressed","false"));
+    b.setAttribute("aria-pressed",on?"false":"true");tzWant=on?"":b.dataset.o;
+  });
+  $("#tzMsg").textContent="";$("#tzMsg").classList.remove("bad");
+  $("#tzEmail").value="";
+  $("#tzForm").onsubmit=async e=>{
+    e.preventDefault();
+    const msg=$("#tzMsg"),email=$("#tzEmail").value.trim();
+    msg.classList.remove("bad");
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){msg.textContent="Please enter a valid email address.";msg.classList.add("bad");return}
+    $("#tzBtn").disabled=true;
+    try{
+      let attribution={};try{attribution=JSON.parse(localStorage.getItem("ace-attr")||"{}")}catch(x){}
+      const {error}=await db.rpc("join_collection_list",{p:{email,collection:c.slug,want:tzWant,attribution}});
+      if(error)throw error;
+      msg.textContent=t.thanks||"You're on the list.";
+      $("#tzForm").querySelector(".tz-row").hidden=true;$("#tzAsk").hidden=true;
+      track("join_waitlist",{collection:c.slug});
+    }catch(err){msg.textContent=(err&&err.message)||"Something went wrong. Please try again.";msg.classList.add("bad")}
+    $("#tzBtn").disabled=false;
+  };
+}
 let cat="all";
 const filters=$("#filters");
 function buildFilters(){
   filters.innerHTML="";
-  const cats=["all",...CATS.map(c=>c.slug).filter(k=>PRODUCTS.some(p=>p.cat===k)),...(PRODUCTS.some(p=>p.sale)?["sale"]:[])];
+  const withProducts=CATS.map(c=>c.slug).filter(k=>PRODUCTS.some(p=>p.cat===k));
+  const cats=["all",...withProducts,...(PRODUCTS.some(p=>p.sale)?["sale"]:[])];
   if(!cats.includes(cat))cat="all";
-  buildMenu(cats);
+  // Collections that have no products yet are destinations, not filters: they go
+  // in the menu, after a divider, but never in the chips above the grid.
+  const soon=CATS.filter(c=>c.always_show&&!withProducts.includes(c.slug)).map(c=>c.slug);
+  buildMenu(cats,soon);
   cats.forEach(k=>{const b=document.createElement("button");b.className="chip"+(k==="sale"?" sale-chip":"");b.dataset.k=k;b.textContent=catLabel(k);b.setAttribute("aria-pressed",k===cat);b.onclick=()=>navigate(k==="all"?"/":"/"+k);filters.appendChild(b)});
 }
 function setCat(k){cat=k;[...filters.children].forEach((c,i)=>{const on=c.dataset.k===k;c.setAttribute("aria-pressed",on);if(on)filters.scrollTo({left:c.offsetLeft-filters.offsetLeft-20,behavior:"smooth"})});$$menu().forEach(b=>b.setAttribute("aria-current",b.dataset.k===k));renderGrid()}
 const $$menu=()=>[...document.querySelectorAll("#menuCats button")];
-function buildMenu(cats){
-  const count=k=>k==="all"?PRODUCTS.length:k==="sale"?PRODUCTS.filter(p=>p.sale).length:PRODUCTS.filter(p=>p.cat===k).length;
-  $("#menuCats").innerHTML=cats.map(k=>`<a href="${k==="all"?"/":"/"+esc(k)}" data-k="${esc(k)}" class="${k==="sale"?"sale":""}" aria-current="${ROUTE.v==="cat"?ROUTE.slug===k:k==="all"}">${esc(catLabel(k))}</a>`).join("");
+function buildMenu(cats,soon){
+  soon=soon||[];
+  const link=(k,extra)=>`<a href="${k==="all"?"/":"/"+esc(k)}" data-k="${esc(k)}" class="${k==="sale"?"sale":""}${extra||""}"${
+    extra&&extra.includes("soon")?` data-pill="${esc(((CATS.find(c=>c.slug===k)||{}).teaser||{}).pill||"Soon")}"`:""
+  } aria-current="${ROUTE.v==="cat"?ROUTE.slug===k:k==="all"}">${esc(catLabel(k))}</a>`;
+  $("#menuCats").innerHTML=cats.map(k=>link(k)).join("")
+    +soon.map((k,i)=>link(k," soon"+(i===0?" sep":""))).join("");
   $("#menuCats").querySelectorAll("a").forEach(b=>b.onclick=e=>{e.preventDefault();closeAll();navigate(b.dataset.k==="all"?"/":"/"+b.dataset.k)});
 }
 $("#menuOpen").onclick=()=>openSheet($("#menu"));
@@ -2347,7 +2529,12 @@ function validateForm(){
   [["fFirst","first name"],["fLast","last name"],["fAddr1","address"],["fCity","city"],["fPhone","phone"]].forEach(([id,n])=>{if(!val(id)){missing.push(n);bad(id)}});
   if(val("fPhone")&&val("fPhone").replace(/\D/g,"").length<7){missing.push("a full phone number");bad("fPhone")}
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val("fEmail"))){missing.push("your email");bad("fEmail")}
-  if(!mapOk(val("fMap"))){missing.push("your location pin");bad("fMap")}
+  // The location pin helps the driver, but it is not compulsory unless the shop
+  // owner turns it on in the admin. A link that IS pasted still has to be a real one.
+  const mapRequired=!!(C.checkout&&C.checkout.require_map);
+  const mapVal=val("fMap");
+  if(mapRequired&&!mapVal){missing.push("your location pin");bad("fMap")}
+  else if(mapVal&&!mapOk(mapVal)){missing.push("a working Google Maps link, or leave the pin empty");bad("fMap")}
   if(missing.length){$("#formErr").textContent="Add "+missing.join(", ")+" to complete your order.";const f=document.querySelector('#checkout [aria-invalid="true"]');f&&f.focus();return false}
   $("#formErr").textContent="";return true;
 }
@@ -2427,7 +2614,7 @@ async function loadBundles(){
   BUNDLES=(data||[]).map(b=>({...b,price:Number(b.price),all:(b.items||[]).length,items:(b.items||[]).filter(i=>PRODUCTS.some(p=>p.id===i.product_id))})).filter(b=>b.items.length&&b.items.length===b.all);
 }
 async function loadCategories(){
-  const {data}=await db.from("categories").select("slug,name,position").order("position",{ascending:true});
+  const {data}=await db.from("categories").select("slug,name,position,always_show,teaser").order("position",{ascending:true});
   CATS=data||[];
 }
 async function loadSettings(){
@@ -2487,10 +2674,33 @@ function initFade(){
   tick();
 }
 updateCount();setContact();
+/* Takes the opening screen down once we know what the visitor should see.
+   Safe to call more than once. */
+window.aceEndBoot=function(){
+  const d=document.documentElement;
+  if(!d.classList.contains("booting"))return;
+  // never cut the animation short, however early the page is ready
+  const left=Math.max(0,(window.__bootMs||0)-(Date.now()-(window.__bootAt||Date.now())));
+  if(left>0){
+    if(!window.__bootT)window.__bootT=setTimeout(function(){window.__bootT=0;window.aceEndBoot()},left+100);
+    return;
+  }
+  d.classList.remove("booting");
+  const el=document.getElementById("boot");
+  if(el){el.classList.add("done");setTimeout(()=>el.remove(),600)}
+  try{sessionStorage.setItem("ace-boot","1")}catch(e){}
+};
 (async function init(){
-  try{await Promise.all([loadProducts(),loadSettings(),loadContent(),loadCategories(),loadRatings(),loadGuides(),loadWelcome()]);
+  // The one thing the opening screen must wait for is knowing whether this is the
+  // shop or the coming-soon page. It does NOT wait for products, reviews and the
+  // rest: on a bad connection the library keeps retrying and would hold the screen
+  // up for ages. So: release as soon as the settings land, or after 2.5s anyway.
+  const content=loadContent();
+  Promise.race([content.catch(()=>{}),new Promise(r=>setTimeout(r,2500))]).then(window.aceEndBoot);
+  try{await Promise.all([loadProducts(),loadSettings(),content,loadCategories(),loadRatings(),loadGuides(),loadWelcome()]);
     wireAccounts();wireHeaderExtras();paintFavCount();paintFavHearts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute();paintFavCount();paintFavHearts()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
+  window.aceEndBoot();
   setContact();initFade();
   new MutationObserver(()=>fadeTick&&fadeTick()).observe(document.getElementById("detGrid"),{childList:true});
 })();

@@ -171,7 +171,14 @@ window.ACE_DEFAULT_CONTENT = {
   },
   bundles: { title: "Sets & bundles", text: "Buy the set and save." },
   footer: { copyright: "© 2026 ACE. All rights reserved." },
+  // The opening screen: the logo revealing left to right while the site loads.
+  // It also hides the moment where the shop would otherwise flash before the
+  // coming-soon page, so turning it off brings that flash back for new visitors.
+  boot: { show: true, ms: 1600, once: false },
   checkout: {
+    // The Google Maps pin is optional by default — it helps the driver but
+    // should not stop someone ordering. Turn it on to make it compulsory.
+    require_map: false,
     button: "Complete order",
     review_title: "Review your order",
     review_text: "Please check everything before you confirm.",
