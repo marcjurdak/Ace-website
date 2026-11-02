@@ -739,7 +739,11 @@ section.co-sec{padding:28px 0 0}
 /* ===== a collection that hasn't launched yet ===== */
 .teaser{padding:0}
 .teaser[hidden]{display:none}
-.tz-hero{position:relative;min-height:min(86vh,760px);display:flex;align-items:flex-end;
+/* The photo fills everything below the header: the first screen is all picture,
+   with the back button, the label and the title sitting on it. Everything else
+   starts underneath. --tz-top is measured from the real header in renderTeaser. */
+.tz-hero{position:relative;min-height:calc(100vh - var(--tz-top,64px));
+  min-height:calc(100svh - var(--tz-top,64px));display:flex;align-items:flex-end;
   background:#0b0b0b;overflow:hidden;isolation:isolate}
 .tz-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
 .tz-hero::after{content:"";position:absolute;inset:0;z-index:-1;
@@ -748,8 +752,10 @@ section.co-sec{padding:28px 0 0}
 .tz-hero.empty::after{background:linear-gradient(180deg,#141414,#000)}
 .tz-back{position:absolute;top:calc(var(--pad) + 6px);left:var(--pad);z-index:3;color:#fff;
   font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;opacity:.85}
+/* left-aligned with the back button, not a centred column, so everything on the
+   photo shares one edge */
 .tz-over{position:relative;z-index:2;padding:var(--pad);padding-bottom:clamp(38px,8vh,76px);
-  width:100%;max-width:820px;margin:0 auto;color:#fff}
+  width:100%;color:#fff}
 .tz-kicker{display:block;font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;
   opacity:.72;margin-bottom:16px}
 .tz-over h1{font-family:var(--display);font-size:clamp(38px,11vw,90px);line-height:.95;
@@ -1915,6 +1921,16 @@ function save(){try{localStorage.setItem("ace-bag2",JSON.stringify(bag))}catch(e
 let tzWant="";
 function renderTeaser(c){
   const t=c.teaser||{};
+  // the photo fills the screen below the header, whatever height the header is
+  const measure=()=>{
+    const bar=document.querySelector(".announce"),top=document.querySelector(".top");
+    let h=top?top.getBoundingClientRect().height:64;
+    if(bar&&!bar.hidden&&bar.offsetParent!==null)h+=bar.getBoundingClientRect().height;
+    $("#teaserPage").style.setProperty("--tz-top",Math.round(h)+"px");
+  };
+  measure();requestAnimationFrame(measure);
+  if(!window.__tzResize){window.__tzResize=true;addEventListener("resize",()=>{
+    if(!$("#teaserPage").hidden)measure()})}
   const hero=$("#tzHero");hero.classList.toggle("empty",!t.image);
   if(t.image)$("#tzImg").src=t.image;$("#tzImg").alt=c.name||"";
   $("#tzKicker").textContent=t.kicker||"";$("#tzKicker").hidden=!t.kicker;
