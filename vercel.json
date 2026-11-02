@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/admin/",
-      "destination": "/admin.html"
+      "destination": "/admin"
     },
     {
       "source": "/images/:file",
@@ -12,15 +12,15 @@
     },
     {
       "source": "/p/:slug",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/:slug",
-      "destination": "/index.html"
+      "destination": "/"
     },
     {
       "source": "/((?!api/).*)",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
   "headers": [
