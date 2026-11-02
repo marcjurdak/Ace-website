@@ -261,10 +261,13 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:16px 0 12px}
       <a href="#/home" data-r="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
       <a href="#/analytics" data-r="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h16M8 16V11M12 16V7M16 16v-3"/></svg>Analytics</a>
       <a href="#/orders" data-r="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12.5a1 1 0 0 1-1 .9h-11a1 1 0 0 1-1-.9z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg>Orders<span class="badge" id="navNew" hidden>0</span></a>
-      <a href="#/products" data-r="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3l-5 4 3 3 2-1.5V21h8V8.5L18 10l3-3-5-4c0 2-2 3-4 3S8 5 8 3z"/></svg>Products</a>
-      <a href="#/guides" data-r="guides" style="padding-left:38px;font-size:13px">Size guides</a>
+      <a href="#/products" data-r="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3l-5 4 3 3 2-1.5V21h8V8.5L18 10l3-3-5-4c0 2-2 3-4 3S8 5 8 3z"/></svg>Main products</a>
       <a href="#/categories" data-r="categories" style="padding-left:38px;font-size:13px">Categories</a>
-      <a href="#/collection/ace-for-her" data-r="collection" style="padding-left:38px;font-size:13px">ACE for Her</a>
+      <a href="#/sizing" data-r="sizing" style="padding-left:38px;font-size:13px">Size charts</a>
+      <a href="#/her" data-r="her"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.6-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.4-7 10-7 10z"/></svg>ACE for Her<span class="badge" id="navHer" hidden>Soon</span></a>
+      <a href="#/her/products" data-r="her/products" style="padding-left:38px;font-size:13px">Products</a>
+      <a href="#/her/categories" data-r="her/categories" style="padding-left:38px;font-size:13px">Categories</a>
+      <a href="#/her/sizing" data-r="her/sizing" style="padding-left:38px;font-size:13px">Size charts</a>
       <a href="#/customers" data-r="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Customers</a>
       <a href="#/discounts" data-r="discounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>Discounts</a>
       <a href="#/influencers" data-r="influencers" style="padding-left:38px;font-size:13px">Influencers</a>
@@ -385,7 +388,30 @@ async function uploadVideo(file,kind){
 let ORDERS=[],PRODUCTS=[],DISCOUNTS=[],SETTINGS={},ME="";
 async function loadOrders(){const {data,error}=await db.from("orders").select("*").order("created_at",{ascending:false}).limit(2000);if(error)throw error;ORDERS=data||[];updateBadge();return ORDERS}
 async function loadProducts(){const {data,error}=await db.from("products").select("*").order("position").order("created_at");if(error)throw error;PRODUCTS=data||[];return PRODUCTS}
-async function loadCategories(){const {data,error}=await db.from("categories").select("*").order("position").order("created_at");if(error)throw error;CATEGORIES=data||[];return CATEGORIES}
+async function loadCategories(){const {data,error}=await db.from("categories").select("*").order("position").order("created_at");if(error)throw error;CATEGORIES=data||[];herBadge();return CATEGORIES}
+function herBadge(){try{const r=CATEGORIES.find(c=>c.is_section&&c.coming_soon),b=$("#navHer");if(b)b.hidden=!r}catch(e){}}
+
+/* ---- sections ----------------------------------------------------------
+   A section is a storefront area of its own, like ACE for Her. Its root row
+   in `categories` (is_section) carries that area's coming-soon switch, its
+   launch page and its size chart. Ordinary category rows point at their
+   section through categories.section; "" means the main shop.
+   Only one section exists today, so its admin routes are spelled #/her/*.
+   Adding a second means adding nav links and a router branch for it. */
+const HER="ace-for-her";
+const secRoot   = s => CATEGORIES.find(c=>c.slug===s&&c.is_section)||null;
+const secCats   = s => CATEGORIES.filter(c=>!c.is_section&&(c.section||"")===(s||""));
+const secLabel  = s => {const r=secRoot(s);return r?r.name:"Main products"};
+const secOf     = slug => {const c=CATEGORIES.find(x=>x.slug===slug);return c?(c.section||""):""};
+const secProds  = s => {const keys=secCats(s).map(c=>c.slug);return PRODUCTS.filter(p=>keys.includes(p.category))};
+const secPath   = (s,page) => s?`#/her${page?"/"+page:""}`:`#/${page||"products"}`;
+function secBanner(s){
+  const r=secRoot(s);
+  if(!r||!r.coming_soon)return "";
+  return `<div class="card" style="max-width:760px;border-left:3px solid var(--warn);margin-bottom:16px">
+    <b>${esc(r.name)} is behind its coming-soon page right now.</b>
+    <p class="help" style="margin:6px 0 0">Nothing below is visible to visitors yet — they see the coming-soon page instead. You can set all of it up now and turn the page off when you're ready, in <a class="link" href="#/her">${esc(r.name)}</a>.</p></div>`;
+}
 async function loadDiscounts(){const {data,error}=await db.from("discounts").select("*").order("created_at",{ascending:false});if(error)throw error;DISCOUNTS=data||[];return DISCOUNTS}
 async function loadSettings(){const {data,error}=await db.from("settings").select("key,value");if(error)throw error;SETTINGS=Object.fromEntries((data||[]).map(r=>[r.key,r.value]));return SETTINGS}
 function updateBadge(){const n=ORDERS.filter(o=>o.status==="new").length;const b=$("#navNew");b.textContent=n;b.hidden=!n}
@@ -442,8 +468,14 @@ async function router(){
   leaveGuard=null;
   const parts=(location.hash.replace(/^#\/?/,"")||"home").split("/");
   const r=parts[0];
-  $$("#nav a").forEach(a=>a.setAttribute("aria-current",a.dataset.r===r?"page":"false"));
-  $("#mTitle").textContent=({home:"Home",analytics:"Analytics",orders:"Orders",products:"Products",categories:"Categories",guides:"Size guides",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",accounts:"Accounts",emails:"Emails",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings"})[r]||"";
+  // Nav items can be one or two levels deep ("her/products"), so the item that
+  // lights up is the longest one the current path starts with.
+  const path=parts.join("/");
+  let bestNav="";
+  $$("#nav a").forEach(a=>{const d=a.dataset.r||"";if(d&&(path===d||path.startsWith(d+"/"))&&d.length>bestNav.length)bestNav=d});
+  $$("#nav a").forEach(a=>a.setAttribute("aria-current",(a.dataset.r||"")===bestNav?"page":"false"));
+  $("#mTitle").textContent=({home:"Home",analytics:"Analytics",orders:"Orders",products:"Main products",categories:"Categories",sizing:"Size charts",guides:"Size guides",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",accounts:"Accounts",emails:"Emails",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings",
+    her:"ACE for Her","her/products":"ACE for Her — Products","her/categories":"ACE for Her — Categories","her/sizing":"ACE for Her — Size charts"})[path]||({home:"Home",products:"Main products",categories:"Categories",sizing:"Size charts",her:"ACE for Her"})[r]||"";
   $("#side").classList.remove("open");$("#scrim").hidden=true;
   V.innerHTML=`<div class="empty" style="border:0;background:none"><span class="spin"></span></div>`;window.scrollTo(0,0);
   try{
@@ -452,9 +484,15 @@ async function router(){
     else if(r==="orders"&&parts[1])await pOrder(parts[1]);
     else if(r==="orders")await pOrders();
     else if(r==="collection"&&parts[1])await pCollection(decodeURIComponent(parts[1]));
-    else if(r==="products"&&parts[1])await pProduct(parts[1],parts[2]?decodeURIComponent(parts[2]):"");
-    else if(r==="products")await pProducts();
-    else if(r==="categories")await pCategories();
+    else if(r==="her"&&parts[1]==="products"&&parts[2])await pProduct(parts[2],parts[3]?decodeURIComponent(parts[3]):"",HER);
+    else if(r==="her"&&parts[1]==="products")await pProducts(HER);
+    else if(r==="her"&&parts[1]==="categories")await pCategories(HER);
+    else if(r==="her"&&parts[1]==="sizing")await pSizing(HER);
+    else if(r==="her")await pSection(HER);
+    else if(r==="products"&&parts[1])await pProduct(parts[1],parts[2]?decodeURIComponent(parts[2]):"","");
+    else if(r==="products")await pProducts("");
+    else if(r==="categories")await pCategories("");
+    else if(r==="sizing")await pSizing("");
     else if(r==="guides")await pGuides();
     else if(r==="influencers"&&parts[1])await pInfluencer(parts[1]);
     else if(r==="influencers")await pInfluencers();
@@ -797,41 +835,62 @@ function invText(p){
   if(!tracked)return `<span class="muted">Not tracked</span>`;
   return `${total} in stock${outN?` <span style="color:var(--warn)">· ${outN} sold out</span>`:""}`;
 }
-async function pProducts(){
+async function pProducts(section){
+  section=section||"";
   await Promise.all([loadProducts(),loadCategories()]);
-  V.innerHTML=`<div class="pagehead"><h1>Products</h1><a class="btn sm" href="#/products/new">Add product</a></div>
+  const mine=secCats(section),keys=mine.map(c=>c.slug);
+  // The filter dropdown is shared between sections, so drop a selection that
+  // belongs to the other one rather than showing an empty list.
+  if(pF.cat!=="all"&&pF.cat!=="sale"&&!keys.includes(pF.cat))pF.cat="all";
+  V.innerHTML=`<div class="pagehead"><h1>${esc(section?secLabel(section):"Products")}</h1>${mine.length?`<a class="btn sm" href="${secPath(section,"products")}/new">Add product</a>`:""}</div>
+    ${secBanner(section)}
+    ${section?`<p class="help" style="margin:-8px 0 14px">These are the ${esc(secLabel(section))} products. They are kept apart from the main collection and only ever appear inside ${esc(secLabel(section))} on the website.</p>`:""}
     <div class="toolbar"><input type="search" id="pQ" placeholder="Search products" value="${esc(pF.q)}">
-      <select id="pCat"><option value="all">All categories</option>${CATEGORIES.map(c=>`<option value="${esc(c.slug)}" ${pF.cat===c.slug?"selected":""}>${esc(c.name)}</option>`).join("")}<option value="sale" ${pF.cat==="sale"?"selected":""}>On sale</option></select>
+      <select id="pCat"><option value="all">All categories</option>${mine.map(c=>`<option value="${esc(c.slug)}" ${pF.cat===c.slug?"selected":""}>${esc(c.name)}</option>`).join("")}<option value="sale" ${pF.cat==="sale"?"selected":""}>On sale</option></select>
       <select id="pSt"><option value="all">Any status</option><option value="active" ${pF.st==="active"?"selected":""}>Active</option><option value="hidden" ${pF.st==="hidden"?"selected":""}>Hidden</option></select></div>
     <div id="pOut"></div><p class="help" style="margin-top:10px">Use the arrows to change the order products appear on the website.</p>`;
   const draw=()=>{
-    const q=pF.q.toLowerCase();const list=PRODUCTS.map((p,i)=>({p,i})).filter(({p})=>(!q||p.name.toLowerCase().includes(q))&&(pF.cat==="all"||(pF.cat==="sale"?onSale(p):p.category===pF.cat))&&(pF.st==="all"||(pF.st==="active")===p.active));
-    if(!PRODUCTS.length){$("#pOut").innerHTML=`<div class="empty">No products yet. Click "Add product" to create your first one.</div>`;return}
+    const q=pF.q.toLowerCase();const list=PRODUCTS.map((p,i)=>({p,i})).filter(({p})=>keys.includes(p.category)&&(!q||p.name.toLowerCase().includes(q))&&(pF.cat==="all"||(pF.cat==="sale"?onSale(p):p.category===pF.cat))&&(pF.st==="all"||(pF.st==="active")===p.active));
+    if(!mine.length){$("#pOut").innerHTML=`<div class="empty">${esc(secLabel(section))} has no categories yet, and a product needs one to live in.<br><br><a class="btn sm" href="${secPath(section,"categories")}">Create the first category</a></div>`;return}
+    if(!list.length&&!q&&pF.cat==="all"&&pF.st==="all"){$("#pOut").innerHTML=`<div class="empty">No products in ${esc(secLabel(section))} yet. Click "Add product" to create the first one.</div>`;return}
     const img=p=>((p.colors||[])[0]||{}).images?.[0];
+    // The arrows swap with the neighbour in THIS list, not in the global
+    // product array, so reordering inside one section never reaches across
+    // into the other one. data-mv carries the target index outright.
+    const mvBtns=(i,n)=>{
+      const up=n>0?list[n-1].i:-1,dn=n<list.length-1?list[n+1].i:-1;
+      return `<button class="btn ghost sm" data-mv="${up}" data-i="${i}" ${up<0?"disabled":""} aria-label="Move up">↑</button> <button class="btn ghost sm" data-mv="${dn}" data-i="${i}" ${dn<0?"disabled":""} aria-label="Move down">↓</button>`;
+    };
     $("#pOut").innerHTML=`<div class="tblwrap resp"><table class="tbl"><thead><tr><th></th><th>Product</th><th>Status</th><th>Inventory</th><th>Category</th><th class="num">Price</th><th class="num">Order</th></tr></thead><tbody>
-      ${list.map(({p,i})=>`<tr data-id="${p.id}"><td style="width:56px">${img(p)?`<img class="thumb" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}</td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${(p.colors||[]).map(c=>esc(c.name)).join(", ")}</div></td><td>${p.coming_soon?pill("scheduled","Coming soon"):p.active?pill("active","Active"):pill("hidden","Hidden")}</td><td>${invText(p)}</td><td>${esc(catName(p.category))}</td><td class="num nowrap">${priceCell(p)}</td>
-        <td class="num nowrap"><button class="btn ghost sm" data-mv="-1" data-i="${i}" ${i===0?"disabled":""} aria-label="Move up">↑</button> <button class="btn ghost sm" data-mv="1" data-i="${i}" ${i===PRODUCTS.length-1?"disabled":""} aria-label="Move down">↓</button></td></tr>`).join("")}
+      ${list.map(({p,i},n)=>`<tr data-id="${p.id}"><td style="width:56px">${img(p)?`<img class="thumb" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}</td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${(p.colors||[]).map(c=>esc(c.name)).join(", ")}</div></td><td>${p.coming_soon?pill("scheduled","Coming soon"):p.active?pill("active","Active"):pill("hidden","Hidden")}</td><td>${invText(p)}</td><td>${esc(catName(p.category))}</td><td class="num nowrap">${priceCell(p)}</td>
+        <td class="num nowrap">${mvBtns(i,n)}</td></tr>`).join("")}
       </tbody></table></div>
-      <div class="mlist">${list.map(({p,i})=>`<div class="mcard" style="grid-template-columns:48px 1fr auto;align-items:center"><button data-id="${p.id}" style="display:contents">${img(p)?`<img class="thumb" style="width:48px" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}<span style="text-align:left"><span class="t">${esc(p.name)}</span><br><span class="s">${priceCell(p)} · ${p.active?"Active":"Hidden"}</span><br><span class="s">${invText(p)}</span></span></button><span class="row" style="flex-direction:column"><button class="btn ghost sm" data-mv="-1" data-i="${i}" ${i===0?"disabled":""} aria-label="Move up">↑</button><button class="btn ghost sm" data-mv="1" data-i="${i}" ${i===PRODUCTS.length-1?"disabled":""} aria-label="Move down">↓</button></span></div>`).join("")}</div>`;
-    $$("#pOut [data-id]").forEach(r=>r.onclick=e=>{if(e.target.closest("[data-mv]"))return;go("#/products/"+r.dataset.id)});
-    $$("#pOut [data-mv]").forEach(b=>b.onclick=async e=>{e.stopPropagation();const i=+b.dataset.i,j=i+Number(b.dataset.mv);if(j<0||j>=PRODUCTS.length)return;
+      <div class="mlist">${list.map(({p,i},n)=>`<div class="mcard" style="grid-template-columns:48px 1fr auto;align-items:center"><button data-id="${p.id}" style="display:contents">${img(p)?`<img class="thumb" style="width:48px" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}<span style="text-align:left"><span class="t">${esc(p.name)}</span><br><span class="s">${priceCell(p)} · ${p.active?"Active":"Hidden"}</span><br><span class="s">${invText(p)}</span></span></button><span class="row" style="flex-direction:column">${mvBtns(i,n)}</span></div>`).join("")}</div>`;
+    $$("#pOut [data-id]").forEach(r=>r.onclick=e=>{if(e.target.closest("[data-mv]"))return;go(secPath(section,"products")+"/"+r.dataset.id)});
+    $$("#pOut [data-mv]").forEach(b=>b.onclick=async e=>{e.stopPropagation();const i=+b.dataset.i,j=+b.dataset.mv;if(j<0||j>=PRODUCTS.length)return;
       [PRODUCTS[i],PRODUCTS[j]]=[PRODUCTS[j],PRODUCTS[i]];PRODUCTS.forEach((p,k)=>p.position=k+1);draw();
       const res=await Promise.all(PRODUCTS.map(p=>db.from("products").update({position:p.position}).eq("id",p.id)));if(res.find(r=>r.error))toast("Couldn't reorder",true)});
   };
   draw();
   $("#pQ").oninput=e=>{pF.q=e.target.value;draw()};$("#pCat").onchange=e=>{pF.cat=e.target.value;draw()};$("#pSt").onchange=e=>{pF.st=e.target.value;draw()};
 }
-async function pProduct(id,presetCat){
+async function pProduct(id,presetCat,section){
+  section=section||"";
   await Promise.all([PRODUCTS.length?null:loadProducts(),loadCategories()]);
   await loadGuidesA();
   const isNew=id==="new";const p=isNew?null:PRODUCTS.find(x=>x.id===id);
-  if(!isNew&&!p){V.innerHTML=`<a class="back" href="#/products">← Products</a><div class="empty">This product wasn't found.</div>`;return}
-  const preset=presetCat&&CATEGORIES.some(c=>c.slug===presetCat)?presetCat:"";
-  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:(preset||(CATEGORIES[0]||{}).slug||""),coming_soon:p?!!p.coming_soon:false,coming_soon_note:p?p.coming_soon_note||"":"",fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
+  // An existing product belongs to whichever section its category sits in, so a
+  // direct link lands on the right form even with the wrong section in the URL.
+  if(p)section=secOf(p.category);
+  const backTo=secPath(section,"products"),backLbl=section?secLabel(section):"Products";
+  if(!isNew&&!p){V.innerHTML=`<a class="back" href="${backTo}">← ${esc(backLbl)}</a><div class="empty">This product wasn't found.</div>`;return}
+  const secCatList=secCats(section);
+  const preset=presetCat&&secCatList.some(c=>c.slug===presetCat)?presetCat:"";
+  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:(preset||(secCatList[0]||{}).slug||""),coming_soon:p?!!p.coming_soon:false,coming_soon_note:p?p.coming_soon_note||"":"",fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
     colors:p?JSON.parse(JSON.stringify(p.colors||[])):[{name:"Black",hex:"#000000",images:[],sold_out:false,stock:{}}]};
   let dirty=false;const mark=()=>{dirty=true};
   leaveGuard=()=>!dirty||confirm("You have unsaved changes. Leave without saving?");
-  V.innerHTML=`<a class="back" href="#/products">← Products</a>
+  V.innerHTML=`<a class="back" href="${backTo}">← ${esc(backLbl)}</a>
    <div class="pagehead"><h1>${isNew?"Add product":esc(p.name)}</h1></div>
    <div class="dgrid">
     <div>
@@ -863,7 +922,7 @@ async function pProduct(id,presetCat){
           <p class="help">On sale, the product shows the old price crossed out and appears in the website's "Discounts" menu.</p>
         </div></div>
       <div class="card"><h2>Organization</h2>
-        <label class="fld"><span>Category</span><select id="eCat">${CATEGORIES.map(c=>`<option value="${esc(c.slug)}" ${st.category===c.slug?"selected":""}>${esc(c.name)}</option>`).join("")}</select><small><a class="link" href="#/categories">Add or edit categories</a></small></label>
+        <label class="fld"><span>Category</span><select id="eCat">${secCatList.map(c=>`<option value="${esc(c.slug)}" ${st.category===c.slug?"selected":""}>${esc(c.name)}</option>`).join("")}</select><small><a class="link" href="${secPath(section,"categories")}">Add or edit ${esc(section?secLabel(section):"")} categories</a></small></label>
         <label class="fld"><span>Sizes</span><input type="text" id="eSizes" value="${esc(st.sizes)}"><small>Separate with commas.</small></label>
         <div class="row">${["S, M, L, XL, XXL","S, M, L","One size"].map(s=>`<button type="button" class="chip" data-sz="${s}">${s}</button>`).join("")}</div>
       </div>
@@ -881,7 +940,7 @@ async function pProduct(id,presetCat){
       ${isNew?"":`<div class="card"><h2>Delete</h2><p class="help" style="margin:-4px 0 10px">To take it off the site for a while, untick "Visible" instead. Past orders keep their details.</p><button class="btn danger sm" id="eDelete">Delete product</button></div>`}
     </div>
    </div>
-   <div class="savebar"><div class="err" id="eErr"></div><a class="btn ghost" href="#/products">Cancel</a><button class="btn" id="eSave">Save</button></div>`;
+   <div class="savebar"><div class="err" id="eErr"></div><a class="btn ghost" href="${backTo}">Cancel</a><button class="btn" id="eSave">Save</button></div>`;
   const sizes=()=>$("#eSizes").value.split(",").map(s=>s.trim()).filter(Boolean);
   const renderColors=()=>{
     const el=$("#eColors");
@@ -973,10 +1032,10 @@ async function pProduct(id,presetCat){
     else res=await db.from("products").update(row).eq("id",p.id).select().single();
     $("#eSave").disabled=false;
     if(res.error)return err("Couldn't save: "+res.error.message);
-    dirty=false;toast("Product saved");await loadProducts();go("#/products");
+    dirty=false;toast("Product saved");await loadProducts();go(backTo);
   };
   if($("#eDelete"))$("#eDelete").onclick=async()=>{if(!confirm(`Delete "${p.name}" for good? This can't be undone.`))return;
-    const {error}=await db.from("products").delete().eq("id",p.id);if(error){$("#eErr").textContent="Couldn't delete: "+error.message;return}dirty=false;toast("Product deleted");go("#/products")};
+    const {error}=await db.from("products").delete().eq("id",p.id);if(error){$("#eErr").textContent="Couldn't delete: "+error.message;return}dirty=false;toast("Product deleted");go(backTo)};
 }
 
 /* =============== INFLUENCERS =============== */
@@ -1298,12 +1357,16 @@ async function pGuides(){
   $$("#gOut tr[data-i]").forEach(r=>r.onclick=()=>editGuide(GUIDES_A[+r.dataset.i]));
   $("#gNew").onclick=()=>editGuide(null);
 }
-function editGuide(g){
+function editGuide(g,section,after){
+  section=section||"";
+  // A guide belongs to whichever section its category sits in.
+  if(g&&g.category)section=secOf(g.category);
+  after=after||pGuides;
   const st=g?JSON.parse(JSON.stringify(g)):{name:"",category:"",intro:"",columns:["Size","Chest (cm)","Length (cm)"],rows:[["S","",""],["M","",""],["L","",""]],how_to_measure:"",model_note:"",fit_note:"",active:true};
   st.columns=st.columns&&st.columns.length?st.columns:["Size"];st.rows=Array.isArray(st.rows)?st.rows:[];
   const m=modal(`<h2>${g?"Edit size guide":"New size guide"}</h2>
     <div class="grid2"><label class="fld"><span>Name</span><input type="text" id="gName" maxlength="60" placeholder="e.g. Tops size guide" value="${esc(st.name)}"></label>
-      <label class="fld"><span>Use for category</span><select id="gCat"><option value="">— None (pick it on products) —</option>${CATEGORIES.map(c=>`<option value="${esc(c.slug)}" ${st.category===c.slug?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label></div>
+      <label class="fld"><span>Use for category</span><select id="gCat"><option value="">— None (pick it on products) —</option>${secCats(section).map(c=>`<option value="${esc(c.slug)}" ${st.category===c.slug?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label></div>
     <label class="fld"><span>Intro (optional)</span><input type="text" id="gIntro" maxlength="200" value="${esc(st.intro||"")}"></label>
     <span class="lbl">Measurement table</span><div id="gTable" style="overflow:auto"></div>
     <div class="row" style="margin:8px 0 14px"><button class="btn ghost sm" type="button" id="gAddRow">Add size</button><button class="btn ghost sm" type="button" id="gAddCol">Add column</button><button class="btn ghost sm" type="button" id="gDelCol">Remove last column</button></div>
@@ -1333,8 +1396,8 @@ function editGuide(g){
       how_to_measure:$("#gHow",m).value.trim()||null,model_note:$("#gModel",m).value.trim()||null,fit_note:$("#gFit",m).value.trim()||null,active:$("#gAct",m).checked};
     if(!g)row.position=GUIDES_A.length+1;
     const res=g?await db.from("size_guides").update(row).eq("id",g.id):await db.from("size_guides").insert(row);
-    if(res.error)return e(res.error.message);m.remove();toast("Size guide saved");pGuides()};
-  if(g)$("#gDel",m).onclick=async()=>{if(!confirm(`Delete "${g.name}"?`))return;const {error}=await db.from("size_guides").delete().eq("id",g.id);if(error)return toast(error.message,true);m.remove();toast("Deleted");pGuides()};
+    if(res.error)return e(res.error.message);m.remove();toast("Size guide saved");after()};
+  if(g)$("#gDel",m).onclick=async()=>{if(!confirm(`Delete "${g.name}"?`))return;const {error}=await db.from("size_guides").delete().eq("id",g.id);if(error)return toast(error.message,true);m.remove();toast("Deleted");after()};
 }
 
 /* =============== CATEGORIES =============== */
@@ -1431,18 +1494,27 @@ async function pCollection(slug){
   if(clr)clr.onclick=async()=>{img="";await save();pCollection(slug)};
 }
 
-async function pCategories(){
+async function pCategories(section){
+  section=section||"";
   await Promise.all([loadCategories(),loadProducts()]);
   const count=s=>PRODUCTS.filter(p=>p.category===s).length;
   const tz=c=>c.teaser||{};
-  V.innerHTML=`<div class="pagehead"><h1>Categories</h1></div>
-    <p class="help" style="margin:-8px 0 14px">Categories appear in the website's menu (top left) and as filters above the products, in this order. A category only shows on the website once it has products — unless you turn on <b>"Show before it has products"</b>, which gives it a launch page instead of an empty grid. "Discounts" appears by itself when a product is on sale.</p>
+  // Each section keeps its own categories. Section roots (ACE for Her) are not
+  // listed here at all — they are edited on their own page.
+  const rows=CATEGORIES.map((c,i)=>({c,i})).filter(({c})=>!c.is_section&&(c.section||"")===section);
+  const roots=CATEGORIES.filter(c=>c.is_section);
+  V.innerHTML=`<div class="pagehead"><h1>${esc(section?secLabel(section)+" categories":"Categories")}</h1></div>
+    ${secBanner(section)}
+    <p class="help" style="margin:-8px 0 14px">${section
+      ? `These categories belong to ${esc(secLabel(section))} only. They appear inside ${esc(secLabel(section))} on the website, in this order, and never in the main collection.`
+      : `Categories appear in the website's menu (top left) and as filters above the products, in this order. A category only shows on the website once it has products — unless you turn on <b>"Show before it has products"</b>, which gives it a launch page instead of an empty grid. "Discounts" appears by itself when a product is on sale.`}</p>
+    ${!section&&roots.length?`<p class="help" style="margin:-6px 0 14px">${roots.map(r=>`<b>${esc(r.name)}</b> is a collection of its own with its own categories — edit it in <a class="link" href="#/her">${esc(r.name)}</a>.`).join(" ")}</p>`:""}
     <div class="card" style="max-width:720px">
-      ${CATEGORIES.map((c,i)=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)" data-i="${i}">
+      ${rows.map(({c,i},n)=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)" data-i="${i}">
         <div class="row" style="flex-wrap:nowrap">
         <input type="text" value="${esc(c.name)}" data-name maxlength="40" style="flex:1" aria-label="Category name">
         <span class="muted nowrap" style="font-size:12.5px;width:84px;text-align:right">${count(c.slug)} product${count(c.slug)===1?"":"s"}</span>
-        <button class="btn ghost sm" data-mv="-1" ${i===0?"disabled":""} aria-label="Move up">↑</button><button class="btn ghost sm" data-mv="1" ${i===CATEGORIES.length-1?"disabled":""} aria-label="Move down">↓</button>
+        <button class="btn ghost sm" data-mv="${n>0?rows[n-1].i:-1}" ${n===0?"disabled":""} aria-label="Move up">↑</button><button class="btn ghost sm" data-mv="${n<rows.length-1?rows[n+1].i:-1}" ${n===rows.length-1?"disabled":""} aria-label="Move down">↓</button>
         <button class="btn ghost sm" data-tzopen aria-label="Launch page settings">${count(c.slug)===0?"Launch page":"⚙"}</button>
         <button class="btn danger sm" data-del aria-label="Delete category">✕</button></div>
         <div data-tzbox hidden style="padding:14px 0 6px">
@@ -1467,14 +1539,14 @@ async function pCategories(){
           <label class="fld"><span>Answers they can pick</span><input type="text" data-tzk="options" value="${esc((tz(c).options||[]).join(", "))}" placeholder="Leggings, Tops, Shorts, Sets"><small class="help">Separate with commas. Their answer is saved with their email in <a class="link" href="#/waitlist">Early access</a>, so you learn what to make first.</small></label>
           <button class="btn sm" type="button" data-tzsave>Save launch page</button>
           <span class="muted" data-tzmsg style="margin-left:10px;font-size:13px"></span>
-        </div></div>`).join("")||`<p class="muted">No categories yet.</p>`}
-      <div class="row" style="margin-top:14px;flex-wrap:nowrap"><input type="text" id="catNew" placeholder="New category, e.g. Hoodies" maxlength="40"><button class="btn sm" id="catAdd">Add</button></div>
+        </div></div>`).join("")||`<p class="muted">No categories yet. Add the first one below.</p>`}
+      <div class="row" style="margin-top:14px;flex-wrap:nowrap"><input type="text" id="catNew" placeholder="${esc(section?"New category, e.g. Leggings":"New category, e.g. Hoodies")}" maxlength="40"><button class="btn sm" id="catAdd">Add</button></div>
     </div>`;
   $$("[data-i]").forEach(r=>{const c=CATEGORIES[+r.dataset.i];
     $("[data-name]",r).onchange=async e=>{const n=e.target.value.trim();if(!n){e.target.value=c.name;return}const {error}=await db.from("categories").update({name:n}).eq("id",c.id);if(error)return toast(error.message,true);toast("Renamed");c.name=n};
-    $$("[data-mv]",r).forEach(b=>b.onclick=async()=>{const i=+r.dataset.i,j=i+Number(b.dataset.mv);[CATEGORIES[i],CATEGORIES[j]]=[CATEGORIES[j],CATEGORIES[i]];
-      const res=await Promise.all(CATEGORIES.map((x,k)=>db.from("categories").update({position:k+1}).eq("id",x.id)));if(res.find(x=>x.error))toast("Couldn't reorder",true);pCategories()});
-    $("[data-del]",r).onclick=()=>delCategory(c,count(c.slug));
+    $$("[data-mv]",r).forEach(b=>b.onclick=async()=>{const i=+r.dataset.i,j=+b.dataset.mv;if(j<0)return;[CATEGORIES[i],CATEGORIES[j]]=[CATEGORIES[j],CATEGORIES[i]];
+      const res=await Promise.all(CATEGORIES.map((x,k)=>db.from("categories").update({position:k+1}).eq("id",x.id)));if(res.find(x=>x.error))toast("Couldn't reorder",true);pCategories(section)});
+    $("[data-del]",r).onclick=()=>delCategory(c,count(c.slug),section);
     /* ---- launch page (shown before a collection has products) ---- */
     const box=$("[data-tzbox]",r),msg=$("[data-tzmsg]",r);
     $("[data-tzopen]",r).onclick=()=>{box.hidden=!box.hidden};
@@ -1500,22 +1572,25 @@ async function pCategories(){
       catch(e){toast("Upload failed: "+(e.message||e),true)}
       lab.classList.remove("uploading");lab.firstChild.textContent="Upload"};
     const clr=$("[data-tzimgclear]",r);
-    if(clr)clr.onclick=async()=>{img="";$("[data-tzpv]",r).style.backgroundImage="none";await saveTz();pCategories()};
+    if(clr)clr.onclick=async()=>{img="";$("[data-tzpv]",r).style.backgroundImage="none";await saveTz();pCategories(section)};
   });
   const add=async()=>{const n=$("#catNew").value.trim();if(!n)return;let s=slugify(n),k=2;while(CATEGORIES.some(c=>c.slug===s))s=slugify(n)+"-"+k++;
-    const {error}=await db.from("categories").insert({name:n,slug:s,position:CATEGORIES.length+1});if(error)return toast(error.message,true);toast("Category added");pCategories()};
+    const {error}=await db.from("categories").insert({name:n,slug:s,position:CATEGORIES.length+1,section});if(error)return toast(error.message,true);toast("Category added");pCategories(section)};
   $("#catAdd").onclick=add;$("#catNew").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
 }
-function delCategory(c,n){
-  const others=CATEGORIES.filter(x=>x.id!==c.id);
-  if(!n){if(!confirm(`Delete the category "${c.name}"?`))return;db.from("categories").delete().eq("id",c.id).then(({error})=>{if(error)return toast(error.message,true);toast("Category deleted");pCategories()});return}
+function delCategory(c,n,section){
+  section=section||"";
+  // Products can only be moved to another category in the same section, so
+  // deleting a women's category can never drop its products into the main shop.
+  const others=CATEGORIES.filter(x=>x.id!==c.id&&!x.is_section&&(x.section||"")===section);
+  if(!n){if(!confirm(`Delete the category "${c.name}"?`))return;db.from("categories").delete().eq("id",c.id).then(({error})=>{if(error)return toast(error.message,true);toast("Category deleted");pCategories(section)});return}
   if(!others.length)return toast("Create another category first, so its products have somewhere to go.",true);
   const m=modal(`<h2>Delete "${esc(c.name)}"</h2><p style="margin-bottom:12px">${n} product${n===1?" is":"s are"} in this category. Move ${n===1?"it":"them"} to:</p>
     <select id="mvTo">${others.map(o=>`<option value="${esc(o.slug)}">${esc(o.name)}</option>`).join("")}</select>
     <div class="row between" style="margin-top:16px"><button class="btn ghost" id="mvCancel">Cancel</button><button class="btn danger" id="mvGo">Move and delete</button></div>`);
   $("#mvCancel",m).onclick=()=>m.remove();
   $("#mvGo",m).onclick=async()=>{const to=$("#mvTo",m).value;let r=await db.from("products").update({category:to}).eq("category",c.slug);if(r.error)return toast(r.error.message,true);
-    r=await db.from("categories").delete().eq("id",c.id);if(r.error)return toast(r.error.message,true);m.remove();toast("Category deleted");pCategories()};
+    r=await db.from("categories").delete().eq("id",c.id);if(r.error)return toast(r.error.message,true);m.remove();toast("Category deleted");pCategories(section)};
 }
 
 /* =============== BUNDLES =============== */
@@ -1723,6 +1798,193 @@ function editDiscount(d,presetInfluencer){
   if(d)$("#dDel",m).onclick=async()=>{if(!confirm(`Delete ${d.code}?`))return;const {error}=await db.from("discounts").delete().eq("id",d.id);if(error)return toast(error.message,true);m.remove();toast("Discount deleted");pDiscounts()};
 }
 
+/* =============== SECTIONS (ACE for Her) =============== */
+/* A section is a storefront area of its own. Everything inside it can be built
+   up while its coming-soon page is on; nothing shows until that is turned off. */
+async function pSection(slug){
+  await Promise.all([loadCategories(),loadProducts()]);
+  const root=secRoot(slug);
+  if(!root){V.innerHTML=`<div class="empty">This collection wasn't found.</div>`;return}
+  const cats=secCats(slug),prods=secProds(slug);
+  V.innerHTML=`<div class="pagehead"><h1>${esc(root.name)}</h1>
+      <a class="btn ghost sm" href="/${esc(root.slug)}" target="_blank" rel="noopener">See the page</a></div>
+    <div class="card" style="max-width:760px">
+      <h2 style="margin-bottom:2px">The coming-soon page</h2>
+      <label class="toggle" style="margin:12px 0 6px"><input type="checkbox" id="scOn" ${root.coming_soon?"checked":""}> Show the coming-soon page instead of the products</label>
+      <p class="help" id="scWhat" style="margin:4px 0 0"></p>
+      <div class="row" style="margin-top:18px">
+        <a class="btn ghost sm" href="#/collection/${encodeURIComponent(root.slug)}">Edit what the page says</a>
+        <span class="muted" id="scMsg" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div class="card" style="max-width:760px;margin-top:18px">
+      <h2 style="margin-bottom:10px">What's inside ${esc(root.name)}</h2>
+      <div class="row" style="flex-wrap:wrap">
+        <a class="btn ghost sm" href="#/her/categories">Categories (${cats.length})</a>
+        <a class="btn ghost sm" href="#/her/products">Products (${prods.length})</a>
+        <a class="btn ghost sm" href="#/her/sizing">Size charts</a>
+      </div>
+      <p class="help" style="margin-top:14px">These are kept completely apart from the main collection. You can set all of it up now and switch the coming-soon page off when you are ready.</p>
+    </div>`;
+  const what=$("#scWhat");
+  const paint=()=>{
+    what.innerHTML=$("#scOn").checked
+      ? `<b>On.</b> Anyone who opens ${esc(root.name)} sees only this page. Its categories, its products and their product pages are all unreachable, even with a direct link.`
+      : `<b>Off.</b> ${esc(root.name)} is live — visitors see its ${cats.length} categor${cats.length===1?"y":"ies"} and ${prods.length} product${prods.length===1?"":"s"}, with their own filters.`;
+  };
+  paint();
+  $("#scOn").onchange=async()=>{
+    const v=$("#scOn").checked,msg=$("#scMsg");
+    // Same reason as the size chart: a lapsed sign-in updates no rows and
+    // reports no error, and this switch is far too important to fail quietly.
+    const {data,error}=await db.from("categories").update({coming_soon:v}).eq("id",root.id).select("id");
+    const bad=error?error.message:(!data||!data.length?"you may have been signed out. Open the admin again and retry.":"");
+    if(bad){msg.style.color="var(--bad)";msg.textContent="Couldn't save: "+bad;$("#scOn").checked=!v;return}
+    root.coming_soon=v;paint();herBadge();
+    msg.style.color="";msg.textContent="Saved";setTimeout(()=>{msg.textContent=""},2500);
+  };
+}
+
+/* =============== SIZE CHARTS (per section) =============== */
+async function pSizing(section){
+  section=section||"";
+  await Promise.all([loadCategories(),loadProducts(),loadGuidesA()]);
+  const root=section?secRoot(section):null;
+  if(section&&!root){V.innerHTML=`<div class="empty">This collection wasn't found.</div>`;return}
+  const D=(window.ACE_DEFAULT_CONTENT||{}).fit||{};
+
+  /* The main collection's chart lives in the site content; a section's lives on
+     its own row. Either way this page saves on the spot, the same as the
+     launch-page editors do, rather than waiting for Publish. */
+  const readFit=async()=>{
+    if(section)return window.aceMerge(D,(root.fit&&Object.keys(root.fit).length)?root.fit:{});
+    const {data,error}=await db.from("site").select("draft,published").eq("id",1).maybeSingle();
+    if(error)throw error;
+    const r=data||{},pubObj=r.published||{};
+    const base=(r.draft&&Object.keys(r.draft).length)?r.draft:pubObj;
+    return window.aceMerge(D,base.fit||{});
+  };
+  /* Take a private copy. aceMerge hands back the defaults' own arrays when the
+     saved value is empty, so without this the main chart and ACE for Her would
+     both be editing the one shared `cells` array: typing a size into one would
+     change the other on screen, and saving would then write it for real. */
+  let fit=JSON.parse(JSON.stringify(await readFit()));
+  const saveFit=async()=>{
+    if(section){
+      // Ask for the row back. If the sign-in has lapsed, the database quietly
+      // matches no rows and reports no error, so without this the editor would
+      // say "Saved" and throw the work away.
+      const {data,error}=await db.from("categories").update({fit}).eq("id",root.id).select("id");
+      if(error)throw new Error(error.message);
+      if(!data||!data.length)throw new Error("you may have been signed out. Open the admin again and retry.");
+      root.fit=JSON.parse(JSON.stringify(fit));return;
+    }
+    // Re-read first, then change only the fit key, so an unpublished draft of
+    // anything else in Online store survives untouched.
+    const {data,error:e1}=await db.from("site").select("draft,published").eq("id",1).maybeSingle();
+    if(e1)throw new Error(e1.message);
+    const r=data||{},pubObj=r.published||{};
+    const base=(r.draft&&Object.keys(r.draft).length)?r.draft:pubObj;
+    const draft=Object.assign({},base,{fit}),published=Object.assign({},pubObj,{fit});
+    const {data:w,error:e2}=await db.from("site").update({draft,published,published_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",1).select("id");
+    if(e2)throw new Error(e2.message);
+    if(!w||!w.length)throw new Error("you may have been signed out. Open the admin again and retry.");
+  };
+
+  const gcats=secCats(section).map(c=>c.slug);
+  const mineG=GUIDES_A.filter(g=>g.category?gcats.includes(g.category):!section);
+  V.innerHTML=`<div class="pagehead"><h1>${esc(section?secLabel(section)+" size charts":"Size charts")}</h1></div>
+    ${secBanner(section)}
+    <p class="help" style="margin:-8px 0 16px">${section
+      ? `These apply to ${esc(secLabel(section))} only. The main collection keeps its own, so women's sizing never follows men's numbers.`
+      : `These apply to the main collection. ACE for Her keeps its own, in <a class="link" href="#/her/sizing">ACE for Her → Size charts</a>.`}</p>
+
+    <div class="card" style="max-width:760px">
+      <h2 style="margin-bottom:2px">Get my size</h2>
+      <p class="help" style="margin:4px 0 14px">The button next to "Size guide" on a product page. The shopper drags two sliders for height and weight, a figure changes shape as they go, and it suggests a size. Nothing about their body leaves their phone. Changes here save straight away.</p>
+      <div id="szBox"></div>
+      <span class="muted" id="szMsg" style="font-size:13px"></span>
+    </div>
+
+    <div class="card" style="max-width:760px;margin-top:18px">
+      <div class="row between" style="margin-bottom:4px"><h2 style="margin:0">Measurement guides</h2><button class="btn sm" id="szGNew">Create guide</button></div>
+      <p class="help" style="margin:8px 0 14px">The table that opens from the "Size guide" link — chest, length and so on. Set one per category, or pick a specific one on a product.</p>
+      <div id="szGOut"></div>
+    </div>`;
+
+  const msg=$("#szMsg");
+  let msgT=null;
+  const flash=(t,bad)=>{clearTimeout(msgT);msg.style.color=bad?"var(--bad)":"";msg.textContent=t;if(!bad)msgT=setTimeout(()=>{msg.textContent=""},2500)};
+  const commit=async()=>{try{await saveFit();flash("Saved")}catch(e){flash("Couldn't save: "+(e.message||e),true)}};
+
+  const drawGuides=()=>{
+    $("#szGOut").innerHTML=mineG.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Guide</th><th>Used for</th><th class="num">Sizes</th><th>Status</th></tr></thead><tbody>
+      ${mineG.map((g,i)=>`<tr data-gi="${i}"><td><b>${esc(g.name)}</b></td><td>${g.category?esc(catName(g.category)):`<span class="muted">Only products that pick it</span>`}</td><td class="num">${(g.rows||[]).length}</td><td>${g.active?pill("active","Active"):pill("hidden","Off")}</td></tr>`).join("")}
+      </tbody></table></div>`:`<div class="empty">No measurement guide here yet.${gcats.length?"":" Create a category first so a guide has something to apply to."}</div>`;
+    $$("#szGOut tr[data-gi]").forEach(r=>r.onclick=()=>editGuide(mineG[+r.dataset.gi],section,()=>pSizing(section)));
+  };
+  drawGuides();
+  $("#szGNew").onclick=()=>editGuide(null,section,()=>pSizing(section));
+
+  const render=()=>{
+    const t=fit.table=fit.table||{heights:[],weights:[],cells:[]};
+    const auto=fit.mode==="auto";
+    $("#szBox").innerHTML=`
+      <label class="toggle" style="margin-bottom:12px"><input type="checkbox" id="szShow" ${fit.show!==false?"checked":""}> Show it on product pages</label>
+      <label class="fld"><span>Button wording</span><input type="text" id="szBtn" value="${esc(fit.button||"")}" maxlength="30"></label>
+      <label class="fld"><span>How the size is decided</span><select id="szMode">
+        <option value="table" ${auto?"":"selected"}>From the height and weight chart below</option>
+        <option value="auto" ${auto?"selected":""}>Worked out from height and weight automatically</option></select></label>
+      <hr class="sep">
+      <span class="lbl">Height and weight chart</span>
+      <p class="help" style="margin:-2px 0 10px">Height down the side, weight across the top. Put the size you would give someone in each square, and leave a square empty to let the calculation below handle it. Each number is the <b>top</b> of its band, so 169 means "up to 169 cm" — keep the last row and column very high (999) so they catch everyone above.</p>
+      <div id="szGridWrap" style="overflow-x:auto${auto?";opacity:.45":""}">
+        <table class="fitgrid"><thead><tr><th></th>
+          ${(t.weights||[]).map((w,ci)=>`<th><input type="number" data-ftw="${ci}" value="${esc(w)}" min="30" max="400" aria-label="Top weight of this column"><small>kg</small></th>`).join("")}
+          <th><button type="button" class="btn ghost sm" id="szAddCol" title="Add a weight column">+</button></th></tr></thead>
+          <tbody>${(t.cells||[]).map((row,ri)=>`<tr>
+            <th><input type="number" data-fth="${ri}" value="${esc((t.heights||[])[ri])}" min="100" max="300" aria-label="Top height of this row"><small>cm</small></th>
+            ${(t.weights||[]).map((_,ci)=>`<td><input type="text" data-ftc="${ri}.${ci}" value="${esc((row||[])[ci]||"")}" maxlength="8" aria-label="Size for this height and weight"></td>`).join("")}
+            <td><button type="button" class="btn ghost sm" data-ftrm="${ri}" title="Remove this row">✕</button></td></tr>`).join("")}
+          <tr><th><button type="button" class="btn ghost sm" id="szAddRow" title="Add a height row">+</button></th></tr></tbody></table></div>
+      <hr class="sep">
+      <span class="lbl">When a square is empty</span>
+      <p class="help" style="margin:-2px 0 12px">We estimate the chest from height and weight, then take the first band it fits into. Set the largest chest in cm that each size still suits. Use your own garment measurements if you have them.</p>
+      <div id="szBands">${(fit.sizes||[]).map((r,i)=>`<div class="row" style="flex-wrap:nowrap;margin-bottom:8px" data-fb="${i}">
+        <input type="text" data-fbs value="${esc(r.size)}" maxlength="8" style="width:90px" aria-label="Size name">
+        <span class="muted" style="font-size:13px;white-space:nowrap">fits up to</span>
+        <input type="number" data-fbm value="${esc(r.max)}" min="40" max="999" step="1" style="width:100px" aria-label="Largest chest in cm">
+        <span class="muted" style="font-size:13px">cm chest</span>
+        <button type="button" class="btn ghost sm" data-fbrm aria-label="Remove">✕</button></div>`).join("")}</div>
+      <button type="button" class="btn ghost sm" id="szBandAdd">+ Add a size</button>
+      <p class="help" style="margin-top:12px">Leave the last one very high (999) so the biggest size catches everyone above it.</p>`;
+    wire();
+  };
+  const wire=()=>{
+    $("#szShow").onchange=e=>{fit.show=e.target.checked;commit()};
+    $("#szBtn").onchange=e=>{fit.button=e.target.value.trim();commit()};
+    $("#szMode").onchange=e=>{fit.mode=e.target.value;render();commit()};
+    const gridSync=()=>{
+      const t=fit.table=fit.table||{heights:[],weights:[],cells:[]};
+      document.querySelectorAll("#szBox [data-ftw]").forEach(x=>{t.weights[+x.dataset.ftw]=Number(x.value)||0});
+      document.querySelectorAll("#szBox [data-fth]").forEach(x=>{t.heights[+x.dataset.fth]=Number(x.value)||0});
+      document.querySelectorAll("#szBox [data-ftc]").forEach(x=>{const a=x.dataset.ftc.split(".").map(Number);t.cells[a[0]]=t.cells[a[0]]||[];t.cells[a[0]][a[1]]=x.value.trim()});
+      commit();
+    };
+    document.querySelectorAll("#szBox [data-ftw],#szBox [data-fth],#szBox [data-ftc]").forEach(el=>el.onchange=gridSync);
+    $("#szAddRow").onclick=()=>{const t=fit.table;t.heights.push(999);t.cells.push(new Array((t.weights||[]).length).fill(""));render();commit()};
+    $("#szAddCol").onclick=()=>{const t=fit.table;t.weights.push(999);t.cells=(t.cells||[]).map(r=>r.concat(""));render();commit()};
+    document.querySelectorAll("#szBox [data-ftrm]").forEach(b=>b.onclick=()=>{const t=fit.table,i=+b.dataset.ftrm;t.heights.splice(i,1);t.cells.splice(i,1);render();commit()});
+    const bandSync=()=>{fit.sizes=[...document.querySelectorAll("#szBands [data-fb]")].map(r=>({size:$("[data-fbs]",r).value.trim(),max:Math.max(40,Math.min(999,Number($("[data-fbm]",r).value)||0))})).filter(r=>r.size);commit()};
+    $$("#szBands [data-fb]").forEach(r=>{
+      $("[data-fbs]",r).onchange=bandSync;$("[data-fbm]",r).onchange=bandSync;
+      $("[data-fbrm]",r).onclick=()=>{r.remove();bandSync()};
+    });
+    $("#szBandAdd").onclick=()=>{const rows=(fit.sizes||[]).slice();rows.push({size:"New",max:rows.length?Math.min(999,(rows[rows.length-1].max||100)+8):90});fit.sizes=rows;render();commit()};
+  };
+  render();
+}
+
 /* =============== ONLINE STORE EDITOR =============== */
 async function pStore(){
   const {data:row,error}=await db.from("site").select("*").eq("id",1).maybeSingle();
@@ -1905,36 +2167,8 @@ async function pStore(){
     ${acc("bundlesec","Bundles section",`${text("bundles.title","Title")}${text("bundles.text","Text under the title")}<p class="help">Create bundles in <a class="link" href="#/bundles">Bundles</a>. The section only shows when at least one bundle is active.</p>`,"#bundlesSec")}
     ${acc("store","Store section",`${tog("store.show","Show this section")}${text("store.title","Title")}${text("store.text","Text",{area:true})}
       ${img("store.image","Store photo or render",{help:"Leave empty to show the logo instead."})}${text("store.caption","Caption on the photo")}${text("store.button","Button text")}`,"#store")}
-    ${acc("fit","Get my size (fit finder)",`${tog("fit.show","Show it on product pages")}
-      <p class="help" style="margin:-4px 0 12px">A button next to "Size guide". The shopper sets their height and weight with two sliders, a figure changes shape as they drag, and it suggests a size. It only appears on products with more than one size. Nothing about their body leaves their phone.</p>
-      ${text("fit.button","Button wording")}
-      <hr class="sep">
-      <span class="lbl">Size bands</span>
-      <p class="help" style="margin:-2px 0 12px">We estimate the shopper's chest from their height and weight, then find the first band it fits into. Set the <b>largest chest in cm</b> that each size still suits. Use your own garment measurements if you have them — these are a sensible starting point, not gospel.</p>
-      ${sel("fit.mode","How the size is decided",[["table","From a height and weight chart (below)"],["auto","Worked out from height and weight automatically"]])}
-      <div id="fitTableWrap">
-        <span class="lbl">Height and weight chart</span>
-        <p class="help" style="margin:-2px 0 10px">Down the side is height, across the top is weight. Put the size you would give someone in each square. Leave a square empty to let the automatic calculation handle it.</p>
-        <div style="overflow-x:auto"><table class="fitgrid"><thead><tr><th></th>
-          ${(((c.fit||{}).table||{}).weights||[]).map((w,ci)=>`<th><input type="number" data-ftw="${ci}" value="${esc(w)}" min="30" max="400" aria-label="Top weight of this column"><small>kg</small></th>`).join("")}
-          <th><button type="button" class="btn ghost sm" id="ftAddCol" title="Add a weight column">+</button></th></tr></thead>
-          <tbody>${(((c.fit||{}).table||{}).cells||[]).map((row,ri)=>`<tr>
-            <th><input type="number" data-fth="${ri}" value="${esc((((c.fit||{}).table||{}).heights||[])[ri])}" min="100" max="300" aria-label="Top height of this row"><small>cm</small></th>
-            ${row.map((v,ci)=>`<td><input type="text" data-ftc="${ri}.${ci}" value="${esc(v)}" maxlength="8" aria-label="Size for this height and weight"></td>`).join("")}
-            <td><button type="button" class="btn ghost sm" data-ftrmrow="${ri}" title="Remove this row">✕</button></td></tr>`).join("")}
-          <tr><th><button type="button" class="btn ghost sm" id="ftAddRow" title="Add a height row">+</button></th></tr></tbody></table></div>
-        <p class="help" style="margin-top:8px">Each number is the <b>top</b> of its band, so 169 means "up to 169 cm". Leave the last row and column very high (999) to catch everyone above.</p>
-      </div>
-      <hr class="sep">
-      <span class="lbl">If the chart is off (automatic mode)</span>
-      <div id="fitBands">${((c.fit&&c.fit.sizes)||[]).map((r,i)=>`<div class="row" style="flex-wrap:nowrap;margin-bottom:8px" data-fb="${i}">
-        <input type="text" data-fbs value="${esc(r.size)}" maxlength="8" style="width:90px" aria-label="Size name">
-        <span class="muted" style="font-size:13px;white-space:nowrap">fits up to</span>
-        <input type="number" data-fbm value="${esc(r.max)}" min="40" max="999" step="1" style="width:100px" aria-label="Largest chest in cm">
-        <span class="muted" style="font-size:13px">cm chest</span>
-        <button type="button" class="btn ghost sm" data-fbrm aria-label="Remove">✕</button></div>`).join("")}</div>
-      <button type="button" class="btn ghost sm" id="fitBandAdd">+ Add a size</button>
-      <p class="help" style="margin-top:12px">Leave the last one very high (999) so the biggest size catches everyone above it.</p>`,"")}
+    ${acc("fit","Get my size (fit finder)",`<p class="help" style="margin:0 0 12px">The height-and-weight size chart now lives with each collection's size charts, so the main collection and ACE for Her can each have their own.</p>
+      <div class="row"><a class="btn ghost sm" href="#/sizing">Main collection size charts</a><a class="btn ghost sm" href="#/her/sizing">ACE for Her size charts</a></div>`,"")}
     ${acc("checkout","Checkout",`${tog("checkout.require_map","Make the Google Maps pin compulsory")}
       <p class="help" style="margin:-4px 0 12px">Off by default. The pin helps the driver, but forcing it stops people who do not know how to share a pin from finishing their order. A pin that <i>is</i> pasted is still checked for being a real Maps link.</p>
       ${text("checkout.button","Button after the details")}${text("checkout.review_title","Review page title")}${text("checkout.review_text","Review page text")}${text("checkout.confirm_button","Confirm button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
@@ -1975,54 +2209,6 @@ async function pStore(){
         else if(t==="hex"){let v=el.value.trim();if(!v.startsWith("#"))v="#"+v;if(/^#[0-9a-f]{6}$/i.test(v)){set(p,v);const k=$(`[data-p="${p}"][data-t="color"]`);if(k)k.value=v}}
         else set(p,el.value);
       });});
-    /* ---- the height x weight chart ---- */
-    const ftGet=()=>{const t=get("fit.table")||{};return {
-      heights:(t.heights||[]).slice(),weights:(t.weights||[]).slice(),
-      cells:(t.cells||[]).map(r=>r.slice())}};
-    const ftSync=()=>{
-      const t=ftGet();
-      document.querySelectorAll("[data-fth]").forEach(el=>{t.heights[+el.dataset.fth]=Number(el.value)||0});
-      document.querySelectorAll("[data-ftw]").forEach(el=>{t.weights[+el.dataset.ftw]=Number(el.value)||0});
-      document.querySelectorAll("[data-ftc]").forEach(el=>{
-        const [r,c]=el.dataset.ftc.split(".").map(Number);
-        t.cells[r]=t.cells[r]||[];t.cells[r][c]=el.value.trim();
-      });
-      set("fit.table",t);
-    };
-    document.querySelectorAll("[data-fth],[data-ftw],[data-ftc]").forEach(el=>el.onchange=ftSync);
-    const ftAddRow=$("#ftAddRow");
-    if(ftAddRow)ftAddRow.onclick=()=>{const t=ftGet();
-      t.heights.push(999);t.cells.push(new Array((t.weights||[]).length).fill(""));
-      set("fit.table",t);rebuild()};
-    const ftAddCol=$("#ftAddCol");
-    if(ftAddCol)ftAddCol.onclick=()=>{const t=ftGet();
-      t.weights.push(999);t.cells=t.cells.map(r=>r.concat(""));
-      set("fit.table",t);rebuild()};
-    document.querySelectorAll("[data-ftrmrow]").forEach(b=>b.onclick=()=>{
-      const t=ftGet(),i=+b.dataset.ftrmrow;
-      t.heights.splice(i,1);t.cells.splice(i,1);set("fit.table",t);rebuild()});
-    const ftWrap=$("#fitTableWrap"),ftMode=$('#seAcc [data-p="fit.mode"]');
-    const ftToggle=()=>{if(ftWrap)ftWrap.style.opacity=(get("fit.mode")==="auto")?".45":""};
-    if(ftMode)ftMode.addEventListener("change",()=>setTimeout(ftToggle,0));
-    ftToggle();
-    /* ---- size bands for the fit finder ---- */
-    const fbSync=()=>{
-      const rows=[...document.querySelectorAll("#fitBands [data-fb]")].map(r=>({
-        size:$("[data-fbs]",r).value.trim(),
-        max:Math.max(40,Math.min(999,Number($("[data-fbm]",r).value)||0))
-      })).filter(r=>r.size);
-      set("fit.sizes",rows);
-    };
-    $$("#fitBands [data-fb]").forEach(r=>{
-      $("[data-fbs]",r).onchange=fbSync;$("[data-fbm]",r).onchange=fbSync;
-      $("[data-fbrm]",r).onclick=()=>{r.remove();fbSync();};
-    });
-    const fba=$("#fitBandAdd");
-    if(fba)fba.onclick=()=>{
-      const rows=(get("fit.sizes")||[]).slice();
-      rows.push({size:"New",max:(rows.length?Math.min(999,(rows[rows.length-1].max||100)+8):90)});
-      set("fit.sizes",rows);rebuild();
-    };
     /* ---- launch-page sections (ACE for Her and any other) ---- */
     LAUNCHERS.forEach(k=>{
       const msg=$(`[data-lxmsg="${k.slug}"]`);

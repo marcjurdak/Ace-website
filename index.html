@@ -1593,10 +1593,10 @@ function runSearch(q){
   const s=String(q||"").trim().toLowerCase();
   const out=$("#searchOut");
   if(!s){out.innerHTML=`<p class="muted-p">Start typing to find a product.</p>
-    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">${CATS.map(c=>`<button type="button" class="chip" data-scat="${esc(c.slug)}">${esc(c.name)}</button>`).join("")}</div>`;
+    <div class="row" style="flex-wrap:wrap;gap:8px;margin-top:10px">${CATS.filter(catBrowsable).map(c=>`<button type="button" class="chip" data-scat="${esc(c.slug)}">${esc(c.name)}</button>`).join("")}</div>`;
     out.querySelectorAll("[data-scat]").forEach(b=>b.onclick=()=>{closeAll(false);navigate("/"+b.dataset.scat)});
     return}
-  const hits=PRODUCTS.filter(p=>[p.name,p.desc,catLabel(p.cat),(p.colors||[]).map(c=>c.n).join(" ")].join(" ").toLowerCase().includes(s)).slice(0,12);
+  const hits=PRODUCTS.filter(p=>!pLocked(p)&&[p.name,p.desc,catLabel(p.cat),(p.colors||[]).map(c=>c.n).join(" ")].join(" ").toLowerCase().includes(s)).slice(0,12);
   out.innerHTML=hits.length?`<div class="fav-list">${hits.map(p=>{const c=p.colors[0];
       return `<button type="button" class="fav-row as-btn" data-sopen="${esc(p.slug)}"><span class="fav-img"><img src="${esc((c&&c.imgs[0])||"")}" alt="" loading="lazy"></span>
         <span class="fav-meta"><span class="fav-name">${esc(p.name)}</span><span class="muted" style="font-size:12.5px">${esc(catLabel(p.cat))}</span>
@@ -1887,6 +1887,7 @@ function applyRoute(){
   const shopSection=document.querySelector("#shop");
   if(r.v==="product"){
     const p=PRODUCTS.find(x=>x.slug===r.slug);
+    if(p&&pLocked(p)){navigate("/"+secOfCat(p.cat),true);return}
     if(p){openPdp(p,cardColor[p.id]||0,true);return}
     if(PRODUCTS.length){navigate("/",true);return}
     return; // products still loading
@@ -1901,24 +1902,47 @@ function applyRoute(){
   }else if(r.v==="cat"){
     const known=[...CATS.map(c=>c.slug),"sale"];
     if(CATS.length&&!known.includes(r.slug)){navigate("/",true);return}
-    // A collection with nothing in it yet gets its own page rather than an empty
-    // grid, so it reads as deliberate instead of broken.
-    const teaseCat=CATS.find(c=>c.slug===r.slug);
-    if(teaseCat&&PRODUCTS.length&&!PRODUCTS.some(p=>p.cat===r.slug)&&teaseCat.teaser&&teaseCat.teaser.title){
-      cat=r.slug;showOnly(["#teaserPage"]);renderTeaser(teaseCat);
-      setMeta(`${teaseCat.name} — ${seo.title||"ACE"}`,(teaseCat.teaser.text||"").slice(0,150));
+    const row=CATS.find(c=>c.slug===r.slug);
+    const area=r.slug==="sale"?"":secOfCat(r.slug);
+    const areaRow=area?CATS.find(c=>c.slug===area&&c.is_section):null;
+
+    // An area behind its coming-soon page shows that page and nothing else. A
+    // link straight to one of its categories lands on the same page, so an
+    // unreleased collection cannot be opened by guessing or sharing a URL.
+    if(area&&secLocked(area)){
+      if(r.slug!==area){navigate("/"+area,true);return}
+      curSec="";cat="all";showOnly(["#teaserPage"]);renderTeaser(areaRow);
+      setMeta(`${areaRow.name} — ${seo.title||"ACE"}`,((areaRow.teaser||{}).text||"").slice(0,150));
       buildFilters();return;
     }
-    cat=r.slug;showOnly(["#shop"]);
+
+    // A collection with nothing in it yet gets its own page rather than an empty
+    // grid, so it reads as deliberate instead of broken. That covers a live area
+    // whose products are not up yet, as well as an ordinary empty category.
+    const emptyHere=row&&PRODUCTS.length&&!PRODUCTS.some(p=>row.is_section?secOfCat(p.cat)===row.slug:p.cat===row.slug);
+    if(row&&emptyHere&&row.teaser&&row.teaser.title){
+      curSec=row.is_section?"":secOfCat(r.slug);cat=row.is_section?"all":r.slug;
+      showOnly(["#teaserPage"]);renderTeaser(row);
+      setMeta(`${row.name} — ${seo.title||"ACE"}`,(row.teaser.text||"").slice(0,150));
+      buildFilters();return;
+    }
+
+    // Opening an area shows everything in it; opening one of its categories
+    // shows that category inside the area.
+    curSec=area;cat=(row&&row.is_section)?"all":r.slug;
+    showOnly(["#shop"]);
     $("#catRows").hidden=true;$("#grid").hidden=false;cardsToGrid();
-    $("#shopTitle").textContent=catLabel(r.slug);
-    $("#catKicker").hidden=false;$("#catKicker").textContent=(C.collection&&C.collection.title)||"The collection";
+    const title=(row&&row.is_section)?row.name:catLabel(r.slug);
+    $("#shopTitle").textContent=title;
+    $("#catKicker").hidden=false;
+    $("#catKicker").textContent=(area&&!(row&&row.is_section))?(areaRow?areaRow.name:"")
+      :(C.collection&&C.collection.title)||"The collection";
     const ct=r.slug==="sale"?((C.collection&&C.collection.sale_text)||""):"";
     $("#catText").hidden=!ct;$("#catText").textContent=ct;
     buildFilters();renderGrid();
-    setMeta(`${catLabel(r.slug)} — ${seo.title||"ACE"}`,seo.description);
+    setMeta(`${title} — ${seo.title||"ACE"}`,seo.description);
   }else{
-    cat="all";showOnly([".hero","#shop","#storySec","#bundlesSec",".details","#store"]);
+    curSec="";cat="all";showOnly([".hero","#shop","#storySec","#bundlesSec",".details","#store"]);
     $("#shopTitle").textContent=(C.collection&&C.collection.title)||"The collection";
     $("#catKicker").hidden=true;$("#catText").hidden=true;
     if(PRODUCTS.length){buildFilters();renderGrid();buildCatRows()}
@@ -1969,6 +1993,26 @@ try{const cached=JSON.parse(localStorage.getItem("ace-site")||"null");if(cached&
 
 let PRODUCTS=[];
 let CATS=[];
+/* ---- areas of the shop ("sections") ---------------------------------------
+   ACE for Her is an area of its own: its own categories, products and size
+   chart, kept apart from the main collection. While its coming-soon switch is
+   on, nothing inside it is reachable — not a category, not a product, not a
+   direct link to one. The area's own page shows the coming-soon page instead. */
+const secRootList=()=>CATS.filter(c=>c.is_section);
+const secOfCat=k=>{const c=CATS.find(x=>x.slug===k);return c?(c.is_section?c.slug:(c.section||"")):""};
+const catsIn=sec=>CATS.filter(c=>!c.is_section&&(c.section||"")===(sec||""));
+const secLocked=sec=>{if(!sec)return false;const r=CATS.find(x=>x.slug===sec&&x.is_section);return !!(r&&r.coming_soon)};
+const pLocked=p=>secLocked(secOfCat(p.cat));
+/* The categories sitting inside an area that is still behind its coming-soon
+   page. loadProducts leaves them out of the request, so an unreleased
+   collection never reaches the browser at all — not in the page, not in the
+   network tab. A category browsable right now passes this test. */
+const lockedCats=()=>CATS.filter(c=>!c.is_section&&secLocked(c.section||"")).map(c=>c.slug);
+const catBrowsable=c=>c.is_section?!c.coming_soon:!secLocked(c.section||"");
+/* Second line of defence: if the categories arrive after the products did
+   (a slow connection), drop anything that turned out to be locked. */
+function applyLocks(){if(CATS.length)PRODUCTS=PRODUCTS.filter(p=>!pLocked(p))}
+let curSec="";   // which area is being browsed; "" is the main collection
 const saleLabel=()=>(C.collection&&C.collection.sale_label)||"Discounts";
 const catLabel=k=>k==="all"?((C.collection&&C.collection.all_label)||"All"):k==="sale"?saleLabel():((CATS.find(c=>c.slug===k)||{}).name||k);
 function skuOf(p,c,size){return (p.id.slice(0,8)+"-"+String(c?c.n:"").toLowerCase().replace(/\W+/g,"")+"-"+String(size||"").toLowerCase().replace(/\W+/g,""))}
@@ -1991,7 +2035,7 @@ function logEvent(name,params){
 }
 function track(name,params){logEvent(name,params);try{window.aceAnalytics&&window.aceAnalytics.track(name,params)}catch(e){}}
 function bagItems(){return bag.map(l=>{const {p,c}=lineInfo(l);return p&&c?gaItem(p,c,l.size,l.qty):null}).filter(Boolean)}
-function trackList(){const vis=PRODUCTS.filter(p=>cat==="all"||(cat==="sale"?p.sale:p.cat===cat));if(!vis.length)return;
+function trackList(){const vis=PRODUCTS.filter(p=>secOfCat(p.cat)===curSec&&!pLocked(p)&&(cat==="all"||(cat==="sale"?p.sale:p.cat===cat)));if(!vis.length)return;
   track("view_item_list",{item_list_id:cat,item_list_name:catLabel(cat),items:vis.map((p,i)=>gaItem(p,p.colors[cardColor[p.id]||0],null,1,i))})}
 function priceHtml(p){return p.sale?`<span class="now">${money(p.price)}</span><s>${money(p.was)}</s>`:money(p.price)}
 const $=s=>document.querySelector(s);
@@ -2080,16 +2124,28 @@ function fitChest(cm,kg){
   const h=Math.max(1.3,cm/100);
   return Math.round(15.28*Math.sqrt(kg/h)*10)/10;
 }
+/* The chart for this product's area. ACE for Her keeps its own, so women's
+   sizing never follows the men's numbers; it falls back to the main chart. */
+function fitCfg(p){
+  const base=C.fit||{};
+  const sec=p?secOfCat(p.cat):"";
+  if(sec){
+    const r=CATS.find(c=>c.slug===sec&&c.is_section);
+    if(r&&r.fit&&Object.keys(r.fit).length)return Object.assign({},base,r.fit);
+  }
+  return base;
+}
 /* Which size that chest falls into, using the bands set in the admin. */
-function fitBands(){
-  const f=(C.fit&&Array.isArray(C.fit.sizes)&&C.fit.sizes.length)?C.fit.sizes:
+function fitBands(F){
+  F=F||C.fit||{};
+  const f=(F&&Array.isArray(F.sizes)&&F.sizes.length)?F.sizes:
     [{size:"XS",max:86},{size:"S",max:93},{size:"M",max:100},{size:"L",max:108},{size:"XL",max:117},{size:"XXL",max:999}];
   return f.map(x=>({size:String(x.size||"").trim(),max:Number(x.max)||0})).filter(x=>x.size);
 }
 /* Works out the size, honouring how loose they like it and what is actually
    in stock for this product. */
-function fitTableLookup(cm,kg){
-  const t=(C.fit&&C.fit.table)||null;
+function fitTableLookup(F,cm,kg){
+  const t=(F&&F.table)||null;
   if(!t||!Array.isArray(t.cells)||!t.cells.length)return null;
   const hs=t.heights||[],ws=t.weights||[];
   let ri=hs.findIndex(h=>cm<=Number(h));if(ri<0)ri=t.cells.length-1;
@@ -2099,10 +2155,11 @@ function fitTableLookup(cm,kg){
   return v?String(v).trim()||null:null;
 }
 function fitRecommend(p,colour,cm,kg,feel){
-  const bands=fitBands(), chest=fitChest(cm,kg);
+  const F=fitCfg(p);
+  const bands=fitBands(F), chest=fitChest(cm,kg);
   // The grid wins when it is switched on and the square has a size in it.
-  const useTable=((C.fit&&C.fit.mode)||"table")==="table";
-  const fromTable=useTable?fitTableLookup(cm,kg):null;
+  const useTable=((F&&F.mode)||"table")==="table";
+  const fromTable=useTable?fitTableLookup(F,cm,kg):null;
   let i;
   if(fromTable){
     const norm=x=>String(x).toUpperCase().replace(/\s+/g,"");
@@ -2271,13 +2328,19 @@ let cat="all";
 const filters=$("#filters");
 function buildFilters(){
   filters.innerHTML="";
-  const withProducts=CATS.map(c=>c.slug).filter(k=>PRODUCTS.some(p=>p.cat===k));
-  const cats=["all",...withProducts,...(PRODUCTS.some(p=>p.sale)?["sale"]:[])];
+  // The chips above the grid describe the area being browsed.
+  const here=catsIn(curSec).map(c=>c.slug).filter(k=>PRODUCTS.some(p=>p.cat===k&&!pLocked(p)));
+  const saleHere=PRODUCTS.some(p=>p.sale&&secOfCat(p.cat)===curSec&&!pLocked(p));
+  const cats=["all",...here,...(saleHere?["sale"]:[])];
   if(!cats.includes(cat))cat="all";
-  // Collections that have no products yet are destinations, not filters: they go
-  // in the menu, after a divider, but never in the chips above the grid.
-  const soon=CATS.filter(c=>c.always_show&&!withProducts.includes(c.slug)).map(c=>c.slug);
-  buildMenu(cats,soon);
+  // The menu is global: the main collection, plus every area. An area that is
+  // live is an ordinary entry; one behind its coming-soon page gets the tag.
+  const mainWith=catsIn("").map(c=>c.slug).filter(k=>PRODUCTS.some(p=>p.cat===k));
+  const mainSale=PRODUCTS.some(p=>p.sale&&!secOfCat(p.cat));
+  const mainSoon=catsIn("").filter(c=>c.always_show&&!mainWith.includes(c.slug)).map(c=>c.slug);
+  const openAreas=secRootList().filter(c=>!c.coming_soon).map(c=>c.slug);
+  const shutAreas=secRootList().filter(c=>c.coming_soon).map(c=>c.slug);
+  buildMenu(["all",...mainWith,...(mainSale?["sale"]:[]),...openAreas],[...mainSoon,...shutAreas]);
   cats.forEach(k=>{const b=document.createElement("button");b.className="chip"+(k==="sale"?" sale-chip":"");b.dataset.k=k;b.textContent=catLabel(k);b.setAttribute("aria-pressed",k===cat);b.onclick=()=>navigate(k==="all"?"/":"/"+k);filters.appendChild(b)});
 }
 function setCat(k){cat=k;[...filters.children].forEach((c,i)=>{const on=c.dataset.k===k;c.setAttribute("aria-pressed",on);if(on)filters.scrollTo({left:c.offsetLeft-filters.offsetLeft-20,behavior:"smooth"})});$$menu().forEach(b=>b.setAttribute("aria-current",b.dataset.k===k));renderGrid()}
@@ -2311,7 +2374,7 @@ function buildGrid(){
   gridLoaded=true;Object.keys(cardEls).forEach(k=>delete cardEls[k]);
   if(!PRODUCTS.length){g.innerHTML=`<p class="grid-msg">${esc((C.collection&&C.collection.empty_text)||"New pieces are coming soon.")}</p>`;return}
   PRODUCTS.forEach(p=>{
-    const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";
+    const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";el.dataset.sec=secOfCat(p.cat);el.dataset.locked=pLocked(p)?"1":"0";
     el.innerHTML=`<button type="button" class="fav-heart" data-fav="${p.id}" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3S3.8 15.4 3.8 9.9A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 8.2 2.3c0 5.5-8.2 10.4-8.2 10.4z"/></svg></button><button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
       <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${p.coming_soon?"":priceHtml(p)}</span></div><div class="sub"></div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
@@ -2342,7 +2405,7 @@ function watchFade(row){
 }
 function buildCatRows(){
   const box=$("#catRows");if(!box)return;
-  const order=CATS.length?CATS.map(c=>c.slug):[...new Set(PRODUCTS.map(p=>p.cat))];
+  const order=CATS.length?catsIn("").map(c=>c.slug):[...new Set(PRODUCTS.map(p=>p.cat))];
   box.innerHTML="";let any=false;
   order.forEach(slug=>{
     const items=PRODUCTS.filter(p=>p.cat===slug);
@@ -2365,7 +2428,10 @@ function buildCatRows(){
   box.hidden=!any;$("#grid").hidden=any;
   if(!any){cardsToGrid();$("#grid").hidden=false}
 }
-function renderGrid(){Object.values(cardEls).forEach(el=>{el.hidden=!(cat==="all"||(cat==="sale"?el.dataset.sale==="1":el.dataset.cat===cat))});if(gridLoaded&&PRODUCTS.length&&lastListed!==cat){lastListed=cat;trackList()}}
+function renderGrid(){Object.values(cardEls).forEach(el=>{
+    const here=(el.dataset.sec||"")===curSec&&el.dataset.locked!=="1";
+    el.hidden=!(here&&(cat==="all"||(cat==="sale"?el.dataset.sale==="1":el.dataset.cat===cat)))});
+  if(gridLoaded&&PRODUCTS.length&&lastListed!==cat+"|"+curSec){lastListed=cat+"|"+curSec;trackList()}}
 let lastListed=null;
 
 /* overlays */
@@ -2410,8 +2476,12 @@ function pushRecent(p){try{const r=JSON.parse(localStorage.getItem("ace-recent")
 function recentProducts(exclude){try{return JSON.parse(localStorage.getItem("ace-recent")||"[]").filter(id=>id!==exclude).map(id=>PRODUCTS.find(p=>p.id===id)).filter(Boolean).slice(0,8)}catch(e){return[]}}
 function relatedFor(p,exclude){
   const ex=new Set([p.id,...(exclude||[])]);
-  const picked=(p.related||[]).map(id=>PRODUCTS.find(x=>x.id===id)).filter(x=>x&&!ex.has(x.id));
-  const rest=PRODUCTS.filter(x=>!ex.has(x.id)&&!picked.includes(x)).sort((a,b)=>(a.cat===p.cat)-(b.cat===p.cat));
+  const picked=(p.related||[]).map(id=>PRODUCTS.find(x=>x.id===id)).filter(x=>x&&!ex.has(x.id)&&!pLocked(x));
+  // Filling out the row only ever reaches for items from the same area, so a
+  // men's product never suggests an ACE for Her piece, or the other way round.
+  const here=secOfCat(p.cat);
+  const rest=PRODUCTS.filter(x=>!ex.has(x.id)&&!picked.includes(x)&&!pLocked(x)&&secOfCat(x.cat)===here)
+    .sort((a,b)=>(a.cat===p.cat)-(b.cat===p.cat));
   return [...picked,...rest].slice(0,8);
 }
 function miniCard(x){const r=ratingOf(x.id);const c=x.colors[0];
@@ -2430,6 +2500,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#dlg").hidden)$
 
 /* ---------- product page ---------- */
 function openPdp(p,ci,fromRoute){
+  // Belt and braces: a product in an area that is still behind its coming-soon
+  // page is never shown, whichever path got us here.
+  if(p&&pLocked(p)){navigate("/"+secOfCat(p.cat),true);return}
   const fh=document.getElementById("fitHint");if(fh){fh.hidden=true;fh.innerHTML=""}
   ci=ci||0;
   if(!fromRoute&&p.slug&&location.pathname!=="/p/"+p.slug)history.pushState({},"","/p/"+p.slug);
@@ -2471,9 +2544,10 @@ function renderPdp(){
   else if(cur.size){const v=c.stock?c.stock[cur.size]:undefined;if(v!==undefined&&v!==null&&v!==""&&Number(v)>0&&Number(v)<=Math.max(1,parseInt(SETTINGS.low_stock_threshold)||3))msg=`Only ${Number(v)} left in size ${cur.size}.`}
   $("#pxStock").textContent=msg;
   // the fit finder only makes sense when there is more than one size to choose from
-  const fitOn=(C.fit?C.fit.show!==false:true)&&!p.coming_soon&&(p.sizes||[]).length>1;
+  const PF=fitCfg(p);
+  const fitOn=(PF?PF.show!==false:true)&&!p.coming_soon&&(p.sizes||[]).length>1;
   $("#fitBtn").hidden=!fitOn;
-  $("#fitBtn").textContent=(C.fit&&C.fit.button)||"Get my size";
+  $("#fitBtn").textContent=(PF&&PF.button)||"Get my size";
   if(!fitOn)$("#fitHint").hidden=true;
   $("#qVal").textContent=cur.qty;
   const soon=!!p.coming_soon;
@@ -2932,10 +3006,14 @@ function setContact(){
 }
 /* data */
 async function loadProducts(silent){
-  const {data,error}=await db.from("products").select("id,slug,name,category,price,sale_price,description,sizes,colors,position,related,fit,material,care,benefits,size_guide_id,coming_soon,coming_soon_note").eq("active",true).order("position",{ascending:true});
+  let q=db.from("products").select("id,slug,name,category,price,sale_price,description,sizes,colors,position,related,fit,material,care,benefits,size_guide_id,coming_soon,coming_soon_note").eq("active",true).order("position",{ascending:true});
+  // Leave an unreleased area's products out of the request entirely.
+  const shut=lockedCats();
+  if(shut.length)q=q.not("category","in","("+shut.map(s=>'"'+s+'"').join(",")+")");
+  const {data,error}=await q;
   if(error){if(!silent)throw error;return}
   PRODUCTS=(data||[]).map(mapProduct).filter(p=>p.colors.length);
-  cleanBag();updateCount();
+  applyLocks();cleanBag();updateCount();
 }
 async function loadRatings(){
   const {data}=await db.from("reviews").select("product_id,rating").eq("status","approved").limit(5000);
@@ -2946,7 +3024,7 @@ async function loadBundles(){
   BUNDLES=(data||[]).map(b=>({...b,price:Number(b.price),all:(b.items||[]).length,items:(b.items||[]).filter(i=>PRODUCTS.some(p=>p.id===i.product_id))})).filter(b=>b.items.length&&b.items.length===b.all);
 }
 async function loadCategories(){
-  const {data}=await db.from("categories").select("slug,name,position,always_show,teaser").order("position",{ascending:true});
+  const {data}=await db.from("categories").select("slug,name,position,always_show,teaser,is_section,section,coming_soon,fit").order("position",{ascending:true});
   CATS=data||[];
 }
 async function loadSettings(){
@@ -3029,7 +3107,14 @@ window.aceEndBoot=function(){
   // up for ages. So: release as soon as the settings land, or after 2.5s anyway.
   const content=loadContent();
   Promise.race([content.catch(()=>{}),new Promise(r=>setTimeout(r,2500))]).then(window.aceEndBoot);
-  try{await Promise.all([loadProducts(),loadSettings(),content,loadCategories(),loadRatings(),loadGuides(),loadWelcome()]);
+  // Categories come first, because they decide which products are even asked
+  // for. It is a five-row query and the opening screen is showing anyway, so
+  // this costs nothing visible — but if it does stall, carry on after 1.5s and
+  // let applyLocks() catch up rather than hold the whole shop up.
+  const cats=loadCategories();
+  await Promise.race([cats.catch(()=>{}),new Promise(r=>setTimeout(r,1500))]);
+  try{await Promise.all([cats.catch(()=>{}),loadProducts(),loadSettings(),content,loadRatings(),loadGuides(),loadWelcome()]);
+    applyLocks();cleanBag();updateCount();
     wireAccounts();wireHeaderExtras();wireFit();paintFavCount();paintFavHearts();await refreshMe();await loadBundles();buildFilters();buildGrid();renderBundlesHome();applyRoute();paintFavCount();paintFavHearts()}
   catch(e){console.error(e);$("#grid").innerHTML=`<p class="grid-msg">We couldn't load the collection. Refresh the page to try again.</p>`}
   window.aceEndBoot();
