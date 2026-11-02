@@ -742,14 +742,15 @@ section.co-sec{padding:28px 0 0}
 .fit-hint b{color:var(--fg)}
 .fit[hidden]{display:none}
 .fit{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.55);
-  display:grid;place-items:end center;padding:0}
+  display:grid;place-items:end center;padding:0;
+  padding-top:env(safe-area-inset-top,0px)}
 @media(min-width:700px){.fit{place-items:center}}
-.fit-box{background:var(--bg);width:min(560px,100%);max-height:94vh;overflow:auto;
-  border:1px solid var(--line)}
+.fit-box{background:var(--bg);width:min(560px,100%);overflow:auto;
+  max-height:90vh;max-height:90dvh;border:1px solid var(--line)}
 .fit-head{display:flex;align-items:center;justify-content:space-between;
   padding:18px var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}
 .fit-head h3{font-family:var(--display);text-transform:uppercase;font-size:16px;letter-spacing:.06em}
-.fit-body{padding:var(--pad) var(--pad) 26px}
+.fit-body{padding:var(--pad) var(--pad) calc(26px + env(safe-area-inset-bottom,0px))}
 /* NOT var(--studio): the product-photo background is set to black on this shop,
    and a black figure on it is invisible. This tint is always derived from the
    page's own text colour, so the figure contrasts in light and dark alike. */
