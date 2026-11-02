@@ -258,6 +258,7 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:16px 0 12px}
       <a href="#/products" data-r="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3l-5 4 3 3 2-1.5V21h8V8.5L18 10l3-3-5-4c0 2-2 3-4 3S8 5 8 3z"/></svg>Products</a>
       <a href="#/guides" data-r="guides" style="padding-left:38px;font-size:13px">Size guides</a>
       <a href="#/categories" data-r="categories" style="padding-left:38px;font-size:13px">Categories</a>
+      <a href="#/collection/ace-for-her" data-r="collection" style="padding-left:38px;font-size:13px">ACE for Her</a>
       <a href="#/customers" data-r="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Customers</a>
       <a href="#/discounts" data-r="discounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8" r="1.5"/></svg>Discounts</a>
       <a href="#/influencers" data-r="influencers" style="padding-left:38px;font-size:13px">Influencers</a>
@@ -444,7 +445,8 @@ async function router(){
     else if(r==="analytics")await pAnalytics();
     else if(r==="orders"&&parts[1])await pOrder(parts[1]);
     else if(r==="orders")await pOrders();
-    else if(r==="products"&&parts[1])await pProduct(parts[1]);
+    else if(r==="collection"&&parts[1])await pCollection(decodeURIComponent(parts[1]));
+    else if(r==="products"&&parts[1])await pProduct(parts[1],parts[2]?decodeURIComponent(parts[2]):"");
     else if(r==="products")await pProducts();
     else if(r==="categories")await pCategories();
     else if(r==="guides")await pGuides();
@@ -813,12 +815,13 @@ async function pProducts(){
   draw();
   $("#pQ").oninput=e=>{pF.q=e.target.value;draw()};$("#pCat").onchange=e=>{pF.cat=e.target.value;draw()};$("#pSt").onchange=e=>{pF.st=e.target.value;draw()};
 }
-async function pProduct(id){
+async function pProduct(id,presetCat){
   await Promise.all([PRODUCTS.length?null:loadProducts(),loadCategories()]);
   await loadGuidesA();
   const isNew=id==="new";const p=isNew?null:PRODUCTS.find(x=>x.id===id);
   if(!isNew&&!p){V.innerHTML=`<a class="back" href="#/products">← Products</a><div class="empty">This product wasn't found.</div>`;return}
-  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:((CATEGORIES[0]||{}).slug||""),coming_soon:p?!!p.coming_soon:false,coming_soon_note:p?p.coming_soon_note||"":"",fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
+  const preset=presetCat&&CATEGORIES.some(c=>c.slug===presetCat)?presetCat:"";
+  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:(preset||(CATEGORIES[0]||{}).slug||""),coming_soon:p?!!p.coming_soon:false,coming_soon_note:p?p.coming_soon_note||"":"",fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
     colors:p?JSON.parse(JSON.stringify(p.colors||[])):[{name:"Black",hex:"#000000",images:[],sold_out:false,stock:{}}]};
   let dirty=false;const mark=()=>{dirty=true};
   leaveGuard=()=>!dirty||confirm("You have unsaved changes. Leave without saving?");
@@ -1330,6 +1333,98 @@ function editGuide(g){
 
 /* =============== CATEGORIES =============== */
 const slugify=s=>s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)||"category";
+/* =============== ONE COLLECTION (launch page + its products) =============== */
+async function pCollection(slug){
+  await Promise.all([loadCategories(),loadProducts()]);
+  const c=CATEGORIES.find(x=>x.slug===slug);
+  if(!c){V.innerHTML=`<a class="back" href="#/categories">← Categories</a><div class="empty">That collection wasn't found. You can create it in <a class="link" href="#/categories">Categories</a>.</div>`;return}
+  const t=c.teaser||{};
+  const mine=PRODUCTS.filter(p=>p.category===c.slug);
+  const live=mine.length>0;
+
+  V.innerHTML=`<div class="pagehead"><h1>${esc(c.name)}</h1>
+      <a class="btn sm" href="#/products/new/${encodeURIComponent(c.slug)}">Add a product</a></div>
+    <p class="help" style="margin:-8px 0 16px">${live
+      ? `This collection has products, so visitors see them normally and the launch page below is not used. It comes back on its own if the collection is ever empty again.`
+      : `This collection has no products yet, so visitors see the launch page below instead of an empty grid. The moment you add a product, the launch page stands down and the collection behaves like any other.`}</p>
+
+    <div class="card" style="max-width:760px">
+      <h2 style="margin-bottom:4px">The launch page</h2>
+      <p class="help" style="margin-bottom:16px">This is what people see at <b>${esc(location.origin.replace(/^https?:\/\//,""))}/${esc(c.slug)}</b> while the collection is empty.</p>
+
+      <label class="chk"><input type="checkbox" id="clShow" ${c.always_show?"checked":""}><span>Show this collection in the website menu</span></label>
+      <p class="help" style="margin:6px 0 18px">On: it appears at the bottom of the menu with a small tag next to it. Off: it is hidden from visitors until it has products.</p>
+
+      <div class="imgpick" style="margin-bottom:18px">
+        <div class="pv wide" id="clPv" style="background-image:${t.image?`url('${esc(t.image)}')`:"none"}"></div>
+        <div><span class="lbl">Main photo</span>
+          <div class="row"><label class="btn ghost sm upl">Upload<input type="file" accept="image/*" id="clImg"></label>
+            ${t.image?`<button class="btn ghost sm" type="button" id="clImgClear">Remove</button>`:""}</div>
+          <small class="help">Fills the top of the page, full width, with the words over it. A tall or square photo of someone training works best — it is cropped to the screen. Light subject on a darker background reads best, because the text sits on top in white.</small></div>
+      </div>
+
+      <div class="grid2">
+        <label class="fld"><span>Small label above the title</span><input type="text" id="cl_kicker" value="${esc(t.kicker||"")}" maxlength="40" placeholder="Coming soon"></label>
+        <label class="fld"><span>Tag next to it in the menu</span><input type="text" id="cl_pill" value="${esc(t.pill||"")}" maxlength="12" placeholder="Soon"></label>
+      </div>
+      <label class="fld"><span>Big title</span><input type="text" id="cl_title" value="${esc(t.title||"")}" maxlength="60" placeholder="ACE FOR HER"></label>
+      <label class="fld"><span>One line over the photo</span><input type="text" id="cl_lead" value="${esc(t.lead||"")}" maxlength="120" placeholder="Built for athletes. All of them."><small class="help">Short and strong. It sits under the title on the photo.</small></label>
+      <label class="fld"><span>The paragraph underneath</span><textarea id="cl_text" rows="5" maxlength="900" placeholder="Tell them what is coming and why it matters.">${esc(t.text||"")}</textarea><small class="help">Leave an empty line between paragraphs.</small></label>
+      <label class="fld"><span>When it lands</span><input type="text" id="cl_date" value="${esc(t.date||"")}" maxlength="60" placeholder="First drop — spring 2026"><small class="help">A month or a season, never an exact day. A date that slips and sits there makes the page look abandoned.</small></label>
+
+      <hr class="sep">
+      <span class="lbl">The sign-up</span>
+      <p class="help" style="margin:-2px 0 12px">Everyone who signs up lands in <a class="link" href="#/waitlist">Early access</a>, with their answer to your question.</p>
+      <label class="fld"><span>Sign-up line</span><input type="text" id="cl_cta" value="${esc(t.cta||"")}" maxlength="140" placeholder="Join the list and get 15% off the first drop."><small class="help">A real offer works far better than "be the first to know".</small></label>
+      <div class="grid2">
+        <label class="fld"><span>Button</span><input type="text" id="cl_button" value="${esc(t.button||"")}" maxlength="30" placeholder="Notify me"></label>
+        <label class="fld"><span>Message after they sign up</span><input type="text" id="cl_thanks" value="${esc(t.thanks||"")}" maxlength="120" placeholder="You're on the list."></label>
+      </div>
+      <label class="fld"><span>Question you ask them</span><input type="text" id="cl_ask" value="${esc(t.ask||"")}" maxlength="80" placeholder="What do you want first?"><small class="help">Leave empty to ask nothing.</small></label>
+      <label class="fld"><span>Answers they can pick</span><input type="text" id="cl_options" value="${esc((t.options||[]).join(", "))}" placeholder="Leggings, Tops, Shorts, Sets"><small class="help">Separate with commas.</small></label>
+
+      <div class="row" style="margin-top:18px">
+        <button class="btn" type="button" id="clSave">Save the launch page</button>
+        <a class="btn ghost sm" href="/${esc(c.slug)}" target="_blank" rel="noopener">See the page</a>
+        <span class="muted" id="clMsg" style="font-size:13px"></span>
+      </div>
+    </div>
+
+    <div class="card" style="max-width:760px;margin-top:18px">
+      <h2 style="margin-bottom:4px">Products in ${esc(c.name)}</h2>
+      <p class="help" style="margin-bottom:14px">${mine.length
+        ? `${mine.length} product${mine.length===1?"":"s"}. Adding the first one takes the launch page down.`
+        : `Nothing here yet. Add the first product when the collection is ready.`}</p>
+      ${mine.map(p=>`<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line);flex-wrap:nowrap">
+        <div class="pv" style="width:40px;height:50px;border-radius:4px;background:var(--studio) center/cover no-repeat;background-image:${((p.colors||[])[0]||{}).images&&p.colors[0].images[0]?`url('${esc(p.colors[0].images[0])}')`:"none"}"></div>
+        <a class="link" style="flex:1" href="#/products/${esc(p.id)}">${esc(p.name)}</a>
+        <span class="muted nowrap" style="font-size:12.5px">${p.active?"Active":"Hidden"}</span>
+      </div>`).join("")}
+      <a class="btn ghost sm" style="margin-top:14px" href="#/products/new/${encodeURIComponent(c.slug)}">Add a product to ${esc(c.name)}</a>
+    </div>`;
+
+  let img=t.image||"";
+  const msg=$("#clMsg");
+  const save=async()=>{
+    const g=id=>{const e=$("#cl_"+id);return e?e.value.trim():""};
+    const teaser={kicker:g("kicker"),pill:g("pill"),title:g("title"),lead:g("lead"),text:g("text"),
+      date:g("date"),cta:g("cta"),button:g("button"),thanks:g("thanks"),ask:g("ask"),
+      options:g("options").split(",").map(x=>x.trim()).filter(Boolean),image:img};
+    const {error}=await db.from("categories").update({teaser,always_show:$("#clShow").checked}).eq("id",c.id);
+    if(error){msg.style.color="var(--bad)";msg.textContent="Couldn't save: "+error.message;return}
+    c.teaser=teaser;c.always_show=$("#clShow").checked;
+    msg.style.color="";msg.textContent="Saved";setTimeout(()=>{msg.textContent=""},2500);
+  };
+  $("#clSave").onclick=save;
+  $("#clShow").onchange=save;
+  $("#clImg").onchange=async()=>{const f=$("#clImg").files[0];if(!f)return;
+    const lab=$("#clImg").closest("label");lab.classList.add("uploading");lab.firstChild.textContent="Uploading…";
+    try{img=await uploadImage(f,{max:2000});$("#clPv").style.backgroundImage=`url('${img}')`;await save();pCollection(slug)}
+    catch(e){toast("Upload failed: "+(e.message||e),true);lab.classList.remove("uploading");lab.firstChild.textContent="Upload"}};
+  const clr=$("#clImgClear");
+  if(clr)clr.onclick=async()=>{img="";await save();pCollection(slug)};
+}
+
 async function pCategories(){
   await Promise.all([loadCategories(),loadProducts()]);
   const count=s=>PRODUCTS.filter(p=>p.category===s).length;
