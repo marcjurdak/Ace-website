@@ -1721,6 +1721,11 @@ function editDiscount(d,presetInfluencer){
 async function pStore(){
   const {data:row,error}=await db.from("site").select("*").eq("id",1).maybeSingle();
   if(error)throw error;
+  await loadCategories();
+  // Collections with a launch page (ACE for Her and any future one) get their own
+  // section here. Their wording lives on the category, not in the site content,
+  // so each one saves itself rather than going through Publish.
+  const LAUNCHERS=CATEGORIES.filter(x=>x.always_show);
   const D=window.ACE_DEFAULT_CONTENT;
   const pubRaw=(row&&row.published)||{};
   let c=window.aceMerge(D,(row&&Object.keys(row.draft||{}).length)?row.draft:pubRaw);
@@ -1769,6 +1774,37 @@ async function pStore(){
       ${range("coming_soon.logo_opacity","Watermark strength",0,60,1,"%")}
       ${img("coming_soon.background","Background photo (optional)",{help:"Leave empty for a plain background."})}
       ${range("coming_soon.overlay","Darken the photo",0,95,1,"%")}`,"")}
+    ${LAUNCHERS.map(k=>acc("lx_"+k.slug,k.name,`
+      <p class="help" style="margin:-2px 0 14px">The page visitors see at <b>/${esc(k.slug)}</b> while this collection has no products. It has its own Save button below — it does not wait for Publish.</p>
+      <div class="imgpick"><div class="pv wide" data-lxpv="${esc(k.slug)}" style="background-image:${(k.teaser||{}).image?`url('${esc(k.teaser.image)}')`:"none"}"></div>
+        <div><span class="lbl">Main photo</span>
+          <div class="row"><label class="btn ghost sm upl">Upload<input type="file" accept="image/*" data-lximg="${esc(k.slug)}"></label>
+            ${(k.teaser||{}).image?`<button class="btn ghost sm" type="button" data-lxclear="${esc(k.slug)}">Remove</button>`:""}</div>
+          <small class="help">Fills the whole screen with the title over it. A darker photo reads best — the words sit on it in white.</small></div></div>
+      <div class="grid2">
+        <label class="fld"><span>Small label above the title</span><input type="text" data-lx="${esc(k.slug)}.kicker" value="${esc((k.teaser||{}).kicker||"")}" maxlength="40" placeholder="Coming soon"></label>
+        <label class="fld"><span>Tag next to it in the menu</span><input type="text" data-lx="${esc(k.slug)}.pill" value="${esc((k.teaser||{}).pill||"")}" maxlength="12" placeholder="Soon"></label>
+      </div>
+      <label class="fld"><span>Big title on the photo</span><input type="text" data-lx="${esc(k.slug)}.title" value="${esc((k.teaser||{}).title||"")}" maxlength="60" placeholder="ACE FOR HER"></label>
+      <label class="fld"><span>One line under it, on the photo</span><input type="text" data-lx="${esc(k.slug)}.lead" value="${esc((k.teaser||{}).lead||"")}" maxlength="120" placeholder="Built for athletes. All of them."></label>
+      <label class="fld"><span>The paragraph, under the photo</span><textarea data-lx="${esc(k.slug)}.text" rows="5" maxlength="900">${esc((k.teaser||{}).text||"")}</textarea><small class="help">Leave an empty line between paragraphs.</small></label>
+      <label class="fld"><span>When it lands</span><input type="text" data-lx="${esc(k.slug)}.date" value="${esc((k.teaser||{}).date||"")}" maxlength="60" placeholder="First drop — spring 2026"><small class="help">A month or a season, never an exact day.</small></label>
+      <hr class="sep"><span class="lbl">The sign-up</span>
+      <p class="help" style="margin:-2px 0 12px">Everyone who signs up lands in <a class="link" href="#/waitlist">Early access</a> with their answer.</p>
+      <label class="fld"><span>Sign-up line</span><input type="text" data-lx="${esc(k.slug)}.cta" value="${esc((k.teaser||{}).cta||"")}" maxlength="140" placeholder="Join the list and get 15% off the first drop."></label>
+      <div class="grid2">
+        <label class="fld"><span>Button</span><input type="text" data-lx="${esc(k.slug)}.button" value="${esc((k.teaser||{}).button||"")}" maxlength="30" placeholder="Notify me"></label>
+        <label class="fld"><span>Message after they sign up</span><input type="text" data-lx="${esc(k.slug)}.thanks" value="${esc((k.teaser||{}).thanks||"")}" maxlength="120"></label>
+      </div>
+      <label class="fld"><span>Question you ask them</span><input type="text" data-lx="${esc(k.slug)}.ask" value="${esc((k.teaser||{}).ask||"")}" maxlength="80" placeholder="What do you want first?"><small class="help">Leave empty to ask nothing.</small></label>
+      <label class="fld"><span>Answers they can pick</span><input type="text" data-lx="${esc(k.slug)}.options" value="${esc(((k.teaser||{}).options||[]).join(", "))}" placeholder="Leggings, Tops, Shorts, Sets"><small class="help">Separate with commas.</small></label>
+      <label class="chk" style="margin-top:6px"><input type="checkbox" data-lxshow="${esc(k.slug)}" ${k.always_show?"checked":""}><span>Show this collection in the website menu</span></label>
+      <div class="row" style="margin-top:16px">
+        <button class="btn sm" type="button" data-lxsave="${esc(k.slug)}">Save ${esc(k.name)}</button>
+        <a class="btn ghost sm" href="/${esc(k.slug)}" target="_blank" rel="noopener">See the page</a>
+        <a class="btn ghost sm" href="#/collection/${esc(k.slug)}">Products in this collection</a>
+        <span class="muted" data-lxmsg="${esc(k.slug)}" style="font-size:13px"></span>
+      </div>`,"")).join("")}
     ${acc("accountmenu","Account menu (drops from the person icon)",`${tog("account_menu.show","Show the join card when a visitor taps the account icon")}
       <p class="help" style="margin:-4px 0 12px">Signed-in customers go straight to their account instead. The discount you mention here comes from <a class="link" href="#/settings">Settings → welcome discount</a>.</p>
       ${text("account_menu.title","Title")}${text("account_menu.text","Text",{area:true})}
@@ -1903,6 +1939,34 @@ async function pStore(){
         else if(t==="hex"){let v=el.value.trim();if(!v.startsWith("#"))v="#"+v;if(/^#[0-9a-f]{6}$/i.test(v)){set(p,v);const k=$(`[data-p="${p}"][data-t="color"]`);if(k)k.value=v}}
         else set(p,el.value);
       });});
+    /* ---- launch-page sections (ACE for Her and any other) ---- */
+    LAUNCHERS.forEach(k=>{
+      const msg=$(`[data-lxmsg="${k.slug}"]`);
+      const save=async()=>{
+        const t={...(k.teaser||{})};
+        $$(`[data-lx^="${k.slug}."]`).forEach(el=>{
+          const key=el.dataset.lx.split(".").slice(1).join(".");
+          t[key]=key==="options"?el.value.split(",").map(x=>x.trim()).filter(Boolean):el.value.trim();
+        });
+        const show=$(`[data-lxshow="${k.slug}"]`).checked;
+        const {error}=await db.from("categories").update({teaser:t,always_show:show}).eq("id",k.id);
+        if(error){msg.style.color="var(--bad)";msg.textContent="Couldn't save: "+error.message;return}
+        k.teaser=t;k.always_show=show;
+        msg.style.color="";msg.textContent="Saved";setTimeout(()=>{msg.textContent=""},2500);
+      };
+      const sb=$(`[data-lxsave="${k.slug}"]`);if(sb)sb.onclick=save;
+      const sw=$(`[data-lxshow="${k.slug}"]`);if(sw)sw.onchange=save;
+      const im=$(`[data-lximg="${k.slug}"]`);
+      if(im)im.onchange=async()=>{const f=im.files[0];if(!f)return;
+        const lab=im.closest("label");lab.classList.add("uploading");lab.firstChild.textContent="Uploading…";
+        try{const url=await uploadImage(f,{max:2000});k.teaser={...(k.teaser||{}),image:url};
+          $(`[data-lxpv="${k.slug}"]`).style.backgroundImage=`url('${url}')`;await save()}
+        catch(e){toast("Upload failed: "+(e.message||e),true)}
+        lab.classList.remove("uploading");lab.firstChild.textContent="Upload"};
+      const cl=$(`[data-lxclear="${k.slug}"]`);
+      if(cl)cl.onclick=async()=>{k.teaser={...(k.teaser||{}),image:""};
+        $(`[data-lxpv="${k.slug}"]`).style.backgroundImage="none";await save();cl.remove()};
+    });
     $$("#seAcc [data-img]").forEach(inp=>inp.onchange=async()=>{const f=inp.files[0];if(!f)return;const lab=inp.closest("label");lab.classList.add("uploading");lab.firstChild.textContent="Uploading…";
       const cr=(inp.dataset.crop||"").split("x");
       const crop=cr.length===2&&+cr[0]&&+cr[1]?{w:+cr[0],h:+cr[1]}:null;
