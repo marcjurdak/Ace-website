@@ -739,6 +739,12 @@ section.co-sec{padding:28px 0 0}
 /* ===== find my size ===== */
 .px-links{display:inline-flex;gap:14px}
 .fit-hint{margin-top:10px;font-size:13px;color:var(--muted)}
+/* Pre-order: the delivery promise sits with the buy button, where it is read
+   before tapping, and the badge reuses the coming-soon badge's look. */
+.pre-line{margin:10px 0 0;font-size:13px;line-height:1.5;color:var(--fg);border-left:2px solid var(--fg);padding-left:10px}
+.pre-badge{position:absolute;left:10px;top:10px;background:var(--fg);color:var(--bg);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;padding:5px 8px}
+.bag-pre{display:inline-block;margin-top:3px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--fg);border:1px solid var(--line);padding:2px 6px}
+.co-pre{margin:0 0 14px;font-size:13px;line-height:1.5;border-left:2px solid var(--fg);padding-left:10px}
 .fit-hint b{color:var(--fg)}
 .fit[hidden]{display:none}
 .fit{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.55);
@@ -1226,6 +1232,7 @@ footer small{font-size:12px;letter-spacing:.04em}
         <div class="px-opt"><div class="px-label">Colour <b id="pdpColorName"></b></div><div class="px-colors" id="pdpColors"></div></div>
         <div class="px-opt"><div class="px-label">Size <span class="px-links"><button type="button" class="px-link" id="fitBtn" hidden>Get my size</button><button type="button" class="px-link" id="sizeGuideBtn">Size guide</button></span></div><div class="px-sizes" id="pdpSizes"></div><p class="fit-hint" id="fitHint" hidden></p></div>
         <div class="px-stock" id="pxStock" aria-live="polite"></div>
+        <p class="pre-line" id="preLine" hidden></p>
         <div class="px-row"><div class="qty"><button id="qMinus" aria-label="Decrease quantity">−</button><output id="qVal">1</output><button id="qPlus" aria-label="Increase quantity">+</button></div>
           <button class="px-add" id="addBtn"><span>Add to bag</span><span aria-hidden="true">→</span></button></div>
         <div class="hint" id="addHint" aria-live="polite"></div>
@@ -1397,6 +1404,7 @@ footer small{font-size:12px;letter-spacing:.04em}
      <div id="coReview" class="co-review" hidden>
       <h4 data-c="checkout.review_title">Review your order</h4>
       <p class="rv-sub" data-c="checkout.review_text">Please check everything before you confirm.</p>
+      <p class="co-pre" id="coPre" hidden></p>
       <div class="rv-box"><div class="rv-head"><b>Items</b><button type="button" class="rv-edit" data-edit="bag">Change</button></div><div id="rvItems"></div>
         <div class="rv-row"><span>Subtotal</span><span id="rvSub"></span></div>
         <div class="rv-row" id="rvBundleRow" hidden><span>Bundle savings</span><span id="rvBundle"></span></div>
@@ -2012,6 +2020,14 @@ const catBrowsable=c=>c.is_section?!c.coming_soon:!secLocked(c.section||"");
 /* Second line of defence: if the categories arrive after the products did
    (a slow connection), drop anything that turned out to be locked. */
 function applyLocks(){if(CATS.length)PRODUCTS=PRODUCTS.filter(p=>!pLocked(p))}
+/* Pre-order: bought now, delivered later. The shop-wide switch turns every
+   product into one, which is what a launch needs; a single product can also be
+   set on its own. "Coming soon" wins, because that item cannot be bought at
+   all. */
+const isPre=p=>!!p&&!p.coming_soon&&(!!((C.preorder||{}).on)||!!p.preorder);
+const preCfg=()=>C.preorder||{};
+const preLineFor=p=>(p&&p.preorder_note)||preCfg().line||"";
+const bagHasPre=()=>bag.some(l=>isPre(lineInfo(l).p));
 let curSec="";   // which area is being browsed; "" is the main collection
 const saleLabel=()=>(C.collection&&C.collection.sale_label)||"Discounts";
 const catLabel=k=>k==="all"?((C.collection&&C.collection.all_label)||"All"):k==="sale"?saleLabel():((CATS.find(c=>c.slug===k)||{}).name||k);
@@ -2044,7 +2060,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 function isDark(hex){const h=(hex||"#000").replace("#","");if(h.length<6)return true;const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (r*299+g*587+b*114)/1000<90}
 function mapProduct(r){
   const base=Number(r.price),sp=r.sale_price==null||r.sale_price===""?null:Number(r.sale_price),sale=sp!==null&&sp<base;
-  return {id:r.id,slug:r.slug||r.id,coming_soon:!!r.coming_soon,coming_soon_note:r.coming_soon_note||"",related:r.related||[],fit:r.fit||"",material:r.material||"",care:r.care||"",benefits:r.benefits||"",size_guide_id:r.size_guide_id||null,name:r.name,cat:r.category,price:sale?sp:base,was:base,sale,off:sale?Math.round((1-sp/base)*100):0,desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
+  return {id:r.id,slug:r.slug||r.id,coming_soon:!!r.coming_soon,coming_soon_note:r.coming_soon_note||"",preorder:!!r.preorder,preorder_note:r.preorder_note||"",related:r.related||[],fit:r.fit||"",material:r.material||"",care:r.care||"",benefits:r.benefits||"",size_guide_id:r.size_guide_id||null,name:r.name,cat:r.category,price:sale?sp:base,was:base,sale,off:sale?Math.round((1-sp/base)*100):0,desc:r.description||"",sizes:(r.sizes&&r.sizes.length)?r.sizes:["One size"],
     colors:(r.colors||[]).map(c=>{const stock=c.stock&&typeof c.stock==="object"?c.stock:{};const sz=(r.sizes&&r.sizes.length)?r.sizes:["One size"];
       const tracked=sz.filter(s=>stock[s]!==undefined&&stock[s]!==null&&stock[s]!=="");
       const allOut=tracked.length===sz.length&&sz.every(s=>Number(stock[s])<=0);
@@ -2375,7 +2391,7 @@ function buildGrid(){
   if(!PRODUCTS.length){g.innerHTML=`<p class="grid-msg">${esc((C.collection&&C.collection.empty_text)||"New pieces are coming soon.")}</p>`;return}
   PRODUCTS.forEach(p=>{
     const el=document.createElement("article");el.className="card";el.dataset.cat=p.cat;el.dataset.sale=p.sale?"1":"0";el.dataset.sec=secOfCat(p.cat);el.dataset.locked=pLocked(p)?"1":"0";
-    el.innerHTML=`<button type="button" class="fav-heart" data-fav="${p.id}" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3S3.8 15.4 3.8 9.9A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 8.2 2.3c0 5.5-8.2 10.4-8.2 10.4z"/></svg></button><button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
+    el.innerHTML=`<button type="button" class="fav-heart" data-fav="${p.id}" aria-pressed="false" aria-label="Save to favourites"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.3S3.8 15.4 3.8 9.9A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 8.2 2.3c0 5.5-8.2 10.4-8.2 10.4z"/></svg></button><button class="card-open"><div class="frame"><img class="front" alt=""><img class="back" alt=""><span class="so-tag" hidden>Sold out</span><span class="cs-badge"${p.coming_soon?"":" hidden"}>Coming soon</span><span class="pre-badge"${isPre(p)?"":" hidden"}>${esc(preCfg().badge||"Pre-order")}</span><span class="sale-tag"${p.sale?"":" hidden"}>−${p.off}%</span></div>
       <div class="meta"><span class="name">${esc(p.name)}</span><span class="price">${p.coming_soon?"":priceHtml(p)}</span></div><div class="sub"></div>${ratingOf(p.id)?`<div class="rt">${starsHtml(ratingOf(p.id).avg)}<span>(${ratingOf(p.id).n})</span></div>`:""}</button>
       <div class="swatches" role="group" aria-label="${esc(p.name)} colour">${p.colors.map((x,i)=>swatch(x,i,i===0)).join("")}</div>`;
     el.querySelector(".card-open").onclick=()=>{const ci=cardColor[p.id]||0;track("select_item",{item_list_id:cat,item_list_name:catLabel(cat),items:[gaItem(p,p.colors[ci],null,1,PRODUCTS.indexOf(p))]});openPdp(p,ci)};
@@ -2569,9 +2585,14 @@ function renderPdp(){
     $("#notifyForm").hidden=true;$("#notifyDone").hidden=true;$("#notifyErr").textContent="";
     if(ME&&ME.email)$("#notifyEmail").value=ME.email;
   }
-  const add=$("#addBtn");add.disabled=c.soldOut;add.firstElementChild.textContent=c.soldOut?"Sold out":"Add to bag";
+  const pre=isPre(p),preWord=preCfg().button||"Pre-order";
+  const add=$("#addBtn");add.disabled=c.soldOut;
+  add.firstElementChild.textContent=c.soldOut?"Sold out":(pre?preWord:"Add to bag");
+  const pl=$("#preLine"),plTxt=pre?preLineFor(p):"";
+  pl.textContent=plTxt;pl.hidden=!(pre&&plTxt&&!soon);
   $("#pxStName").textContent=p.name;$("#pxStPrice").innerHTML=`${esc(c.n)}${cur.size?" · "+esc(cur.size):""} · ${money(p.price)}`;
   $("#pxStAdd").disabled=c.soldOut;
+  $("#pxStAdd").textContent=c.soldOut?"Sold out":(pre?preWord:"Add to bag");
 }
 $("#pxGallery").addEventListener("scroll",e=>{const g=e.target,i=Math.round(g.scrollLeft/Math.max(1,g.clientWidth));$("#pxDots").querySelectorAll("i").forEach((d,k)=>d.classList.toggle("on",k===i))},{passive:true});
 function renderPdpExtras(){
@@ -2792,7 +2813,7 @@ function renderBag(){
   if(!bag.length){body.innerHTML=`<div class="empty">Your bag is empty.<br><button id="startShop">Browse the collection</button></div>`;$("#startShop").onclick=()=>{closeAll();location.hash="shop"}}
   bag.forEach((l,i)=>{const {p,c}=lineInfo(l);
     const d=document.createElement("div");d.className="line";
-    d.innerHTML=`<img src="${esc(c.imgs[0])}" alt=""><div><div class="ln">${esc(p.name)}</div><div class="lv">${esc(c.n)}, ${esc(l.size)}</div>
+    d.innerHTML=`<img src="${esc(c.imgs[0])}" alt=""><div><div class="ln">${esc(p.name)}</div><div class="lv">${esc(c.n)}, ${esc(l.size)}</div>${isPre(p)?`<span class="bag-pre">${esc(preCfg().badge||"Pre-order")}</span>`:""}
     <div class="qty"><button aria-label="Decrease">−</button><output>${l.qty}</output><button aria-label="Increase">+</button></div><br><button class="rm">Remove</button></div><div class="lp">${money(p.price*l.qty)}</div>`;
     const [m,pl]=d.querySelectorAll(".qty button");
     m.onclick=()=>{track("remove_from_cart",{value:p.price,items:[gaItem(p,c,l.size,1)]});l.qty>1?l.qty--:bag.splice(i,1);save();updateCount();renderBag()};
@@ -2947,6 +2968,9 @@ function validateForm(){
 function showStep(step){
   const rv=step==="review";
   $("#coForm").hidden=rv;$("#coReview").hidden=!rv;$("#sumToggle").hidden=rv;$("#coSummary").hidden=rv;
+  // Say it once, on the last screen before they confirm.
+  const cp=$("#coPre"),note=bagHasPre()?(preCfg().checkout_note||""):"";
+  cp.textContent=note;cp.hidden=!(rv&&note);
   $("#checkout").scrollTop=0;
 }
 function renderReview(){
@@ -3006,7 +3030,7 @@ function setContact(){
 }
 /* data */
 async function loadProducts(silent){
-  let q=db.from("products").select("id,slug,name,category,price,sale_price,description,sizes,colors,position,related,fit,material,care,benefits,size_guide_id,coming_soon,coming_soon_note").eq("active",true).order("position",{ascending:true});
+  let q=db.from("products").select("id,slug,name,category,price,sale_price,description,sizes,colors,position,related,fit,material,care,benefits,size_guide_id,coming_soon,coming_soon_note,preorder,preorder_note").eq("active",true).order("position",{ascending:true});
   // Leave an unreleased area's products out of the request entirely.
   const shut=lockedCats();
   if(shut.length)q=q.not("category","in","("+shut.map(s=>'"'+s+'"').join(",")+")");

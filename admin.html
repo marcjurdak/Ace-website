@@ -48,6 +48,14 @@ input[type=range]{width:100%;accent-color:var(--fg)}
 .between{justify-content:space-between}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .toggle{display:flex;align-items:center;gap:9px;font-weight:600;font-size:13.5px;cursor:pointer}
+/* How a product sells: one choice of three, so two of them can never be set
+   at the same time. */
+.srow{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);cursor:pointer;margin-bottom:6px}
+.srow:hover{background:var(--soft)}
+.srow input{margin-top:2px;flex:none}
+.srow b{font-weight:700;font-size:13.5px}
+.srow span{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:2px}
+.srow.on{border-color:var(--fg);box-shadow:inset 0 0 0 1px var(--fg)}
 .toggle input{width:18px;height:18px;accent-color:var(--fg)}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap}
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
@@ -390,6 +398,20 @@ async function loadOrders(){const {data,error}=await db.from("orders").select("*
 async function loadProducts(){const {data,error}=await db.from("products").select("*").order("position").order("created_at");if(error)throw error;PRODUCTS=data||[];return PRODUCTS}
 async function loadCategories(){const {data,error}=await db.from("categories").select("*").order("position").order("created_at");if(error)throw error;CATEGORIES=data||[];herBadge();return CATEGORIES}
 function herBadge(){try{const r=CATEGORIES.find(c=>c.is_section&&c.coming_soon),b=$("#navHer");if(b)b.hidden=!r}catch(e){}}
+/* Is the whole shop on pre-order? Read from the site content once and kept, so
+   opening a product does not cost a query every time. preorderFlush() drops it
+   after the Online store editor changes the switch. */
+let PRE_ON=null;
+async function preorderOn(){
+  if(PRE_ON!==null)return PRE_ON;
+  try{
+    const {data}=await db.from("site").select("draft,published").eq("id",1).maybeSingle();
+    const r=data||{},base=(r.draft&&Object.keys(r.draft).length)?r.draft:(r.published||{});
+    PRE_ON=!!((base.preorder||{}).on);
+  }catch(e){PRE_ON=false}
+  return PRE_ON;
+}
+function preorderFlush(){PRE_ON=null}
 
 /* ---- sections ----------------------------------------------------------
    A section is a storefront area of its own, like ACE for Her. Its root row
@@ -862,7 +884,7 @@ async function pProducts(section){
       return `<button class="btn ghost sm" data-mv="${up}" data-i="${i}" ${up<0?"disabled":""} aria-label="Move up">↑</button> <button class="btn ghost sm" data-mv="${dn}" data-i="${i}" ${dn<0?"disabled":""} aria-label="Move down">↓</button>`;
     };
     $("#pOut").innerHTML=`<div class="tblwrap resp"><table class="tbl"><thead><tr><th></th><th>Product</th><th>Status</th><th>Inventory</th><th>Category</th><th class="num">Price</th><th class="num">Order</th></tr></thead><tbody>
-      ${list.map(({p,i},n)=>`<tr data-id="${p.id}"><td style="width:56px">${img(p)?`<img class="thumb" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}</td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${(p.colors||[]).map(c=>esc(c.name)).join(", ")}</div></td><td>${p.coming_soon?pill("scheduled","Coming soon"):p.active?pill("active","Active"):pill("hidden","Hidden")}</td><td>${invText(p)}</td><td>${esc(catName(p.category))}</td><td class="num nowrap">${priceCell(p)}</td>
+      ${list.map(({p,i},n)=>`<tr data-id="${p.id}"><td style="width:56px">${img(p)?`<img class="thumb" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}</td><td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">${(p.colors||[]).map(c=>esc(c.name)).join(", ")}</div></td><td>${p.coming_soon?pill("scheduled","Coming soon"):!p.active?pill("hidden","Hidden"):p.preorder?pill("scheduled","Pre-order"):pill("active","Active")}</td><td>${invText(p)}</td><td>${esc(catName(p.category))}</td><td class="num nowrap">${priceCell(p)}</td>
         <td class="num nowrap">${mvBtns(i,n)}</td></tr>`).join("")}
       </tbody></table></div>
       <div class="mlist">${list.map(({p,i},n)=>`<div class="mcard" style="grid-template-columns:48px 1fr auto;align-items:center"><button data-id="${p.id}" style="display:contents">${img(p)?`<img class="thumb" style="width:48px" src="${esc(img(p))}" alt="">`:`<div class="thumb"></div>`}<span style="text-align:left"><span class="t">${esc(p.name)}</span><br><span class="s">${priceCell(p)} · ${p.active?"Active":"Hidden"}</span><br><span class="s">${invText(p)}</span></span></button><span class="row" style="flex-direction:column">${mvBtns(i,n)}</span></div>`).join("")}</div>`;
@@ -886,7 +908,9 @@ async function pProduct(id,presetCat,section){
   if(!isNew&&!p){V.innerHTML=`<a class="back" href="${backTo}">← ${esc(backLbl)}</a><div class="empty">This product wasn't found.</div>`;return}
   const secCatList=secCats(section);
   const preset=presetCat&&secCatList.some(c=>c.slug===presetCat)?presetCat:"";
-  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:(preset||(secCatList[0]||{}).slug||""),coming_soon:p?!!p.coming_soon:false,coming_soon_note:p?p.coming_soon_note||"":"",fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
+  const st={active:p?p.active:true,name:p?p.name:"",price:p?p.price:"",category:p?p.category:(preset||(secCatList[0]||{}).slug||""),coming_soon:p?!!p.coming_soon:false,coming_soon_note:p?p.coming_soon_note||"":"",preorder:p?!!p.preorder:false,preorder_note:p?p.preorder_note||"":"",
+    // One status of three, worked out from the two flags on the row.
+    sell:p?(p.coming_soon?"soon":p.preorder?"preorder":"normal"):"normal",fit:p?p.fit||"":"",material:p?p.material||"":"",care:p?p.care||"":"",benefits:p?p.benefits||"":"",size_guide_id:p?p.size_guide_id||"":"",sale:p&&p.sale_price!=null?p.sale_price:"",description:p?p.description:"",sizes:p?(p.sizes||[]).join(", "):"S, M, L, XL, XXL",
     colors:p?JSON.parse(JSON.stringify(p.colors||[])):[{name:"Black",hex:"#000000",images:[],sold_out:false,stock:{}}]};
   let dirty=false;const mark=()=>{dirty=true};
   leaveGuard=()=>!dirty||confirm("You have unsaved changes. Leave without saving?");
@@ -905,13 +929,20 @@ async function pProduct(id,presetCat,section){
     </div>
     <div>
       <div class="card"><h2>Status</h2><label class="toggle"><input type="checkbox" id="eActive" ${st.active?"checked":""}> Visible on the website</label>
-        <label class="toggle" style="margin-top:10px"><input type="checkbox" id="eSoon" ${st.coming_soon?"checked":""}> Coming soon (customers can't buy it yet)</label>
-        <div id="eSoonBox" ${st.coming_soon?"":"hidden"} style="margin-top:10px">
+        <p class="help" style="margin:6px 0 12px">Untick to take it off the website completely, whatever is chosen below.</p>
+        <label class="srow${st.sell==="normal"?" on":""}"><input type="radio" name="eSell" value="normal" ${st.sell==="normal"?"checked":""}><span style="margin:0"><b>Normal order</b><span>On sale now. Customers order it the usual way.</span></span></label>
+        <label class="srow${st.sell==="preorder"?" on":""}"><input type="radio" name="eSell" value="preorder" ${st.sell==="preorder"?"checked":""}><span style="margin:0"><b>Pre-order</b><span>Customers buy and pay for it now, you deliver later.</span></span></label>
+        <label class="srow${st.sell==="soon"?" on":""}"><input type="radio" name="eSell" value="soon" ${st.sell==="soon"?"checked":""}><span style="margin:0"><b>Coming soon</b><span>Can't be bought yet. Collects emails of people waiting.</span></span></label>
+        <div id="ePreBox" ${st.sell==="preorder"?"":"hidden"} style="margin-top:10px">
+          <label class="fld"><span>Delivery line for this product</span><input type="text" id="ePreNote" maxlength="200" value="${esc(st.preorder_note)}" placeholder="Leave empty to use the line from Online store → Pre-orders"></label>
+        </div>
+        <div id="eSoonBox" ${st.sell==="soon"?"":"hidden"} style="margin-top:10px">
           <label class="fld"><span>Line shown on the product page</span><input type="text" id="eSoonNote" maxlength="200" value="${esc(st.coming_soon_note)}" placeholder="Dropping this month. Leave your email to be first."></label>
           <div id="eWaiting" class="help">Checking the waiting list…</div>
-          <p class="help" style="margin-top:6px">When you untick "Coming soon" and save, everyone waiting is emailed automatically.</p>
+          <p class="help" style="margin-top:6px">When you switch this to Normal order and save, everyone waiting is emailed automatically.</p>
           <button class="btn ghost sm" id="eNotify" style="margin-top:8px" hidden>Email them now</button>
         </div>
+        <p class="help" id="ePreAll" style="margin-top:8px" hidden>The whole shop is set to pre-order in <a href="#/store">Online store → Pre-orders</a>, so this item sells as a pre-order whichever option is chosen here. Turn that off to go product by product.</p>
       </div>
       <div class="card"><h2>Pricing</h2><label class="fld"><span>Price ($)</span><input type="number" id="ePrice" min="0" step="0.01" inputmode="decimal" value="${esc(st.price)}"></label>
         <label class="toggle" style="margin:4px 0 10px"><input type="checkbox" id="eSaleOn" ${st.sale!==""?"checked":""}> Put this product on sale</label>
@@ -991,7 +1022,15 @@ async function pProduct(id,presetCat,section){
   $("#eAddColor").onclick=()=>{st.colors.push({name:"",hex:"#ffffff",images:[],sold_out:false,stock:{}});mark();renderColors()};
   $$("[data-sz]").forEach(b=>b.onclick=()=>{$("#eSizes").value=b.dataset.sz;mark();renderColors()});
   $("#eSizes").onchange=()=>{mark();renderColors()};
-  $("#eSoon").onchange=()=>{$("#eSoonBox").hidden=!$("#eSoon").checked;mark()};
+  // The three statuses are one choice, so picking one drops the other two and
+  // only the chosen one's extra field is on screen.
+  const sellMode=()=>{const r=document.querySelector('input[name="eSell"]:checked');return r?r.value:"normal"};
+  const paintSell=()=>{const v=sellMode();
+    $$('.srow').forEach(el=>el.classList.toggle("on",(el.querySelector("input")||{}).value===v));
+    $("#ePreBox").hidden=v!=="preorder";$("#eSoonBox").hidden=v!=="soon"};
+  $$('input[name="eSell"]').forEach(r=>r.onchange=()=>{paintSell();mark()});
+  paintSell();
+  preorderOn().then(on=>{const h=$("#ePreAll");if(h)h.hidden=!on});
   $("#eSoonNote").addEventListener("input",mark);
   if(!isNew){
     db.from("restock_requests").select("id,email,notified_at").eq("product_id",p.id).then(({data})=>{
@@ -1024,7 +1063,8 @@ async function pProduct(id,presetCat,section){
     if(new Set(colors.map(c=>c.name.toLowerCase())).size!==colors.length)return err("Two colours have the same name.");
     if(colors.some(c=>!c.images.length))return err("Every colour needs at least one photo.");
     const row={related:$$("#eRel input:checked").map(i=>i.value).slice(0,8),
-      coming_soon:$("#eSoon").checked,coming_soon_note:$("#eSoonNote").value.trim()||null,
+      coming_soon:sellMode()==="soon",coming_soon_note:$("#eSoonNote").value.trim()||null,
+      preorder:sellMode()==="preorder",preorder_note:$("#ePreNote").value.trim()||null,
       fit:$("#eFit").value.trim()||null,material:$("#eMaterial").value.trim()||null,care:$("#eCare").value.trim()||null,
       benefits:$("#eBenefits").value.trim()||null,size_guide_id:$("#eGuide").value||null,name,price,sale_price:sale,category:$("#eCat").value,description:$("#eDesc").value.trim(),sizes:sz,colors,active:$("#eActive").checked};
     $("#eSave").disabled=true;let res;
@@ -2167,8 +2207,16 @@ async function pStore(){
     ${acc("bundlesec","Bundles section",`${text("bundles.title","Title")}${text("bundles.text","Text under the title")}<p class="help">Create bundles in <a class="link" href="#/bundles">Bundles</a>. The section only shows when at least one bundle is active.</p>`,"#bundlesSec")}
     ${acc("store","Store section",`${tog("store.show","Show this section")}${text("store.title","Title")}${text("store.text","Text",{area:true})}
       ${img("store.image","Store photo or render",{help:"Leave empty to show the logo instead."})}${text("store.caption","Caption on the photo")}${text("store.button","Button text")}`,"#store")}
-    ${acc("fit","Get my size (fit finder)",`<p class="help" style="margin:0 0 12px">The height-and-weight size chart now lives with each collection's size charts, so the main collection and ACE for Her can each have their own.</p>
+    ${acc("fit","Get my size (fit finder)",`${tog("fit.show","Show the \"Get my size\" button on product pages")}
+      <p class="help" style="margin:-4px 0 12px">Turn this off while you are still checking your sizes: the height and weight sliders disappear from every product page in the main collection, and nothing else changes. This switch applies when you press <b>Publish</b> — the same switch in <a class="link" href="#/sizing">Main products → Size charts</a> applies the moment you tick it, so use that one if you need it off right now. ACE for Her has its own.</p>
+      <p class="help" style="margin:0 0 12px">The height-and-weight size chart itself lives with each collection's size charts, so the main collection and ACE for Her can each have their own.</p>
       <div class="row"><a class="btn ghost sm" href="#/sizing">Main collection size charts</a><a class="btn ghost sm" href="#/her/sizing">ACE for Her size charts</a></div>`,"")}
+    ${acc("preorder","Pre-orders",`${tog("preorder.on","Sell the whole shop as pre-order")}
+      <p class="help" style="margin:-4px 0 12px">Use this for a launch: every product is bought now and delivered later, and customers still pay on delivery. Turn it off on the day you start delivering and the whole shop goes back to normal orders in one click. To put only <i>some</i> items on pre-order instead, leave this off and use the <b>Pre-order</b> switch on each product's own page.</p>
+      ${text("preorder.button","Button wording",{help:"Replaces “Add to bag” on a pre-order item."})}
+      ${text("preorder.line","Delivery line on the product page",{area:true,help:"Tell people when it arrives. A product can override this with its own line."})}
+      ${text("preorder.badge","Badge on the photo and in the bag")}
+      ${text("preorder.checkout_note","Note at checkout",{area:true,help:"Shown once when anything in the bag is a pre-order."})}`,"")}
     ${acc("checkout","Checkout",`${tog("checkout.require_map","Make the Google Maps pin compulsory")}
       <p class="help" style="margin:-4px 0 12px">Off by default. The pin helps the driver, but forcing it stops people who do not know how to share a pin from finishing their order. A pin that <i>is</i> pasted is still checked for being a real Maps link.</p>
       ${text("checkout.button","Button after the details")}${text("checkout.review_title","Review page title")}${text("checkout.review_text","Review page text")}${text("checkout.confirm_button","Confirm button")}${text("checkout.done_title","Confirmation page title")}${text("checkout.done_text","Confirmation page text",{area:true})}
@@ -2303,8 +2351,12 @@ async function pStore(){
   $("#sePublish").onclick=async()=>{clearTimeout(saveT);$("#sePublish").disabled=true;
     if(c.announcement){const keep=(c.announcement.items||[]).map(s=>String(s||"").trim()).filter(Boolean);
       if(keep.length!==(c.announcement.items||[]).length){c.announcement.items=keep.length?keep:[""];rebuild()}}
-    const {error}=await db.from("site").update({draft:c,published:c,published_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",1);
-    if(error){toast("Couldn't publish: "+error.message,true);setStatus();return}pub=JSON.stringify(c);savedDraft=pub;setStatus();toast("Published. Your website is updated.")};
+    // Ask for the row back: a lapsed sign-in updates nothing and reports no
+    // error, and "Published" over a silent no-op is the worst thing this button
+    // could say.
+    const {data:w,error}=await db.from("site").update({draft:c,published:c,published_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",1).select("id");
+    if(error||!w||!w.length){toast("Couldn't publish: "+(error?error.message:"you may have been signed out. Open the admin again and retry."),true);setStatus();return}
+    preorderFlush();pub=JSON.stringify(c);savedDraft=pub;setStatus();toast("Published. Your website is updated.")};
   $("#seDiscard").onclick=async()=>{if(!confirm("Throw away your draft and go back to what's live on the website?"))return;
     c=JSON.parse(pub);changed();rebuild()};
 }

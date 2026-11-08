@@ -205,6 +205,19 @@ window.ACE_DEFAULT_CONTENT = {
       ]
     }
   },
+  // Pre-orders: the item is bought now and delivered later.
+  // "on" is the shop-wide switch — it makes every product a pre-order, which is
+  // what a launch day needs. A single product can also be put on pre-order on
+  // its own from its page in the admin, so a product is a pre-order when either
+  // of the two is set. Turning this off puts the whole shop back to normal.
+  preorder: {
+    on: false,
+    button: "Pre-order",
+    line: "Pre-order now — delivery starts Monday 16 November.",
+    badge: "Pre-order",
+    // Shown once at checkout when anything in the bag is a pre-order.
+    checkout_note: "Your bag contains pre-order items. We'll deliver them as soon as they arrive, and you pay on delivery as usual."
+  },
   checkout: {
     // The Google Maps pin is optional by default — it helps the driver but
     // should not stop someone ordering. Turn it on to make it compulsory.
