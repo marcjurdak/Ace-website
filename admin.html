@@ -176,6 +176,39 @@ main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
 .stockgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-top:8px}
 .stockgrid label{font-size:12px;font-weight:600}
 .stockgrid input{margin-top:3px;padding:6px 8px!important}
+/* Inventory stock-take grid */
+.ivtbl td,.ivtbl th{padding:7px 8px;text-align:center}
+.ivtbl td:first-child,.ivtbl th:first-child{text-align:left}
+.ivtbl input{width:68px;padding:6px 6px!important;text-align:center}
+.ivtot{font-weight:700;color:var(--muted)}
+.pilltag{display:inline-block;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface)}
+.pilltag.bad{border-color:var(--bad);color:var(--bad)}
+.pilltag.warn{border-color:var(--warn);color:var(--warn)}
+/* In-store sale */
+.hitrow{display:block;width:100%;text-align:left;padding:9px 11px;margin-top:6px;background:var(--surface);
+  border:1px solid var(--line);border-radius:9px;cursor:pointer;font-size:13.5px}
+.hitrow:hover{border-color:var(--fg,#111)}
+.hitrow span{display:block;color:var(--muted);font-size:12.5px}
+.picked{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:9px}
+.saleline{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid var(--line)}
+.saleline input{width:62px;padding:5px 6px!important;text-align:center}
+.totrow{display:flex;justify-content:space-between;padding:7px 0;font-size:14px}
+.totrow.bun{color:var(--warn)}
+.totrow.big{border-top:1px solid var(--line);margin-top:4px;padding-top:11px;font-size:17px;font-weight:700}
+.rcpt{border:1px solid var(--line);border-radius:10px;padding:16px;background:var(--surface)}
+.rcpt-h{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);
+  padding-bottom:10px;margin-bottom:10px}
+.rcpt-h b{font-size:20px;letter-spacing:.06em}
+.rcpt-h span{color:var(--muted);font-size:12.5px}
+.rcpt-who{font-size:13.5px;margin-bottom:10px}
+.rcpt-l{display:flex;justify-content:space-between;gap:10px;padding:6px 0;font-size:13.5px}
+.rcpt-l.bun{color:var(--warn)}
+.rcpt-l.big{border-top:1px solid var(--line);margin-top:6px;padding-top:10px;font-weight:700;font-size:16px}
+@media print{#side,#nav,.topbar,#slReceipt .row,.btn{display:none!important}
+  #slReceipt{margin:0!important}.rcpt{border:0}}
 .savebar{position:sticky;bottom:0;z-index:30;margin:18px calc(var(--pad)*-1) -90px;padding:12px var(--pad);padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;align-items:center}
 .savebar .err{margin:0 auto 0 0}
 /* modal */
@@ -269,6 +302,8 @@ hr.sep{border:0;border-top:1px solid var(--line);margin:16px 0 12px}
       <a href="#/home" data-r="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
       <a href="#/analytics" data-r="analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h16M8 16V11M12 16V7M16 16v-3"/></svg>Analytics</a>
       <a href="#/orders" data-r="orders"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16l-1.5 12.5a1 1 0 0 1-1 .9h-11a1 1 0 0 1-1-.9z"/><path d="M8 7a4 4 0 0 1 8 0"/></svg>Orders<span class="badge" id="navNew" hidden>0</span></a>
+      <a href="#/sale" data-r="sale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h2l2.2 10.2a1 1 0 0 0 1 .8h8.6a1 1 0 0 0 1-.8L20 9H6.5"/><circle cx="9.5" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg>In-store sale</a>
+      <a href="#/inventory" data-r="inventory"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 8l9-4 9 4-9 4z"/><path d="M3 8v8l9 4 9-4V8"/><path d="M12 12v8"/></svg>Inventory<span class="badge" id="navLow" hidden>0</span></a>
       <a href="#/products" data-r="products"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 3l-5 4 3 3 2-1.5V21h8V8.5L18 10l3-3-5-4c0 2-2 3-4 3S8 5 8 3z"/></svg>Main products</a>
       <a href="#/categories" data-r="categories" style="padding-left:38px;font-size:13px">Categories</a>
       <a href="#/sizing" data-r="sizing" style="padding-left:38px;font-size:13px">Size charts</a>
@@ -496,7 +531,7 @@ async function router(){
   let bestNav="";
   $$("#nav a").forEach(a=>{const d=a.dataset.r||"";if(d&&(path===d||path.startsWith(d+"/"))&&d.length>bestNav.length)bestNav=d});
   $$("#nav a").forEach(a=>a.setAttribute("aria-current",(a.dataset.r||"")===bestNav?"page":"false"));
-  $("#mTitle").textContent=({home:"Home",analytics:"Analytics",orders:"Orders",products:"Main products",categories:"Categories",sizing:"Size charts",guides:"Size guides",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",accounts:"Accounts",emails:"Emails",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings",
+  $("#mTitle").textContent=({home:"Home",analytics:"Analytics",orders:"Orders",products:"Main products",categories:"Categories",sizing:"Size charts",guides:"Size guides",bundles:"Bundles",influencers:"Influencers",reviews:"Reviews",waitlist:"Early access",accounts:"Accounts",emails:"Emails",customers:"Customers",discounts:"Discounts",store:"Online store",settings:"Settings",sale:"In-store sale",inventory:"Inventory",
     her:"ACE for Her","her/products":"ACE for Her — Products","her/categories":"ACE for Her — Categories","her/sizing":"ACE for Her — Size charts"})[path]||({home:"Home",products:"Main products",categories:"Categories",sizing:"Size charts",her:"ACE for Her"})[r]||"";
   $("#side").classList.remove("open");$("#scrim").hidden=true;
   V.innerHTML=`<div class="empty" style="border:0;background:none"><span class="spin"></span></div>`;window.scrollTo(0,0);
@@ -526,12 +561,441 @@ async function router(){
     else if(r==="customers"&&parts[1])await pCustomer(decodeURIComponent(parts[1]));
     else if(r==="customers")await pCustomers();
     else if(r==="discounts")await pDiscounts();
+    else if(r==="sale")await pSale();
+    else if(r==="inventory")await pInventory();
     else if(r==="store")await pStore();
     else if(r==="settings")await pSettings();
     else go("#/home");
   }catch(e){console.error(e);V.innerHTML=`<div class="empty">Something went wrong loading this page: ${esc(e.message||e)}<br><br><button class="btn ghost sm" onclick="router()">Try again</button></div>`}
 }
 addEventListener("hashchange",router);
+
+/* =============== INVENTORY =============== */
+/* Stock lives per product, per colour, per size, inside the product's own
+   colors JSON — the same place the website reads when it decides whether
+   something is sold out. A blank box means that size is not being counted at
+   all, which is how every product starts; type a number and counting begins. */
+let LOWAT = 3;
+
+async function loadLowAt(){
+  const {data}=await db.from("settings").select("value").eq("key","low_stock_at").maybeSingle();
+  const n=parseInt((data||{}).value,10);
+  LOWAT=Number.isFinite(n)&&n>=0?n:3;
+  return LOWAT;
+}
+
+function stockRows(){
+  // one row per product / colour / size that exists, tracked or not
+  const out=[];
+  for(const p of PRODUCTS){
+    if(!p.active)continue;
+    for(const [ci,c] of (p.colors||[]).entries()){
+      for(const sz of (p.sizes||[])){
+        const raw=((c.stock||{})[sz]);
+        const n=(raw===null||raw===undefined||raw==="")?null:parseInt(raw,10);
+        out.push({p,ci,colour:c.name||"",size:sz,n:Number.isFinite(n)?n:null,
+                  preorder:!!p.preorder,soon:!!p.coming_soon});
+      }
+    }
+  }
+  return out;
+}
+
+function lowCount(){
+  return stockRows().filter(r=>r.n!==null&&r.n<=LOWAT&&!r.preorder&&!r.soon).length;
+}
+function lowBadge(){
+  try{const b=$("#navLow"),n=lowCount();if(b){b.hidden=!n;b.textContent=n}}catch(e){}
+}
+
+async function pInventory(){
+  await Promise.all([loadProducts(),loadLowAt()]);
+  const rows=stockRows();
+  const tracked=rows.filter(r=>r.n!==null);
+  const units=tracked.reduce((a,r)=>a+r.n,0);
+  const out=tracked.filter(r=>r.n<=0&&!r.preorder&&!r.soon);
+  const low=tracked.filter(r=>r.n>0&&r.n<=LOWAT&&!r.preorder&&!r.soon);
+  const untracked=rows.length-tracked.length;
+
+  const chip=r=>`${esc(r.p.name)} · ${esc(r.colour)} · ${esc(r.size)}`;
+
+  V.innerHTML=`
+  <div class="metrics">
+    <div class="metric"><div class="k">Pieces counted</div><div class="v">${units}</div></div>
+    <div class="metric"><div class="k">Out of stock</div><div class="v">${out.length}</div></div>
+    <div class="metric"><div class="k">Running low</div><div class="v">${low.length}</div></div>
+    <div class="metric"><div class="k">Not counted yet</div><div class="v">${untracked}</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="row" style="align-items:flex-end;gap:14px;flex-wrap:wrap">
+      <label class="fld" style="max-width:220px;margin:0"><span>Warn me at or below</span>
+        <input type="number" id="ivLow" min="0" max="999" value="${LOWAT}"></label>
+      <button class="btn ghost sm" id="ivLowSave">Save</button>
+      <span class="help" id="ivLowMsg" style="margin:0"></span>
+    </div>
+    <p class="help" style="margin:10px 0 0">Anything at or below this number shows in the reorder list.
+      Pre-order and Coming soon items are left out, since they are meant to have no stock yet.</p>
+  </div>
+
+  ${(out.length||low.length)?`<div class="card" style="margin-bottom:18px">
+    <h2>Reorder</h2>
+    ${out.length?`<p class="help" style="margin:0 0 6px"><b>Out of stock</b></p>
+      <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:12px">
+        ${out.map(r=>`<span class="pilltag bad">${chip(r)}</span>`).join("")}</div>`:""}
+    ${low.length?`<p class="help" style="margin:0 0 6px"><b>${LOWAT} or fewer left</b></p>
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        ${low.map(r=>`<span class="pilltag warn">${chip(r)} — ${r.n}</span>`).join("")}</div>`:""}
+  </div>`:""}
+
+  ${PRODUCTS.filter(p=>p.active).map(p=>`
+    <div class="card" style="margin-bottom:14px">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 style="margin:0">${esc(p.name)}
+          ${p.preorder?pill("scheduled","Pre-order"):""}${p.coming_soon?pill("scheduled","Coming soon"):""}</h2>
+        <span class="help" id="ivMsg-${p.id}" style="margin:0"></span>
+      </div>
+      <div style="overflow:auto"><table class="tbl ivtbl"><thead><tr><th>Colour</th>
+        ${(p.sizes||[]).map(sz=>`<th>${esc(sz)}</th>`).join("")}<th>Total</th></tr></thead><tbody>
+        ${(p.colors||[]).map((c,ci)=>`<tr><td><b>${esc(c.name||"")}</b></td>
+          ${(p.sizes||[]).map(sz=>{
+            const raw=((c.stock||{})[sz]);
+            const v=(raw===null||raw===undefined||raw==="")?"":String(parseInt(raw,10));
+            return `<td><input class="ivq" type="number" min="0" max="99999" value="${esc(v)}"
+              data-pid="${p.id}" data-ci="${ci}" data-sz="${esc(sz)}" placeholder="—"></td>`;
+          }).join("")}
+          <td class="ivtot" data-pid="${p.id}" data-ci="${ci}"></td></tr>`).join("")}
+      </tbody></table></div>
+      <p class="help" style="margin:10px 0 0">Leave a box empty to stop counting that size.
+        Changes save as you type.</p>
+    </div>`).join("")}
+  `;
+
+  const retotal=()=>{
+    $$(".ivtot").forEach(td=>{
+      const q=$$(`.ivq[data-pid="${td.dataset.pid}"][data-ci="${td.dataset.ci}"]`);
+      const vals=q.map(i=>i.value.trim()).filter(v=>v!=="").map(v=>parseInt(v,10)||0);
+      td.textContent=vals.length?String(vals.reduce((a,b)=>a+b,0)):"—";
+    });
+  };
+  retotal();
+
+  const saveT={};
+  $$(".ivq").forEach(inp=>{
+    inp.oninput=()=>{
+      retotal();
+      const pid=inp.dataset.pid;
+      clearTimeout(saveT[pid]);
+      saveT[pid]=setTimeout(()=>saveStock(pid),600);
+    };
+  });
+
+  $("#ivLowSave").onclick=async()=>{
+    const n=Math.max(0,parseInt($("#ivLow").value,10)||0);
+    const {data,error}=await db.from("settings").upsert({key:"low_stock_at",value:String(n)},{onConflict:"key"}).select("key");
+    const m=$("#ivLowMsg");
+    if(error||!data||!data.length){m.style.color="var(--bad)";m.textContent="Couldn't save: "+(error?error.message:"you may have been signed out.");return}
+    LOWAT=n;m.style.color="";m.textContent="Saved";lowBadge();
+    setTimeout(()=>router(),400);
+  };
+}
+
+async function saveStock(pid){
+  const p=PRODUCTS.find(x=>x.id===pid);
+  if(!p)return;
+  const colors=JSON.parse(JSON.stringify(p.colors||[]));
+  $$(`.ivq[data-pid="${pid}"]`).forEach(inp=>{
+    const ci=+inp.dataset.ci, sz=inp.dataset.sz, v=inp.value.trim();
+    if(!colors[ci])return;
+    colors[ci].stock=colors[ci].stock||{};
+    if(v==="")delete colors[ci].stock[sz];
+    else colors[ci].stock[sz]=Math.max(0,parseInt(v,10)||0);
+  });
+  const m=$("#ivMsg-"+pid);
+  // ask for the row back: a lapsed sign-in updates nothing and reports no error
+  const {data,error}=await db.from("products").update({colors}).eq("id",pid).select("id");
+  if(error||!data||!data.length){
+    if(m){m.style.color="var(--bad)";m.textContent="Couldn't save: "+(error?error.message:"you may have been signed out.")}
+    return;
+  }
+  p.colors=colors;
+  if(m){m.style.color="";m.textContent="Saved";setTimeout(()=>{if(m.textContent==="Saved")m.textContent=""},1800)}
+  lowBadge();
+}
+
+/* =============== IN-STORE SALE =============== */
+/* Rings up a sale at the counter. Prices, bundle savings and stock are all
+   settled by the database in place_store_order — nothing here is trusted. */
+let SALE={lines:[],account:null,quote:{discount:0,applied:[]}};
+
+async function pSale(){
+  await loadProducts();
+  SALE={lines:[],account:null,quote:{discount:0,applied:[]}};
+  const sellable=PRODUCTS.filter(p=>p.active&&!p.coming_soon);
+
+  V.innerHTML=`
+  <div class="dgrid">
+    <div>
+      <div class="card" style="margin-bottom:16px">
+        <h2>Who is buying</h2>
+        <div class="row" style="gap:8px;margin-bottom:10px">
+          <button class="btn ghost sm on" id="sbExist" type="button">Has an account</button>
+          <button class="btn ghost sm" id="sbWalk" type="button">Walk-in</button>
+        </div>
+
+        <div id="saExist">
+          <label class="fld"><span>Search by name, email or phone</span>
+            <input type="text" id="saQ" placeholder="Start typing a name…" autocomplete="off"></label>
+          <div id="saHits"></div>
+          <div id="saPicked" hidden style="margin-top:10px"></div>
+        </div>
+
+        <div id="saWalk" hidden>
+          <div class="row" style="gap:10px">
+            <label class="fld" style="flex:1"><span>First name</span><input type="text" id="saFn" maxlength="80"></label>
+            <label class="fld" style="flex:1"><span>Last name</span><input type="text" id="saLn" maxlength="80"></label>
+          </div>
+          <label class="fld"><span>Phone (optional)</span><input type="tel" id="saPh" maxlength="40" placeholder="+961 …"></label>
+          <label class="fld"><span>Email (optional)</span><input type="email" id="saEm" maxlength="160" placeholder="For an emailed receipt"></label>
+          <p class="help" style="margin:0">With a phone number you can send the receipt on WhatsApp after the sale.
+            With an email, the receipt is sent automatically.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>What they are buying</h2>
+        <div class="row" style="gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <label class="fld" style="flex:2;min-width:180px;margin:0"><span>Item</span>
+            <select id="slProd">${sellable.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></label>
+          <label class="fld" style="flex:1;min-width:110px;margin:0"><span>Colour</span><select id="slCol"></select></label>
+          <label class="fld" style="flex:1;min-width:90px;margin:0"><span>Size</span><select id="slSize"></select></label>
+          <label class="fld" style="width:80px;margin:0"><span>Qty</span>
+            <input type="number" id="slQty" min="1" max="50" value="1"></label>
+          <button class="btn sm" id="slAdd" type="button">Add</button>
+        </div>
+        <p class="help" id="slStock" style="margin:8px 0 0"></p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Sale</h2>
+        <div id="slLines"><div class="empty" style="border:0;background:none;padding:18px 0">Nothing added yet.</div></div>
+        <div id="slTotals"></div>
+        <label class="fld" style="margin-top:14px"><span>Paid with</span>
+          <select id="slPay">
+            <option value="cash_in_store">Cash at the counter</option>
+            <option value="omt">OMT</option>
+            <option value="whish">Whish</option>
+            <option value="other">Other</option>
+          </select></label>
+        <label class="fld"><span>Note (optional)</span><input type="text" id="slNote" maxlength="200"></label>
+        <button class="btn" id="slDone" style="width:100%;margin-top:6px" disabled>Complete sale</button>
+        <p class="help" id="slMsg" style="margin:10px 0 0"></p>
+      </div>
+    </div>
+  </div>
+  <div id="slReceipt"></div>`;
+
+  // customer mode
+  const mode=which=>{
+    $("#sbExist").classList.toggle("on",which==="exist");
+    $("#sbWalk").classList.toggle("on",which==="walk");
+    $("#saExist").hidden=which!=="exist";
+    $("#saWalk").hidden=which!=="walk";
+    if(which==="walk"){SALE.account=null;$("#saPicked").hidden=true;$("#saHits").innerHTML=""}
+    refreshSale();
+  };
+  $("#sbExist").onclick=()=>mode("exist");
+  $("#sbWalk").onclick=()=>mode("walk");
+
+  let qT;
+  $("#saQ").oninput=()=>{clearTimeout(qT);qT=setTimeout(searchAccounts,300)};
+  ["#saFn","#saLn","#saPh","#saEm"].forEach(id=>$(id).oninput=refreshSale);
+
+  $("#slProd").onchange=fillColours;
+  $("#slCol").onchange=fillSizes;
+  $("#slSize").onchange=showStock;
+  $("#slAdd").onclick=addLine;
+  $("#slDone").onclick=completeSale;
+  fillColours();
+}
+
+function saleProduct(){return PRODUCTS.find(p=>p.id===$("#slProd").value)}
+
+function fillColours(){
+  const p=saleProduct();if(!p)return;
+  $("#slCol").innerHTML=(p.colors||[]).map((c,i)=>`<option value="${esc(c.name||"")}">${esc(c.name||"")}</option>`).join("");
+  fillSizes();
+}
+function fillSizes(){
+  const p=saleProduct();if(!p)return;
+  $("#slSize").innerHTML=(p.sizes||[]).map(sz=>`<option value="${esc(sz)}">${esc(sz)}</option>`).join("");
+  showStock();
+}
+function showStock(){
+  const p=saleProduct(),el=$("#slStock");if(!p||!el)return;
+  const c=(p.colors||[]).find(x=>(x.name||"")===$("#slCol").value);
+  const raw=c?((c.stock||{})[$("#slSize").value]):undefined;
+  const price=(p.sale_price!=null&&+p.sale_price<+p.price)?p.sale_price:p.price;
+  let s=money(price);
+  if(p.preorder)s+=" · pre-order, sells without stock";
+  else if(raw===null||raw===undefined||raw==="")s+=" · stock not counted";
+  else s+=` · ${parseInt(raw,10)} in stock`;
+  el.textContent=s;
+}
+
+async function searchAccounts(){
+  const q=$("#saQ").value.trim(),box=$("#saHits");
+  if(q.length<2){box.innerHTML="";return}
+  box.innerHTML=`<div class="help">Searching…</div>`;
+  const {data,error}=await db.rpc("admin_find_accounts",{p_q:q});
+  if(error){box.innerHTML=`<div class="help" style="color:var(--bad)">${esc(error.message)}</div>`;return}
+  if(!data||!data.length){box.innerHTML=`<div class="help">No account matches that. Use <b>Walk-in</b> instead.</div>`;return}
+  box.innerHTML=data.map(a=>`<button type="button" class="hitrow" data-acc="${a.id}">
+      <b>${esc([a.first_name,a.last_name].filter(Boolean).join(" ")||"(no name)")}</b>
+      <span>${esc(a.email||"")}${a.phone?" · "+esc(a.phone):""}</span>
+      <span class="help">${a.orders_count||0} order${(a.orders_count||0)===1?"":"s"}</span>
+    </button>`).join("");
+  $$("#saHits .hitrow").forEach(b=>b.onclick=()=>{
+    const a=data.find(x=>x.id===b.dataset.acc);
+    SALE.account=a;
+    $("#saHits").innerHTML="";
+    $("#saQ").value="";
+    const pk=$("#saPicked");
+    pk.hidden=false;
+    pk.innerHTML=`<div class="picked"><div>
+        <b>${esc([a.first_name,a.last_name].filter(Boolean).join(" "))}</b><br>
+        <span class="help">${esc(a.email||"no email")}${a.phone?" · "+esc(a.phone):""}</span>
+      </div><button class="btn ghost sm" type="button" id="saClear">Change</button></div>`;
+    $("#saClear").onclick=()=>{SALE.account=null;pk.hidden=true;refreshSale()};
+    refreshSale();
+  });
+}
+
+function addLine(){
+  const p=saleProduct();if(!p)return;
+  const colour=$("#slCol").value,size=$("#slSize").value;
+  const qty=Math.max(1,Math.min(50,parseInt($("#slQty").value,10)||1));
+  const price=(p.sale_price!=null&&+p.sale_price<+p.price)?+p.sale_price:+p.price;
+  const same=SALE.lines.find(l=>l.product_id===p.id&&l.color===colour&&l.size===size);
+  if(same)same.qty=Math.min(50,same.qty+qty);
+  else SALE.lines.push({product_id:p.id,name:p.name,color:colour,size,qty,price});
+  $("#slQty").value=1;
+  refreshSale();
+}
+
+async function refreshSale(){
+  const box=$("#slLines");
+  if(!SALE.lines.length){
+    box.innerHTML=`<div class="empty" style="border:0;background:none;padding:18px 0">Nothing added yet.</div>`;
+    SALE.quote={discount:0,applied:[]};
+  }else{
+    box.innerHTML=SALE.lines.map((l,i)=>`<div class="saleline">
+      <div><b>${esc(l.name)}</b><br><span class="help">${esc(l.color)} · ${esc(l.size)} · ${money(l.price)} each</span></div>
+      <div class="row" style="gap:8px;align-items:center">
+        <input class="slq" type="number" min="1" max="50" value="${l.qty}" data-i="${i}">
+        <b>${money(l.price*l.qty)}</b>
+        <button class="btn ghost sm" type="button" data-rm="${i}">×</button>
+      </div></div>`).join("");
+    $$("#slLines [data-rm]").forEach(b=>b.onclick=()=>{SALE.lines.splice(+b.dataset.rm,1);refreshSale()});
+    $$("#slLines .slq").forEach(inp=>inp.onchange=()=>{
+      SALE.lines[+inp.dataset.i].qty=Math.max(1,Math.min(50,parseInt(inp.value,10)||1));refreshSale();
+    });
+    // the database decides the bundle, exactly as it will at checkout
+    const {data,error}=await db.rpc("compute_bundles",{
+      p_lines:SALE.lines.map(l=>({product_id:l.product_id,color:l.color,price:l.price,qty:l.qty})),
+      p_channel:"store"});
+    SALE.quote=error?{discount:0,applied:[]}:(data||{discount:0,applied:[]});
+  }
+  const sub=SALE.lines.reduce((a,l)=>a+l.price*l.qty,0);
+  const disc=+(SALE.quote.discount||0);
+  const applied=SALE.quote.applied||[];
+  $("#slTotals").innerHTML=SALE.lines.length?`
+    <div class="totrow"><span>Subtotal</span><b>${money(sub)}</b></div>
+    ${applied.map(b=>`<div class="totrow bun"><span>${esc(b.name)}${b.times>1?" ×"+b.times:""}</span>
+      <b>−${money(b.saving)}</b></div>`).join("")}
+    <div class="totrow big"><span>Total</span><b>${money(sub-disc)}</b></div>`:"";
+  const who=saleCustomer();
+  $("#slDone").disabled=!(SALE.lines.length&&who.first_name);
+  $("#slMsg").textContent=SALE.lines.length&&!who.first_name?"Add the customer's name to finish.":"";
+}
+
+function saleCustomer(){
+  if(SALE.account){
+    const a=SALE.account;
+    return {account_id:a.id,first_name:a.first_name||"",last_name:a.last_name||"",
+            email:a.email||"",phone:a.phone||""};
+  }
+  return {account_id:"",first_name:$("#saFn")?$("#saFn").value.trim():"",
+          last_name:$("#saLn")?$("#saLn").value.trim():"",
+          email:$("#saEm")?$("#saEm").value.trim():"",
+          phone:$("#saPh")?$("#saPh").value.trim():""};
+}
+
+async function completeSale(){
+  const btn=$("#slDone"),msg=$("#slMsg");
+  const who=saleCustomer();
+  btn.disabled=true;btn.textContent="Completing…";msg.style.color="";msg.textContent="";
+  const {data,error}=await db.rpc("place_store_order",{p:Object.assign({},who,{
+    payment_type:$("#slPay").value,
+    notes:$("#slNote").value.trim(),
+    items:SALE.lines.map(l=>({product_id:l.product_id,color:l.color,size:l.size,qty:l.qty}))
+  })});
+  btn.textContent="Complete sale";
+  if(error){msg.style.color="var(--bad)";msg.textContent=error.message;btn.disabled=false;return}
+  showReceipt(data,who);
+  SALE.lines=[];SALE.account=null;
+  await loadProducts();
+  refreshSale();lowBadge();
+  toast("Sale completed — order #"+data.order_number);
+}
+
+function receiptText(r){
+  const lines=(r.items||[]).map(l=>`${l.qty} × ${l.name} (${l.color}, ${l.size}) — ${money(l.price*l.qty)}`);
+  const bits=[`ACE — receipt #${r.order_number}`,"",...lines];
+  if(+r.bundle_discount>0)bits.push("",`Bundle saving: −${money(r.bundle_discount)}`);
+  bits.push("",`Total paid: ${money(r.total)}`,"","Thank you — aceforathletes.com");
+  return bits.join("\n");
+}
+
+function showReceipt(r,who){
+  const el=$("#slReceipt");
+  const phone=(who.phone||r.phone||"").replace(/[^0-9]/g,"");
+  const txt=receiptText(r);
+  el.innerHTML=`<div class="card" style="margin-top:18px">
+    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+      <h2 style="margin:0">Receipt — order #${r.order_number}</h2>
+      ${pill("active","Paid")}
+    </div>
+    <div class="rcpt">
+      <div class="rcpt-h"><b>ACE</b><span>Sports Zone, Dbayeh</span></div>
+      <div class="rcpt-who">${esc(r.customer||"")}${r.email?`<br><span class="help">${esc(r.email)}</span>`:""}</div>
+      ${(r.items||[]).map(l=>`<div class="rcpt-l"><span>${l.qty} × ${esc(l.name)}<br>
+        <span class="help">${esc(l.color)} · ${esc(l.size)}</span></span><b>${money(l.price*l.qty)}</b></div>`).join("")}
+      <div class="rcpt-l"><span>Subtotal</span><b>${money(r.subtotal)}</b></div>
+      ${(r.bundles||[]).map(b=>`<div class="rcpt-l bun"><span>${esc(b.name)}${b.times>1?" ×"+b.times:""}</span>
+        <b>−${money(b.saving)}</b></div>`).join("")}
+      <div class="rcpt-l big"><span>Total paid</span><b>${money(r.total)}</b></div>
+    </div>
+    <div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn ghost sm" type="button" id="rcPrint">Print</button>
+      <button class="btn ghost sm" type="button" id="rcCopy">Copy receipt</button>
+      ${phone?`<a class="btn ghost sm" id="rcWa" target="_blank" rel="noopener"
+        href="https://wa.me/${phone}?text=${encodeURIComponent(txt)}">Send on WhatsApp</a>`:""}
+      <a class="btn ghost sm" href="#/orders/${r.order_id}">Open the order</a>
+    </div>
+    <p class="help" style="margin:10px 0 0">
+      ${r.email?`The receipt is being emailed to ${esc(r.email)} automatically.`
+               :`No email on file, so nothing was emailed.${phone?" Use the WhatsApp button to send it."
+                 :" Add a phone number next time to send it on WhatsApp."}`}
+      ${phone?`<br>WhatsApp opens on your own phone or WhatsApp Web. Once ACE has its own business number, this can send by itself.`:""}
+    </p>
+  </div>`;
+  $("#rcPrint").onclick=()=>window.print();
+  $("#rcCopy").onclick=async()=>{try{await navigator.clipboard.writeText(txt);toast("Receipt copied")}catch(e){toast("Couldn't copy",true)}};
+  el.scrollIntoView({behavior:"smooth",block:"start"});
+}
 
 /* =============== HOME =============== */
 let homeRange="30";
@@ -1643,7 +2107,7 @@ async function pBundles(){
     <p class="help" style="margin:-8px 0 14px">A bundle price applies automatically when a customer's bag contains every piece of the bundle. The server always checks it, so it can't be faked. Bundles also appear in their own section on the website and on each product's page.</p>
     <div id="bOut"></div>`;
   $("#bOut").innerHTML=BUNDLES_A.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Bundle</th><th>Pieces</th><th class="num">Normal price</th><th class="num">Bundle price</th><th>Status</th><th class="num">Order</th></tr></thead><tbody>
-    ${BUNDLES_A.map((b,i)=>{const reg=bundleRegularA(b);return `<tr data-i="${i}"><td><b>${esc(b.name)}</b></td><td style="font-size:13px">${bundleDesc(b)}</td><td class="num"><s class="muted">${money(reg)}</s></td><td class="num"><b>${money(b.price)}</b>${reg>b.price?`<div style="color:var(--ok);font-size:12px">save ${money(reg-b.price)}</div>`:`<div style="color:var(--bad);font-size:12px">no saving</div>`}</td><td>${b.active?pill("active","Active"):pill("hidden","Off")}</td>
+    ${BUNDLES_A.map((b,i)=>{const reg=bundleRegularA(b);return `<tr data-i="${i}"><td><b>${esc(b.name)}</b></td><td style="font-size:13px">${bundleDesc(b)}</td><td class="num"><s class="muted">${money(reg)}</s></td><td class="num"><b>${money(b.price)}</b>${reg>b.price?`<div style="color:var(--ok);font-size:12px">save ${money(reg-b.price)}</div>`:`<div style="color:var(--bad);font-size:12px">no saving</div>`}</td><td>${b.active?pill("active","Active"):pill("hidden","Off")}${b.channels==="online"?pill("scheduled","Web only"):b.channels==="store"?pill("scheduled","Store only"):""}</td>
       <td class="num nowrap"><button class="btn ghost sm" data-mv="-1" ${i===0?"disabled":""}>↑</button> <button class="btn ghost sm" data-mv="1" ${i===BUNDLES_A.length-1?"disabled":""}>↓</button></td></tr>`}).join("")}</tbody></table></div>`
     :`<div class="empty">No bundles yet. Example: 1 black T-shirt + 1 white T-shirt for $45 instead of $50.</div>`;
   $$("#bOut tr[data-i]").forEach(r=>r.onclick=e=>{if(e.target.closest("[data-mv]"))return;editBundle(BUNDLES_A[+r.dataset.i])});
@@ -1652,13 +2116,19 @@ async function pBundles(){
   $("#bNew").onclick=()=>editBundle(null);
 }
 function editBundle(b){
-  const st={name:b?b.name:"",description:b?b.description:"",price:b?Number(b.price):"",active:b?b.active:true,items:b?JSON.parse(JSON.stringify(b.items||[])):[{product_id:(PRODUCTS[0]||{}).id,color:null,qty:1}]};
+  const st={name:b?b.name:"",description:b?b.description:"",price:b?Number(b.price):"",active:b?b.active:true,channels:b?(b.channels||"both"):"both",items:b?JSON.parse(JSON.stringify(b.items||[])):[{product_id:(PRODUCTS[0]||{}).id,color:null,qty:1}]};
   const m=modal(`<h2>${b?"Edit bundle":"Create bundle"}</h2>
     <label class="fld"><span>Name</span><input type="text" id="bnName" maxlength="60" placeholder="e.g. Tee duo" value="${esc(st.name)}"></label>
     <label class="fld"><span>Short description (optional)</span><input type="text" id="bnDesc" maxlength="140" value="${esc(st.description)}"></label>
     <span class="lbl">Pieces in the bundle</span><div id="bnItems"></div><button class="btn ghost sm" id="bnAdd" type="button" style="margin:4px 0 14px">Add a piece</button>
     <div class="grid2"><label class="fld"><span>Bundle price ($)</span><input type="number" id="bnPrice" min="0" step="0.01" value="${esc(st.price)}"></label><div class="fld"><span>Normal price</span><div id="bnReg" style="padding-top:9px"></div></div></div>
-    <label class="toggle" style="margin:4px 0 12px"><input type="checkbox" id="bnAct" ${st.active?"checked":""}> Active on the website</label>
+    <label class="toggle" style="margin:4px 0 10px"><input type="checkbox" id="bnAct" ${st.active?"checked":""}> Active</label>
+    <label class="fld"><span>Where it applies</span><select id="bnChan">
+      <option value="both" ${st.channels==="both"?"selected":""}>Website and the store</option>
+      <option value="online" ${st.channels==="online"?"selected":""}>Website only</option>
+      <option value="store" ${st.channels==="store"?"selected":""}>In-store only</option>
+    </select></label>
+    <p class="help" style="margin:-6px 0 12px">An online-only offer is ignored when you ring a sale up at the counter, and the other way round.</p>
     <div class="err" id="bnErr"></div>
     <div class="row between" style="margin-top:10px">${b?`<button class="btn danger sm" id="bnDel">Delete</button>`:"<span></span>"}<span class="row"><button class="btn ghost" id="bnCancel">Cancel</button><button class="btn" id="bnSave">Save</button></span></div>`);
   const reg=()=>{const r=bundleRegularA(st);const pr=parseFloat($("#bnPrice",m).value);$("#bnReg",m).innerHTML=`${money(r)}${pr>=0&&pr<r?` <span style="color:var(--ok);font-size:13px">customers save ${money(r-pr)}</span>`:""}`};
@@ -1681,7 +2151,7 @@ function editBundle(b){
     const items=st.items.filter(i=>i.product_id).map(i=>({product_id:i.product_id,color:i.color||null,qty:Math.max(1,i.qty||1)}));
     if(!items.length)return e("Add at least one piece.");if(items.reduce((a,i)=>a+i.qty,0)<2)return e("A bundle needs at least 2 pieces.");
     const r=bundleRegularA({items});if(price>=r)return e(`The bundle price must be lower than the normal price (${money(r)}).`);
-    const row={name,description:$("#bnDesc",m).value.trim(),price,items,active:$("#bnAct",m).checked};
+    const row={name,description:$("#bnDesc",m).value.trim(),price,items,active:$("#bnAct",m).checked,channels:$("#bnChan",m).value};
     if(!b)row.position=BUNDLES_A.length+1;
     const res=b?await db.from("bundles").update(row).eq("id",b.id):await db.from("bundles").insert(row);
     if(res.error)return e("Couldn't save: "+res.error.message);m.remove();toast("Bundle saved");pBundles()};
