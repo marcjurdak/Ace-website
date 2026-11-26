@@ -612,7 +612,11 @@ section.co-sec{padding:28px 0 0}
 
 /* ===================== hero video ===================== */
 .hero-media{position:relative;overflow:hidden;aspect-ratio:1010/941;background:#000}
-@media(min-width:700px){.hero-media{aspect-ratio:16/9;max-height:min(88vh,860px)}}
+/* On a laptop the video fills the screen under the header. No aspect-ratio here:
+   a ratio plus a height cap makes the browser pull the width in to match, which
+   left a gap down the right-hand side on every wide screen. */
+@media(min-width:700px){.hero-media{aspect-ratio:auto;width:100%;max-height:none;min-height:420px;
+  height:calc(100vh - var(--hero-top,109px));height:calc(100svh - var(--hero-top,109px))}}
 .hero-media>picture,.hero-img,.hero-video{position:absolute;inset:0;width:100%;height:100%}
 .hero-img,.hero-video{object-fit:cover;display:block}
 .hero-video{opacity:0;transition:opacity .6s ease;z-index:1}
@@ -1490,8 +1494,18 @@ function applyContent(c,fresh){
 let gridLoaded=false;
 /* ---------- hero video ---------- */
 let heroCtl=null;
+// How far down the page the hero starts: the sticky header, plus the announcement
+// bar when one is showing. The hero is sized to fill the screen below it.
+function heroTop(){
+  const bar=document.querySelector(".announce"),top=document.querySelector(".top");
+  let n=top?top.getBoundingClientRect().height:73;
+  if(bar&&!bar.hidden&&bar.offsetParent!==null)n+=bar.getBoundingClientRect().height;
+  document.documentElement.style.setProperty("--hero-top",Math.round(n)+"px");
+}
 function setupHero(h){
   h=h||{};
+  heroTop();requestAnimationFrame(heroTop);
+  if(!window.__heroResize){window.__heroResize=true;addEventListener("resize",heroTop)}
   const v=document.getElementById("heroVideo"),media=document.getElementById("heroMedia");
   const img=document.getElementById("heroImg"),msrc=document.getElementById("heroMobile");
   const isPhone=matchMedia("(max-width:699px)").matches;
