@@ -730,7 +730,13 @@ let SALE={lines:[],account:null,quote:{discount:0,applied:[]}};
 
 async function pSale(){
   await loadProducts();
-  SALE={lines:[],account:null,quote:{discount:0,applied:[]}};
+  SALE={lines:[],account:null,quote:{discount:0,applied:[]},welcome:0};
+  // the first-order offer, read from the same settings the website reads
+  const wo=await db.rpc("welcome_offer");
+  const W=(wo&&wo.data)||{};
+  SALE.welOn=String(W.welcome_enabled)==="true"&&(+W.welcome_value||0)>0;
+  SALE.welLabel=W.welcome_label||"Welcome discount";
+  SALE.welHow=W.welcome_kind==="fixed"?money(+W.welcome_value||0):((+W.welcome_value||0)+"%");
   const sellable=PRODUCTS.filter(p=>p.active&&!p.coming_soon);
 
   V.innerHTML=`
@@ -757,8 +763,12 @@ async function pSale(){
           </div>
           <label class="fld"><span>Phone (optional)</span><input type="tel" id="saPh" maxlength="40" placeholder="+961 …"></label>
           <label class="fld"><span>Email (optional)</span><input type="email" id="saEm" maxlength="160" placeholder="For an emailed receipt"></label>
-          <p class="help" style="margin:0">With a phone number you can send the receipt on WhatsApp after the sale.
+          <p class="help" style="margin:0 0 10px">With a phone number you can send the receipt on WhatsApp after the sale.
             With an email, the receipt is sent automatically.</p>
+          ${SALE.welOn?`<label class="toggle"><input type="checkbox" id="saWel">
+            First order — give the ${esc(SALE.welHow)} ${esc(SALE.welLabel.toLowerCase())}</label>
+          <p class="help" style="margin:6px 0 0">A walk-in has no account, so nothing tracks whether they have
+            had this before. Tick it only for a genuine first purchase.</p>`:""}
         </div>
       </div>
 
@@ -812,6 +822,7 @@ async function pSale(){
   let qT;
   $("#saQ").oninput=()=>{clearTimeout(qT);qT=setTimeout(searchAccounts,300)};
   ["#saFn","#saLn","#saPh","#saEm"].forEach(id=>$(id).oninput=refreshSale);
+  if($("#saWel"))$("#saWel").onchange=refreshSale;
 
   $("#slProd").onchange=fillColours;
   $("#slCol").onchange=fillSizes;
@@ -855,7 +866,8 @@ async function searchAccounts(){
   box.innerHTML=data.map(a=>`<button type="button" class="hitrow" data-acc="${a.id}">
       <b>${esc([a.first_name,a.last_name].filter(Boolean).join(" ")||"(no name)")}</b>
       <span>${esc(a.email||"")}${a.phone?" · "+esc(a.phone):""}</span>
-      <span class="help">${a.orders_count||0} order${(a.orders_count||0)===1?"":"s"}</span>
+      <span class="help">${a.orders_count||0} order${(a.orders_count||0)===1?"":"s"}${
+        SALE.welOn&&!a.welcome_used?" · "+esc(SALE.welHow)+" first-order discount unused":""}</span>
     </button>`).join("");
   $$("#saHits .hitrow").forEach(b=>b.onclick=()=>{
     const a=data.find(x=>x.id===b.dataset.acc);
@@ -867,6 +879,9 @@ async function searchAccounts(){
     pk.innerHTML=`<div class="picked"><div>
         <b>${esc([a.first_name,a.last_name].filter(Boolean).join(" "))}</b><br>
         <span class="help">${esc(a.email||"no email")}${a.phone?" · "+esc(a.phone):""}</span>
+        ${SALE.welOn?`<br><span class="help">${a.welcome_used
+          ?`${esc(SALE.welLabel)} already used`
+          :`${esc(SALE.welLabel)} (${esc(SALE.welHow)}) applies to this sale`}</span>`:""}
       </div><button class="btn ghost sm" type="button" id="saClear">Change</button></div>`;
     $("#saClear").onclick=()=>{SALE.account=null;pk.hidden=true;refreshSale()};
     refreshSale();
@@ -911,14 +926,31 @@ async function refreshSale(){
   const sub=SALE.lines.reduce((a,l)=>a+l.price*l.qty,0);
   const disc=+(SALE.quote.discount||0);
   const applied=SALE.quote.applied||[];
+  // the first-order discount, worked out by the database on the subtotal after
+  // any bundle saving — the same order the website applies them in
+  SALE.welcome=0;
+  if(SALE.welOn&&SALE.lines.length&&sub-disc>0&&welcomeWanted()){
+    const {data,error}=await db.rpc("welcome_amount",{p_base:+(sub-disc).toFixed(2)});
+    SALE.welcome=error?0:+(data||0);
+  }
+  const wel=SALE.welcome;
   $("#slTotals").innerHTML=SALE.lines.length?`
     <div class="totrow"><span>Subtotal</span><b>${money(sub)}</b></div>
     ${applied.map(b=>`<div class="totrow bun"><span>${esc(b.name)}${b.times>1?" ×"+b.times:""}</span>
       <b>−${money(b.saving)}</b></div>`).join("")}
-    <div class="totrow big"><span>Total</span><b>${money(sub-disc)}</b></div>`:"";
+    ${wel>0?`<div class="totrow bun"><span>${esc(SALE.welLabel)} · first order</span>
+      <b>−${money(wel)}</b></div>`:""}
+    <div class="totrow big"><span>Total</span><b>${money(sub-disc-wel)}</b></div>`:"";
   const who=saleCustomer();
   $("#slDone").disabled=!(SALE.lines.length&&who.first_name);
   $("#slMsg").textContent=SALE.lines.length&&!who.first_name?"Add the customer's name to finish.":"";
+}
+
+// A picked account spends its own offer; a walk-in gets it only when asked for.
+// place_store_order follows the same rule, so the screen and the till agree.
+function welcomeWanted(){
+  if(SALE.account)return !SALE.account.welcome_used;
+  const c=$("#saWel");return !!(c&&c.checked);
 }
 
 function saleCustomer(){
@@ -940,12 +972,14 @@ async function completeSale(){
   const {data,error}=await db.rpc("place_store_order",{p:Object.assign({},who,{
     payment_type:$("#slPay").value,
     notes:$("#slNote").value.trim(),
+    welcome:welcomeWanted(),
     items:SALE.lines.map(l=>({product_id:l.product_id,color:l.color,size:l.size,qty:l.qty}))
   })});
   btn.textContent="Complete sale";
   if(error){msg.style.color="var(--bad)";msg.textContent=error.message;btn.disabled=false;return}
   showReceipt(data,who);
-  SALE.lines=[];SALE.account=null;
+  SALE.lines=[];SALE.account=null;SALE.welcome=0;
+  if($("#saWel"))$("#saWel").checked=false;   // the next customer is a new question
   await loadProducts();
   refreshSale();lowBadge();
   toast("Sale completed — order #"+data.order_number);
@@ -954,7 +988,12 @@ async function completeSale(){
 function receiptText(r){
   const lines=(r.items||[]).map(l=>`${l.qty} × ${l.name} (${l.color}, ${l.size}) — ${money(l.price*l.qty)}`);
   const bits=[`ACE — receipt #${r.order_number}`,"",...lines];
-  if(+r.bundle_discount>0)bits.push("",`Bundle saving: −${money(r.bundle_discount)}`);
+  const bun=+r.bundle_discount||0,wel=+r.welcome_discount||0;
+  if(bun>0||wel>0){
+    bits.push("",`Subtotal: ${money(r.subtotal)}`);
+    if(bun>0)bits.push(`Bundle saving: −${money(bun)}`);
+    if(wel>0)bits.push(`First-order discount: −${money(wel)}`);
+  }
   bits.push("",`Total paid: ${money(r.total)}`,"","Thank you — aceforathletes.com");
   return bits.join("\n");
 }
@@ -976,6 +1015,8 @@ function showReceipt(r,who){
       <div class="rcpt-l"><span>Subtotal</span><b>${money(r.subtotal)}</b></div>
       ${(r.bundles||[]).map(b=>`<div class="rcpt-l bun"><span>${esc(b.name)}${b.times>1?" ×"+b.times:""}</span>
         <b>−${money(b.saving)}</b></div>`).join("")}
+      ${+r.welcome_discount>0?`<div class="rcpt-l bun"><span>First-order discount</span>
+        <b>−${money(r.welcome_discount)}</b></div>`:""}
       <div class="rcpt-l big"><span>Total paid</span><b>${money(r.total)}</b></div>
     </div>
     <div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">

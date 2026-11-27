@@ -42,7 +42,8 @@ function buildEmail(o, paymentMethod) {
   const address = [o.address1, o.address2, o.city, o.postal_code, o.country].filter(Boolean);
   const adminLink = siteUrl() ? `${siteUrl()}/admin#/orders/${o.order_number}` : "";
   const disc = Number(o.discount_amount || 0);
-  const total = o.total != null ? o.total : Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - disc - Number(o.bundle_discount || 0);
+  const welc = Number(o.welcome_discount || 0);
+  const total = o.total != null ? o.total : Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - disc - Number(o.bundle_discount || 0) - welc;
   const subject = `New ACE Order — #${o.order_number}`;
 
   const row = (k, v) => v ? `<tr><td style="padding:6px 0;color:#666;font-size:14px;width:130px;vertical-align:top">${esc(k)}</td><td style="padding:6px 0;font-size:14px;color:#111">${v}</td></tr>` : "";
@@ -80,6 +81,7 @@ function buildEmail(o, paymentMethod) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px">
       ${sum("Subtotal", money(o.subtotal))}
       ${Number(o.bundle_discount) > 0 ? sum("Bundle savings" + ((o.bundles || []).length ? " (" + o.bundles.map((b) => b.name).join(", ") + ")" : ""), "−" + money(o.bundle_discount)) : ""}
+      ${welc > 0 ? sum("Welcome discount", "−" + money(welc)) : ""}
       ${disc > 0 ? sum(`Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}`, "−" + money(disc)) : ""}
       ${sum("Delivery fee", money(o.delivery_fee))}
       ${sum("Total", money(total), true)}
@@ -98,7 +100,7 @@ function buildEmail(o, paymentMethod) {
     "CUSTOMER", `Name: ${name}`, o.company ? `Company: ${o.company}` : null, `Phone: ${o.phone}`, `Email: ${o.email || "Not given"}${o.news_opt_in ? " (wants news)" : ""}`,
     `Address: ${address.join(", ")}`, o.map_link ? `Map pin: ${o.map_link}` : null, o.notes ? `Instructions: ${o.notes}` : null, "",
     "ITEMS", ...items.map((i) => `- ${i.qty} x ${i.name} (${i.color} / ${i.size}) @ ${money(i.price)} = ${money(Number(i.price) * Number(i.qty))}`), "",
-    `Subtotal: ${money(o.subtotal)}`, Number(o.bundle_discount) > 0 ? `Bundle savings: -${money(o.bundle_discount)}` : null, disc > 0 ? `Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}: -${money(disc)}` : null,
+    `Subtotal: ${money(o.subtotal)}`, Number(o.bundle_discount) > 0 ? `Bundle savings: -${money(o.bundle_discount)}` : null, welc > 0 ? `Welcome discount: -${money(welc)}` : null, disc > 0 ? `Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}: -${money(disc)}` : null,
     `Delivery fee: ${money(o.delivery_fee)}`, `Total: ${money(total)}`, "",
     `Payment method: ${({cash_on_delivery:"Cash on delivery",omt:"OMT",whish:"Whish"})[o.payment_type] || paymentMethod}`, `Payment status: ${PAY[o.payment_status] || o.payment_status || "Unpaid"}`, `Order status: ${STATUS[o.status] || o.status}`,
   ].filter((l) => l !== null).join("\n");
@@ -108,7 +110,8 @@ function buildEmail(o, paymentMethod) {
 function buildCustomerEmail(o, info) {
   const items = Array.isArray(o.items) ? o.items : [];
   const disc = Number(o.discount_amount || 0);
-  const total = o.total != null ? o.total : Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - disc - Number(o.bundle_discount || 0);
+  const welc = Number(o.welcome_discount || 0);
+  const total = o.total != null ? o.total : Number(o.subtotal || 0) + Number(o.delivery_fee || 0) - disc - Number(o.bundle_discount || 0) - welc;
   const when = new Date(o.created_at).toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short", timeZone: env("STORE_TIMEZONE") || "Asia/Beirut" });
   const address = [o.address1, o.address2, o.city, o.postal_code, o.country].filter(Boolean);
   const link = siteUrl() ? `${siteUrl()}/order?id=${o.id}` : "";
@@ -139,6 +142,7 @@ function buildCustomerEmail(o, info) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px">
       ${sum("Subtotal", money(o.subtotal))}
       ${Number(o.bundle_discount) > 0 ? sum("Bundle savings" + ((o.bundles || []).length ? " (" + o.bundles.map((b) => b.name).join(", ") + ")" : ""), "−" + money(o.bundle_discount)) : ""}
+      ${welc > 0 ? sum("Welcome discount", "−" + money(welc)) : ""}
       ${disc > 0 ? sum(`Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}`, "−" + money(disc)) : ""}
       ${sum("Delivery", Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : "Free")}
       ${sum("Total", money(total), true)}
@@ -156,7 +160,7 @@ function buildCustomerEmail(o, info) {
     `Your order is confirmed`, "", `Thank you, ${o.first_name}. We've received your order and we're preparing it.`, "",
     `Order #${o.order_number} · ${when}`, "",
     ...items.map((i) => `- ${i.qty} x ${i.name} (${i.color} / ${i.size}): ${money(Number(i.price) * Number(i.qty))}`), "",
-    `Subtotal: ${money(o.subtotal)}`, Number(o.bundle_discount) > 0 ? `Bundle savings: -${money(o.bundle_discount)}` : null, disc > 0 ? `Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}: -${money(disc)}` : null,
+    `Subtotal: ${money(o.subtotal)}`, Number(o.bundle_discount) > 0 ? `Bundle savings: -${money(o.bundle_discount)}` : null, welc > 0 ? `Welcome discount: -${money(welc)}` : null, disc > 0 ? `Discount${o.discount_code ? " (" + o.discount_code + ")" : ""}: -${money(disc)}` : null,
     `Delivery: ${Number(o.delivery_fee) > 0 ? money(o.delivery_fee) : "Free"}`, `Total: ${money(total)}`, "",
     `Delivering to: ${o.first_name} ${o.last_name}, ${address.join(", ")}, ${o.phone}`,
     info.payment ? `Payment: ${info.payment}` : null, link ? `View your order: ${link}` : null, "",
