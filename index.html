@@ -2757,15 +2757,25 @@ function showToast(msg){
 $("#toastView").onclick=()=>{$("#toast").classList.remove("on");openBag()};
 /* ---------- bundles ---------- */
 function bundleColor(p,i){return i.color?p.colors.find(c=>c.n===i.color)||p.colors[0]:p.colors[0]}
-function bundleRegular(b){return b.items.reduce((a,i)=>{const p=PRODUCTS.find(x=>x.id===i.product_id);return a+(p?p.price*(i.qty||1):0)},0)}
-function bundleImgs(b){const out=[];b.items.forEach(i=>{const p=PRODUCTS.find(x=>x.id===i.product_id);if(!p)return;const c=bundleColor(p,i);for(let k=0;k<(i.qty||1);k++)out.push(c.imgs[0])});return b.image?[b.image]:out}
+// A bundle piece names either one product or a whole category, in which case any
+// item in that category fills it. The cheapest one stands for the piece wherever a
+// single product has to be shown or priced, so the saving is never overstated.
+const pieceProducts=i=>i.category?PRODUCTS.filter(p=>p.cat===i.category):[PRODUCTS.find(x=>x.id===i.product_id)].filter(Boolean);
+// The dearest match stands for the piece: it is the one the discount engine takes
+// first, so the saving shown is the one a customer actually gets. Pick something
+// cheaper and the bundle simply does not apply — they pay less than the bundle price.
+const pieceRep=i=>{const l=pieceProducts(i);return l.length?l.reduce((a,b)=>b.price>a.price?b:a):null};
+const rowsRegular=rows=>rows.reduce((a,r)=>a+(r.p?r.p.price:0),0);
+const catLabelS=s=>{try{return (CATS.find(c=>c.slug===s)||{}).name||s}catch(e){return s}};
+function bundleRegular(b){return b.items.reduce((a,i)=>{const p=pieceRep(i);return a+(p?p.price*(i.qty||1):0)},0)}
+function bundleImgs(b){const out=[];b.items.forEach(i=>{const p=pieceRep(i);if(!p)return;const c=bundleColor(p,i);for(let k=0;k<(i.qty||1);k++)out.push(c.imgs[0])});return b.image?[b.image]:out}
 function computeBundlesClient(){
-  const units=[];bag.forEach(l=>{const {p}=lineInfo(l);if(!p)return;for(let k=0;k<Math.min(l.qty,50);k++)units.push({pid:l.id,col:l.color,price:p.price,used:false})});
+  const units=[];bag.forEach(l=>{const {p}=lineInfo(l);if(!p)return;for(let k=0;k<Math.min(l.qty,50);k++)units.push({pid:l.id,col:l.color,cat:p.cat,price:p.price,used:false})});
   let total=0;const applied=[];
   BUNDLES.forEach(b=>{let times=0,save=0;
     for(;;){const picked=[];let ok=true;
       for(const comp of b.items){const need=Math.max(1,comp.qty||1);
-        const c=units.map((u,i)=>i).filter(i=>!units[i].used&&!picked.includes(i)&&units[i].pid===comp.product_id&&(!comp.color||units[i].col===comp.color)).sort((a,z)=>units[z].price-units[a].price).slice(0,need);
+        const c=units.map((u,i)=>i).filter(i=>!units[i].used&&!picked.includes(i)&&(comp.category?units[i].cat===comp.category:units[i].pid===comp.product_id)&&(!comp.color||units[i].col===comp.color)).sort((a,z)=>units[z].price-units[a].price).slice(0,need);
         if(c.length<need){ok=false;break}picked.push(...c)}
       if(!ok)break;const s=picked.reduce((a,i)=>a+units[i].price,0)-b.price;if(s<=0)break;
       picked.forEach(i=>units[i].used=true);times++;save+=s;total+=s;if(times>=20)break}
@@ -2781,21 +2791,31 @@ function renderBundlesHome(){
 let BS=null;
 function openBundle(b){
   if(!b)return;const rows=[];
-  b.items.forEach(i=>{const p=PRODUCTS.find(x=>x.id===i.product_id);if(!p)return;for(let k=0;k<(i.qty||1);k++)rows.push({p,fixed:i.color||null,color:(bundleColor(p,i)).n,size:p.sizes.length===1?p.sizes[0]:null})});
-  BS={b,rows};const reg=bundleRegular(b);
-  $("#bsTitle").textContent=b.name;$("#bsPrice").innerHTML=`${money(b.price)}${reg>b.price?` <s style="opacity:.5;font-size:.85em">${money(reg)}</s>`:""}`;$("#bsErr").textContent="";
+  b.items.forEach(i=>{const choices=pieceProducts(i),p=pieceRep(i);if(!p)return;
+    for(let k=0;k<(i.qty||1);k++)rows.push({p,choices:i.category?choices:null,fixed:i.color||null,color:(bundleColor(p,i)).n,size:p.sizes.length===1?p.sizes[0]:null})});
+  BS={b,rows};
+  $("#bsTitle").textContent=b.name;$("#bsErr").textContent="";
   renderBundleSheet();
   if(!$("#bsheet").classList.contains("on")){closeAll();setTimeout(()=>openSheet($("#bsheet")),60)}
   track("view_item",{value:b.price,items:rows.map(r=>gaItem(r.p,r.p.colors.find(c=>c.n===r.color),null,1)),bundle:b.name});
 }
 function renderBundleSheet(){
   const body=$("#bsBody");
+  // the price line follows what is actually chosen, so swapping a piece for a
+  // cheaper one cannot leave a saving on screen that no longer applies
+  const reg=rowsRegular(BS.rows);
+  $("#bsPrice").innerHTML=`${money(BS.b.price)}${reg>BS.b.price?` <s style="opacity:.5;font-size:.85em">${money(reg)}</s>`:""}`;
   body.innerHTML=(BS.b.description?`<p style="color:var(--muted);margin-bottom:6px">${esc(BS.b.description)}</p>`:"")+BS.rows.map((r,k)=>{const c=r.p.colors.find(x=>x.n===r.color)||r.p.colors[0];
-    return `<div class="bs-item" data-k="${k}"><img src="${esc(c.imgs[0])}" alt=""><div><div class="n">${esc(r.p.name)}</div>
+    return `<div class="bs-item" data-k="${k}"><img src="${esc(c.imgs[0])}" alt=""><div>${r.choices&&r.choices.length>1
+      ?`<select data-pick aria-label="Which one">${r.choices.map(x=>`<option value="${esc(x.id)}" ${x.id===r.p.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`
+      :`<div class="n">${esc(r.p.name)}</div>`}
       ${r.fixed?`<div style="font-size:13px;color:var(--muted)">${esc(r.color)}</div>`:`<select aria-label="Colour">${r.p.colors.filter(x=>!x.soldOut).map(x=>`<option ${x.n===r.color?"selected":""}>${esc(x.n)}</option>`).join("")}</select>`}
       <div class="px-sizes">${r.p.sizes.map(s=>`<button type="button" data-s="${esc(s)}" aria-pressed="${s===r.size}" ${sizeOut(r.p,c,s)?"disabled class=\"out\"":""}>${esc(s)}</button>`).join("")}</div></div></div>`}).join("");
   body.querySelectorAll(".bs-item").forEach(el=>{const r=BS.rows[+el.dataset.k];
-    const sel=el.querySelector("select");if(sel)sel.onchange=()=>{r.color=sel.value;r.size=null;renderBundleSheet()};
+    const pk=el.querySelector("[data-pick]");
+    if(pk)pk.onchange=()=>{const np=PRODUCTS.find(x=>x.id===pk.value);
+      if(np){r.p=np;r.color=(np.colors[0]||{}).n;r.size=np.sizes.length===1?np.sizes[0]:null}renderBundleSheet()};
+    const sel=el.querySelector("select:not([data-pick])");if(sel)sel.onchange=()=>{r.color=sel.value;r.size=null;renderBundleSheet()};
     el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{r.size=b.dataset.s;$("#bsErr").textContent="";renderBundleSheet()})});
 }
 $("#bsAdd").onclick=()=>{
@@ -2847,9 +2867,12 @@ function renderBag(){
   if(!bag.length)return;
   // bundle hints: bag has part of a bundle
   const B=computeBundlesClient();const hints=[];
-  BUNDLES.forEach(b=>{if(B.applied.some(a=>a.id===b.id))return;const have=b.items.map(i=>bag.some(l=>l.id===i.product_id&&(!i.color||l.color===i.color)));
-    if(have.some(Boolean)&&!have.every(Boolean)){const miss=b.items[have.indexOf(false)];const mp=PRODUCTS.find(x=>x.id===miss.product_id);const reg=bundleRegular(b);
-      if(mp)hints.push(`<div class="bhint"><div><b>Complete the ${esc(b.name)}</b>Add ${esc(mp.name)}${miss.color?" in "+esc(miss.color):""} and pay ${money(b.price)}${reg>b.price?` (save ${money(reg-b.price)})`:""}</div><button type="button" data-pid="${esc(mp.id)}" data-col="${esc(miss.color||"")}">Add</button></div>`)}});
+  BUNDLES.forEach(b=>{if(B.applied.some(a=>a.id===b.id))return;
+    const have=b.items.map(i=>bag.some(l=>{const lp=lineInfo(l).p;
+      return lp&&(i.category?lp.cat===i.category:l.id===i.product_id)&&(!i.color||l.color===i.color)}));
+    if(have.some(Boolean)&&!have.every(Boolean)){const miss=b.items[have.indexOf(false)];const mp=pieceRep(miss);const reg=bundleRegular(b);
+      const what=miss.category?"any "+esc(catLabelS(miss.category)):esc(mp?mp.name:"");
+      if(mp)hints.push(`<div class="bhint"><div><b>Complete the ${esc(b.name)}</b>Add ${what}${miss.color?" in "+esc(miss.color):""} and pay ${money(b.price)}${reg>b.price?` (save ${money(reg-b.price)})`:""}</div><button type="button" data-pid="${esc(mp.id)}" data-col="${esc(miss.color||"")}">Add</button></div>`)}});
   const inBag=bag.map(l=>l.id);const first=lineInfo(bag[0]).p;const rel=first?relatedFor(first,inBag).slice(0,6):[];
   const extra=document.createElement("div");extra.id="bagRecs";
   extra.innerHTML=hints.join("")+(rel.length?`<h3>You might also like</h3><div class="prow">${rel.map(miniCard).join("")}</div>`:"");
@@ -3059,7 +3082,11 @@ async function loadRatings(){
 }
 async function loadBundles(){
   const {data}=await db.from("bundles").select("id,name,description,items,price,image,position").eq("active",true).order("position",{ascending:true}).order("created_at",{ascending:true});
-  BUNDLES=(data||[]).map(b=>({...b,price:Number(b.price),all:(b.items||[]).length,items:(b.items||[]).filter(i=>PRODUCTS.some(p=>p.id===i.product_id))})).filter(b=>b.items.length&&b.items.length===b.all);
+  // A piece survives if what it names is on sale: the product itself, or at least
+  // one product in its category. A bundle with any piece missing is left out whole.
+  BUNDLES=(data||[]).map(b=>({...b,price:Number(b.price),all:(b.items||[]).length,
+    items:(b.items||[]).filter(i=>i.category?PRODUCTS.some(p=>p.cat===i.category):PRODUCTS.some(p=>p.id===i.product_id))}))
+    .filter(b=>b.items.length&&b.items.length===b.all);
 }
 async function loadCategories(){
   const {data}=await db.from("categories").select("slug,name,position,always_show,teaser,is_section,section,coming_soon,fit").order("position",{ascending:true});

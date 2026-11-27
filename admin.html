@@ -84,7 +84,12 @@ input[type=range]{width:100%;accent-color:var(--fg)}
 .linkbtn{text-decoration:underline;font-size:13px;margin-top:14px;color:var(--muted)}
 /* shell */
 .shell{display:flex;min-height:100vh}
-.side{width:var(--side);flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;padding:16px 12px}
+/* The menu is taller than a phone screen, so the links scroll inside it while the
+   logo and the Sign out buttons stay put. dvh keeps it to the part of the screen
+   actually visible on iOS, where 100vh runs on under the browser's own bars. */
+.side{width:var(--side);flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);position:sticky;top:0;height:100vh;height:100dvh;display:flex;flex-direction:column;padding:16px 12px;overflow:hidden}
+.nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;padding-bottom:4px}
 .side .brand{display:flex;align-items:center;gap:8px;padding:4px 8px 18px}
 .side .brand img{height:16px;width:auto}
 .side .brand span{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.1em;text-transform:uppercase}
@@ -99,7 +104,10 @@ input[type=range]{width:100%;accent-color:var(--fg)}
 .mtop{display:none}
 main{padding:22px var(--pad) 90px;max-width:1180px;margin:0 auto}
 @media(max-width:959px){
-  .side{position:fixed;left:0;top:0;bottom:0;z-index:70;transform:translateX(-105%);transition:transform .25s;box-shadow:0 0 40px rgba(0,0,0,.3)}
+  /* height:auto lets top and bottom set it: on a phone the drawer is exactly as
+     tall as the visible screen, never taller, so the last links are reachable */
+  .side{position:fixed;left:0;top:0;bottom:0;height:auto;z-index:70;transform:translateX(-105%);transition:transform .25s;box-shadow:0 0 40px rgba(0,0,0,.3);
+    padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
   .side.open{transform:none}
   .mtop{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--line);padding:10px var(--pad);padding-top:max(10px,env(safe-area-inset-top))}
   .mtop img{height:15px;width:auto}
@@ -737,6 +745,14 @@ async function pSale(){
   SALE.welOn=String(W.welcome_enabled)==="true"&&(+W.welcome_value||0)>0;
   SALE.welLabel=W.welcome_label||"Welcome discount";
   SALE.welHow=W.welcome_kind==="fixed"?money(+W.welcome_value||0):((+W.welcome_value||0)+"%");
+  // today's discount lives in settings, so it holds across sales, tills and devices
+  const sdRows=await db.from("settings").select("key,value")
+    .in("key",["store_discount_on","store_discount_kind","store_discount_value","store_discount_label"]);
+  const S=Object.fromEntries(((sdRows.data)||[]).map(r=>[r.key,r.value]));
+  SALE.sdOn=String(S.store_discount_on)==="true";
+  SALE.sdKind=S.store_discount_kind==="fixed"?"fixed":"percent";
+  SALE.sdVal=Math.max(0,+(S.store_discount_value||0)||0);
+  SALE.sdLabel=S.store_discount_label||"Today's discount";
   const sellable=PRODUCTS.filter(p=>p.active&&!p.coming_soon);
 
   V.innerHTML=`
@@ -788,6 +804,25 @@ async function pSale(){
     </div>
 
     <div>
+      <div class="card" style="margin-bottom:16px">
+        <h2>Today's discount</h2>
+        <p class="help" style="margin:-4px 0 10px">Comes off every sale at this counter, for everyone, until you switch it
+          off again — an opening day, a weekend offer. It is taken after any bundle saving, and it does not add to the
+          first-order discount: the customer gets whichever of the two is worth more.</p>
+        <label class="toggle"><input type="checkbox" id="sdOn"> Give a discount on every sale today</label>
+        <div id="sdBox" hidden style="margin-top:12px">
+          <div class="row" style="gap:10px;align-items:flex-end">
+            <label class="fld" style="flex:1;min-width:92px;margin:0"><span>How much</span>
+              <input type="number" id="sdVal" min="0" max="100" step="0.5"></label>
+            <label class="fld" style="flex:1;min-width:110px;margin:0"><span>Off</span>
+              <select id="sdKind"><option value="percent">% of the sale</option><option value="fixed">$ off the sale</option></select></label>
+          </div>
+          <label class="fld" style="margin:10px 0 0"><span>What it is called on the receipt</span>
+            <input type="text" id="sdLabel" maxlength="40" placeholder="Opening day"></label>
+        </div>
+        <p class="help" id="sdMsg" style="margin:10px 0 0"></p>
+      </div>
+
       <div class="card">
         <h2>Sale</h2>
         <div id="slLines"><div class="empty" style="border:0;background:none;padding:18px 0">Nothing added yet.</div></div>
@@ -818,6 +853,35 @@ async function pSale(){
   };
   $("#sbExist").onclick=()=>mode("exist");
   $("#sbWalk").onclick=()=>mode("walk");
+
+  // today's discount
+  $("#sdOn").checked=SALE.sdOn;$("#sdBox").hidden=!SALE.sdOn;
+  $("#sdVal").value=SALE.sdVal||"";$("#sdKind").value=SALE.sdKind;$("#sdLabel").value=SALE.sdLabel;
+  const sdSay=(err)=>{const el=$("#sdMsg");
+    if(err){el.style.color="var(--bad)";el.textContent=err;return}
+    el.style.color="";
+    el.textContent=!SALE.sdOn?"Off — every sale rings up at the normal price."
+      :SALE.sdVal>0?`On — ${SALE.sdKind==="fixed"?money(SALE.sdVal):SALE.sdVal+"%"} comes off every sale at this counter.`
+      :"On, but the amount is zero, so nothing comes off. Put a number above zero.";};
+  const saveSd=async()=>{
+    SALE.sdOn=$("#sdOn").checked;$("#sdBox").hidden=!SALE.sdOn;
+    SALE.sdKind=$("#sdKind").value==="fixed"?"fixed":"percent";
+    SALE.sdVal=Math.max(0,parseFloat($("#sdVal").value)||0);
+    SALE.sdLabel=$("#sdLabel").value.trim()||"Today's discount";
+    const {data,error}=await db.from("settings").upsert([
+      {key:"store_discount_on",value:SALE.sdOn?"true":"false"},
+      {key:"store_discount_kind",value:SALE.sdKind},
+      {key:"store_discount_value",value:String(SALE.sdVal)},
+      {key:"store_discount_label",value:SALE.sdLabel}],{onConflict:"key"}).select("key");
+    // a write that matches no row comes back without an error, so check for rows
+    if(error)sdSay("Couldn't save: "+error.message);
+    else if(!data||!data.length)sdSay("Not saved — your sign-in may have expired. Reload the page and sign in again.");
+    else sdSay();
+    refreshSale();
+  };
+  sdSay();
+  $("#sdOn").onchange=saveSd;$("#sdKind").onchange=saveSd;
+  $("#sdVal").onchange=saveSd;$("#sdLabel").onchange=saveSd;
 
   let qT;
   $("#saQ").oninput=()=>{clearTimeout(qT);qT=setTimeout(searchAccounts,300)};
@@ -928,22 +992,37 @@ async function refreshSale(){
   const applied=SALE.quote.applied||[];
   // the first-order discount, worked out by the database on the subtotal after
   // any bundle saving — the same order the website applies them in
-  SALE.welcome=0;
-  if(SALE.welOn&&SALE.lines.length&&sub-disc>0&&welcomeWanted()){
-    const {data,error}=await db.rpc("welcome_amount",{p_base:+(sub-disc).toFixed(2)});
+  SALE.welcome=0;SALE.store=0;
+  const base=+(sub-disc).toFixed(2);
+  if(SALE.welOn&&SALE.lines.length&&base>0&&welcomeWanted()){
+    const {data,error}=await db.rpc("welcome_amount",{p_base:base});
     SALE.welcome=error?0:+(data||0);
   }
-  const wel=SALE.welcome;
+  // today's discount and the first-order one never stack. The bigger wins, and a
+  // tie goes to today's, which leaves the customer's own offer unspent for later.
+  const sd=storeDiscPreview(base);
+  if(SALE.welcome>sd)SALE.store=0;else{SALE.store=sd;SALE.welcome=0}
+  const wel=SALE.welcome,std=SALE.store;
   $("#slTotals").innerHTML=SALE.lines.length?`
     <div class="totrow"><span>Subtotal</span><b>${money(sub)}</b></div>
     ${applied.map(b=>`<div class="totrow bun"><span>${esc(b.name)}${b.times>1?" ×"+b.times:""}</span>
       <b>−${money(b.saving)}</b></div>`).join("")}
     ${wel>0?`<div class="totrow bun"><span>${esc(SALE.welLabel)} · first order</span>
       <b>−${money(wel)}</b></div>`:""}
-    <div class="totrow big"><span>Total</span><b>${money(sub-disc-wel)}</b></div>`:"";
+    ${std>0?`<div class="totrow bun"><span>${esc(SALE.sdLabel)}</span>
+      <b>−${money(std)}</b></div>`:""}
+    <div class="totrow big"><span>Total</span><b>${money(sub-disc-wel-std)}</b></div>`:"";
   const who=saleCustomer();
   $("#slDone").disabled=!(SALE.lines.length&&who.first_name);
   $("#slMsg").textContent=SALE.lines.length&&!who.first_name?"Add the customer's name to finish.":"";
+}
+
+// What today's discount comes to. This is the screen's preview only:
+// place_store_order reads the same settings and works it out again on the server.
+function storeDiscPreview(base){
+  if(!SALE.sdOn||!(base>0))return 0;
+  const v=+SALE.sdVal||0;if(v<=0)return 0;
+  return SALE.sdKind==="fixed"?Math.min(v,base):Math.round(base*Math.min(v,100))/100;
 }
 
 // A picked account spends its own offer; a walk-in gets it only when asked for.
@@ -988,11 +1067,12 @@ async function completeSale(){
 function receiptText(r){
   const lines=(r.items||[]).map(l=>`${l.qty} × ${l.name} (${l.color}, ${l.size}) — ${money(l.price*l.qty)}`);
   const bits=[`ACE — receipt #${r.order_number}`,"",...lines];
-  const bun=+r.bundle_discount||0,wel=+r.welcome_discount||0;
-  if(bun>0||wel>0){
+  const bun=+r.bundle_discount||0,wel=+r.welcome_discount||0,std=+r.store_discount||0;
+  if(bun>0||wel>0||std>0){
     bits.push("",`Subtotal: ${money(r.subtotal)}`);
     if(bun>0)bits.push(`Bundle saving: −${money(bun)}`);
     if(wel>0)bits.push(`First-order discount: −${money(wel)}`);
+    if(std>0)bits.push(`${SALE.sdLabel||"Discount"}: −${money(std)}`);
   }
   bits.push("",`Total paid: ${money(r.total)}`,"","Thank you — aceforathletes.com");
   return bits.join("\n");
@@ -1017,6 +1097,8 @@ function showReceipt(r,who){
         <b>−${money(b.saving)}</b></div>`).join("")}
       ${+r.welcome_discount>0?`<div class="rcpt-l bun"><span>First-order discount</span>
         <b>−${money(r.welcome_discount)}</b></div>`:""}
+      ${+r.store_discount>0?`<div class="rcpt-l bun"><span>${esc(SALE.sdLabel||"Discount")}</span>
+        <b>−${money(r.store_discount)}</b></div>`:""}
       <div class="rcpt-l big"><span>Total paid</span><b>${money(r.total)}</b></div>
     </div>
     <div class="row" style="gap:8px;margin-top:14px;flex-wrap:wrap">
@@ -2140,15 +2222,34 @@ function delCategory(c,n,section){
 
 /* =============== BUNDLES =============== */
 let BUNDLES_A=[];
-function bundleRegularA(b){return (b.items||[]).reduce((a,i)=>{const p=PRODUCTS.find(x=>x.id===i.product_id);if(!p)return a;const sp=p.sale_price!=null&&Number(p.sale_price)<Number(p.price)?Number(p.sale_price):Number(p.price);return a+sp*(i.qty||1)},0)}
-function bundleDesc(b){return (b.items||[]).map(i=>{const p=PRODUCTS.find(x=>x.id===i.product_id);return `${i.qty||1} × ${p?esc(p.name):"(deleted product)"}${i.color?" ("+esc(i.color)+")":""}`}).join(" + ")}
+// A piece of a bundle names either one product or a whole category, in which case
+// any item in that category counts towards it.
+const bCats=()=>CATEGORIES.filter(c=>!c.is_section);
+const catProducts=slug=>PRODUCTS.filter(p=>p.category===slug&&p.active!==false);
+const pPriceA=p=>p.sale_price!=null&&Number(p.sale_price)<Number(p.price)?Number(p.sale_price):Number(p.price);
+// The dearest match stands for a piece, because that is the one the discount engine
+// takes first. The cheapest matters too: where it falls below the bundle price, the
+// offer simply will not apply to that pick, which is worth saying out loud.
+function pieceFromA(i,low){
+  if(i.category){const l=catProducts(i.category).map(pPriceA);
+    return l.length?(low?Math.min.apply(null,l):Math.max.apply(null,l)):0}
+  const p=PRODUCTS.find(x=>x.id===i.product_id);return p?pPriceA(p):0;
+}
+function bundleRegularA(b){return ((b.items)||[]).reduce((a,i)=>a+pieceFromA(i)*(i.qty||1),0)}
+function bundleLowestA(b){return ((b.items)||[]).reduce((a,i)=>a+pieceFromA(i,true)*(i.qty||1),0)}
+function bundleVariesA(b){return ((b.items)||[]).some(i=>i.category&&new Set(catProducts(i.category).map(pPriceA)).size>1)}
+function bundleEmptyCatA(b){return ((b.items)||[]).filter(i=>i.category&&!catProducts(i.category).length).map(i=>catName(i.category))}
+function bundleDesc(b){return ((b.items)||[]).map(i=>{
+  if(i.category)return `${i.qty||1} × any ${esc(catName(i.category))}`;
+  const p=PRODUCTS.find(x=>x.id===i.product_id);
+  return `${i.qty||1} × ${p?esc(p.name):"(deleted product)"}${i.color?" ("+esc(i.color)+")":""}`}).join(" + ")}
 async function pBundles(){
-  await loadProducts();const {data,error}=await db.from("bundles").select("*").order("position").order("created_at");if(error)throw error;BUNDLES_A=data||[];
+  await loadProducts();await loadCategories();const {data,error}=await db.from("bundles").select("*").order("position").order("created_at");if(error)throw error;BUNDLES_A=data||[];
   V.innerHTML=`<div class="pagehead"><h1>Bundles</h1><button class="btn sm" id="bNew">Create bundle</button></div>
     <p class="help" style="margin:-8px 0 14px">A bundle price applies automatically when a customer's bag contains every piece of the bundle. The server always checks it, so it can't be faked. Bundles also appear in their own section on the website and on each product's page.</p>
     <div id="bOut"></div>`;
   $("#bOut").innerHTML=BUNDLES_A.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>Bundle</th><th>Pieces</th><th class="num">Normal price</th><th class="num">Bundle price</th><th>Status</th><th class="num">Order</th></tr></thead><tbody>
-    ${BUNDLES_A.map((b,i)=>{const reg=bundleRegularA(b);return `<tr data-i="${i}"><td><b>${esc(b.name)}</b></td><td style="font-size:13px">${bundleDesc(b)}</td><td class="num"><s class="muted">${money(reg)}</s></td><td class="num"><b>${money(b.price)}</b>${reg>b.price?`<div style="color:var(--ok);font-size:12px">save ${money(reg-b.price)}</div>`:`<div style="color:var(--bad);font-size:12px">no saving</div>`}</td><td>${b.active?pill("active","Active"):pill("hidden","Off")}${b.channels==="online"?pill("scheduled","Web only"):b.channels==="store"?pill("scheduled","Store only"):""}</td>
+    ${BUNDLES_A.map((b,i)=>{const reg=bundleRegularA(b);return `<tr data-i="${i}"><td><b>${esc(b.name)}</b></td><td style="font-size:13px">${bundleDesc(b)}</td><td class="num"><s class="muted">${bundleVariesA(b)?"up to ":""}${money(reg)}</s></td><td class="num"><b>${money(b.price)}</b>${reg>b.price?`<div style="color:var(--ok);font-size:12px">save ${money(reg-b.price)}</div>`:`<div style="color:var(--bad);font-size:12px">no saving</div>`}</td><td>${b.active?pill("active","Active"):pill("hidden","Off")}${b.channels==="online"?pill("scheduled","Web only"):b.channels==="store"?pill("scheduled","Store only"):""}</td>
       <td class="num nowrap"><button class="btn ghost sm" data-mv="-1" ${i===0?"disabled":""}>↑</button> <button class="btn ghost sm" data-mv="1" ${i===BUNDLES_A.length-1?"disabled":""}>↓</button></td></tr>`}).join("")}</tbody></table></div>`
     :`<div class="empty">No bundles yet. Example: 1 black T-shirt + 1 white T-shirt for $45 instead of $50.</div>`;
   $$("#bOut tr[data-i]").forEach(r=>r.onclick=e=>{if(e.target.closest("[data-mv]"))return;editBundle(BUNDLES_A[+r.dataset.i])});
@@ -2172,15 +2273,33 @@ function editBundle(b){
     <p class="help" style="margin:-6px 0 12px">An online-only offer is ignored when you ring a sale up at the counter, and the other way round.</p>
     <div class="err" id="bnErr"></div>
     <div class="row between" style="margin-top:10px">${b?`<button class="btn danger sm" id="bnDel">Delete</button>`:"<span></span>"}<span class="row"><button class="btn ghost" id="bnCancel">Cancel</button><button class="btn" id="bnSave">Save</button></span></div>`);
-  const reg=()=>{const r=bundleRegularA(st);const pr=parseFloat($("#bnPrice",m).value);$("#bnReg",m).innerHTML=`${money(r)}${pr>=0&&pr<r?` <span style="color:var(--ok);font-size:13px">customers save ${money(r-pr)}</span>`:""}`};
-  const draw=()=>{$("#bnItems",m).innerHTML=st.items.map((it,k)=>{const p=PRODUCTS.find(x=>x.id===it.product_id);return `<div class="row" style="flex-wrap:nowrap;margin-bottom:8px" data-k="${k}">
-      <input type="number" min="1" max="10" value="${it.qty||1}" data-f="qty" style="width:64px" aria-label="Quantity">
-      <select data-f="product_id">${PRODUCTS.map(x=>`<option value="${esc(x.id)}" ${x.id===it.product_id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>
-      <select data-f="color"><option value="">Any colour</option>${p?(p.colors||[]).map(c=>`<option ${c.name===it.color?"selected":""}>${esc(c.name)}</option>`).join(""):""}</select>
-      <button class="btn ghost sm" data-rm ${st.items.length<2?"disabled":""} aria-label="Remove piece">✕</button></div>`}).join("");
+  const reg=()=>{const r=bundleRegularA(st),low=bundleLowestA(st);const pr=parseFloat($("#bnPrice",m).value);
+    const varies=bundleVariesA(st);
+    $("#bnReg",m).innerHTML=`${varies?"up to ":""}${money(r)}`
+      +(pr>=0&&pr<r?` <span style="color:var(--ok);font-size:13px">customers save ${varies?"up to ":""}${money(r-pr)}</span>`:"")
+      +(varies&&pr>=0&&low<=pr?`<p class="help" style="margin:6px 0 0">A cheaper pick can come to ${money(low)},
+         which is under the bundle price, so the offer just will not apply to those — they pay the lower price instead.</p>`:"");};
+  const draw=()=>{$("#bnItems",m).innerHTML=st.items.map((it,k)=>{
+      const p=it.category?null:PRODUCTS.find(x=>x.id===it.product_id);
+      const hits=it.category?catProducts(it.category):[];
+      return `<div data-k="${k}" style="margin-bottom:8px">
+      <div class="row" style="flex-wrap:nowrap">
+      <input type="number" min="1" max="10" value="${it.qty||1}" data-f="qty" style="width:64px" aria-label="How many">
+      <select data-f="pick">
+        <optgroup label="Any item from a category">${bCats().map(c=>`<option value="cat:${esc(c.slug)}" ${it.category===c.slug?"selected":""}>Any ${esc(c.name)}</option>`).join("")}</optgroup>
+        <optgroup label="One particular product">${PRODUCTS.map(x=>`<option value="prod:${esc(x.id)}" ${(!it.category&&x.id===it.product_id)?"selected":""}>${esc(x.name)}</option>`).join("")}</optgroup>
+      </select>
+      <select data-f="color" ${it.category?"disabled":""}><option value="">Any colour</option>${p?(p.colors||[]).map(c=>`<option ${c.name===it.color?"selected":""}>${esc(c.name)}</option>`).join(""):""}</select>
+      <button class="btn ghost sm" data-rm ${st.items.length<2?"disabled":""} aria-label="Remove piece">✕</button></div>
+      ${it.category?`<p class="help" style="margin:5px 0 0">${hits.length?`Any one of these counts: ${hits.map(x=>esc(x.name)+" "+money(pPriceA(x))).join(", ")}`
+        :`Nothing is in ${esc(catName(it.category))} yet, so this piece can never be matched.`}</p>`:""}
+      </div>`}).join("");
     $$("#bnItems [data-k]",m).forEach(r=>{const it=st.items[+r.dataset.k];
       $('[data-f="qty"]',r).oninput=e=>{it.qty=Math.max(1,parseInt(e.target.value)||1);reg()};
-      $('[data-f="product_id"]',r).onchange=e=>{it.product_id=e.target.value;it.color=null;draw()};
+      $('[data-f="pick"]',r).onchange=e=>{const v=e.target.value;
+        if(v.indexOf("cat:")===0){it.category=v.slice(4);it.product_id=null}
+        else{it.category=null;it.product_id=v.slice(5)}
+        it.color=null;draw()};
       $('[data-f="color"]',r).onchange=e=>{it.color=e.target.value||null};
       $("[data-rm]",r).onclick=()=>{st.items.splice(+r.dataset.k,1);draw()}});reg()};
   draw();$("#bnPrice",m).oninput=reg;
@@ -2189,9 +2308,14 @@ function editBundle(b){
   $("#bnSave",m).onclick=async()=>{const e=x=>{$("#bnErr",m).textContent=x};
     const name=$("#bnName",m).value.trim(),price=parseFloat($("#bnPrice",m).value);
     if(!name)return e("Give the bundle a name.");if(!(price>=0))return e("Add the bundle price.");
-    const items=st.items.filter(i=>i.product_id).map(i=>({product_id:i.product_id,color:i.color||null,qty:Math.max(1,i.qty||1)}));
+    const items=st.items.filter(i=>i.category||i.product_id).map(i=>i.category
+      ?{category:i.category,qty:Math.max(1,i.qty||1)}
+      :{product_id:i.product_id,color:i.color||null,qty:Math.max(1,i.qty||1)});
     if(!items.length)return e("Add at least one piece.");if(items.reduce((a,i)=>a+i.qty,0)<2)return e("A bundle needs at least 2 pieces.");
-    const r=bundleRegularA({items});if(price>=r)return e(`The bundle price must be lower than the normal price (${money(r)}).`);
+    const empty=bundleEmptyCatA({items});
+    if(empty.length)return e(`Nothing is in ${empty.join(" or ")} yet, so this bundle could never apply.`);
+    const r=bundleRegularA({items});
+    if(price>=r)return e(`The bundle price must be lower than the normal price (${bundleVariesA({items})?"at most ":""}${money(r)}), or the offer could never apply.`);
     const row={name,description:$("#bnDesc",m).value.trim(),price,items,active:$("#bnAct",m).checked,channels:$("#bnChan",m).value};
     if(!b)row.position=BUNDLES_A.length+1;
     const res=b?await db.from("bundles").update(row).eq("id",b.id):await db.from("bundles").insert(row);
