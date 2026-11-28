@@ -1317,9 +1317,14 @@ async function pOrder(num){
       </div>
       <div class="card"><h2>Payment</h2>
         <div class="sumrow"><span>Subtotal · ${items.reduce((a,i)=>a+Number(i.qty),0)} items</span><span>${money(o.subtotal)}</span></div>
-        ${Number(o.discount_amount)>0?`<div class="sumrow"><span>Discount <span class="muted">${esc(o.discount_code||"")}</span></span><span>−${money(o.discount_amount)}</span></div>`:""}
+        ${Number(o.bundle_discount)>0?`<div class="sumrow"><span>Bundle <span class="muted">${esc(((o.bundles||[]).map(b=>b.name).join(", "))||"")}</span></span><span>−${money(o.bundle_discount)}</span></div>`:""}
+        ${Number(o.welcome_discount)>0?`<div class="sumrow"><span>First-order discount</span><span>−${money(o.welcome_discount)}</span></div>`:""}
+        <div class="sumrow"><span>Discount</span><span class="row"><span class="muted">$</span><input type="number" class="feein" id="oDisc" min="0" step="0.5" value="${Number(o.discount_amount||0)}"><button class="btn ghost sm" id="oDiscSave">Save</button></span></div>
+        <div class="sumrow"><span class="muted" style="font-size:12px">What the discount was for</span><input type="text" id="oDiscWhy" maxlength="40" placeholder="Opening day" value="${esc(o.discount_code||"")}" style="max-width:180px"></div>
         <div class="sumrow"><span>Delivery</span><span class="row"><span class="muted">$</span><input type="number" class="feein" id="oFee" min="0" step="0.5" value="${Number(o.delivery_fee||0)}"><button class="btn ghost sm" id="oFeeSave">Save</button></span></div>
         <div class="sumrow tot"><span>Total</span><span>${money(oTotal(o))}</span></div>
+        <div style="margin-top:10px"><button class="btn ghost sm" id="oReBundle">Apply today's bundle offers to this order</button>
+          <p class="help" style="margin:6px 0 0">Runs the current offers over the pieces on this order and rewrites the saving. Use it when an offer changed after the sale.</p></div>
         <div class="sumrow"><span class="muted">Payment method</span><span>${esc(PTYPE[o.payment_type]||"Cash on delivery")}</span></div>
         ${o.cancel_reason?`<div class="sumrow"><span class="muted">${o.status==="returned"?"Return":"Cancel"} reason</span><span>${esc(o.cancel_reason)}</span></div>`:""}
         ${Number(o.refunded_amount)>0?`<div class="sumrow"><span class="muted">Refunded</span><span>−${money(o.refunded_amount)}</span></div>`:""}
@@ -1370,14 +1375,24 @@ async function pOrder(num){
   $$("#oStSeg button").forEach(b=>b.onclick=()=>setStatus(b.dataset.s));
   if($("#oNext"))$("#oNext").onclick=()=>setStatus(NEXT[o.status]);
   $$("#oPaySeg button").forEach(b=>b.onclick=()=>{if(b.dataset.p!==(o.payment_status||"unpaid"))upd({payment_status:b.dataset.p},`Payment: ${PL[b.dataset.p]}`)});
-  $("#oFeeSave").onclick=()=>{const v=Math.max(0,parseFloat($("#oFee").value)||0);upd({delivery_fee:v},"Delivery fee saved")};
+  // Money changes go through the database, which works the total out from the parts
+  // and writes a line into the order's history. The browser never sends a total.
+  const editTotals=async(patch,msg)=>{
+    const {data,error}=await db.rpc("admin_edit_order_totals",{p:Object.assign({order_id:o.id},patch)});
+    if(error){toast("Couldn't save: "+error.message,true);return}
+    await loadOrders();toast(msg);pOrder(num);
+  };
+  $("#oFeeSave").onclick=()=>editTotals({delivery_fee:Math.max(0,parseFloat($("#oFee").value)||0)},"Delivery saved, total updated");
+  $("#oDiscSave").onclick=()=>editTotals({discount_amount:Math.max(0,parseFloat($("#oDisc").value)||0),
+    discount_code:$("#oDiscWhy").value,reason:"Discount changed by hand"},"Discount saved, total updated");
+  $("#oReBundle").onclick=()=>editTotals({recalc_bundles:true,reason:"Bundle offers reapplied"},"Bundle offers applied");
   $("#oNoteSave").onclick=()=>upd({admin_note:$("#oNote").value},"Note saved");
   $("#oDel").onclick=async()=>{if(!confirm(`Delete order #${o.order_number}? This can't be undone. To keep a record, mark it Cancelled instead.`))return;
     const {error}=await db.from("orders").delete().eq("id",o.id);if(error){toast("Couldn't delete: "+error.message,true);return}ORDERS=ORDERS.filter(x=>x.id!==o.id);toast("Order deleted");go("#/orders")};
   $("#oPrint").onclick=()=>printSlip(o);
   db.from("order_status_log").select("*").eq("order_id",o.id).order("id",{ascending:false}).then(({data,error})=>{
     const el=$("#oHist");if(!el)return;if(error){el.innerHTML=`<li class="muted">Couldn't load history.</li>`;return}
-    el.innerHTML=(data||[]).map(l=>`<li>${l.kind==="payment"?`Payment: ${esc(PL[l.from_value]||l.from_value||"")} → <b>${esc(PL[l.to_value]||l.to_value)}</b>`:l.from_value?`${esc(SL[l.from_value]||l.from_value)} → <b>${esc(SL[l.to_value]||l.to_value)}</b>`:`<b>${esc(l.note||"Order placed")}</b>`}
+    el.innerHTML=(data||[]).map(l=>`<li>${l.kind==="totals"?`Total: ${money(l.from_value)} → <b>${money(l.to_value)}</b>`:l.kind==="payment"?`Payment: ${esc(PL[l.from_value]||l.from_value||"")} → <b>${esc(PL[l.to_value]||l.to_value)}</b>`:l.from_value?`${esc(SL[l.from_value]||l.from_value)} → <b>${esc(SL[l.to_value]||l.to_value)}</b>`:`<b>${esc(l.note||"Order placed")}</b>`}
       ${l.reason?`<div class="muted" style="font-size:12.5px">Reason: ${esc(l.reason)}</div>`:""}${l.from_value&&l.note?`<div class="muted" style="font-size:12.5px">${esc(l.note)}</div>`:""}
       <time>${fmtDT(l.changed_at)} · ${esc(l.changed_by||"")}</time></li>`).join("")||`<li class="muted">No history yet.</li>`;
   });
