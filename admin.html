@@ -609,20 +609,30 @@ function stockRows(){
   return out;
 }
 
+// A counted row belongs in the reorder list whatever its selling status: a pre-order
+// product has real stock on the shelf too, and that is the stock being sold. Only
+// Coming soon is left out, since it is not on sale yet.
 function lowCount(){
-  return stockRows().filter(r=>r.n!==null&&r.n<=LOWAT&&!r.preorder&&!r.soon).length;
+  return stockRows().filter(r=>r.n!==null&&r.n<=LOWAT&&!r.soon).length;
 }
-function lowBadge(){
-  try{const b=$("#navLow"),n=lowCount();if(b){b.hidden=!n;b.textContent=n}}catch(e){}
+// Fetches what it needs if the page it was called from has not loaded products,
+// so the count is right wherever you are in the admin, not only after a save.
+async function lowBadge(){
+  try{
+    if(!PRODUCTS.length)await loadProducts();
+    const b=$("#navLow"),n=lowCount();if(b){b.hidden=!n;b.textContent=n}
+  }catch(e){}
 }
 
 async function pInventory(){
   await Promise.all([loadProducts(),loadLowAt()]);
+  lowBadge();
   const rows=stockRows();
   const tracked=rows.filter(r=>r.n!==null);
-  const units=tracked.reduce((a,r)=>a+r.n,0);
-  const out=tracked.filter(r=>r.n<=0&&!r.preorder&&!r.soon);
-  const low=tracked.filter(r=>r.n>0&&r.n<=LOWAT&&!r.preorder&&!r.soon);
+  const units=tracked.reduce((a,r)=>a+Math.max(r.n,0),0);
+  const out=tracked.filter(r=>r.n<=0&&!r.soon);
+  const low=tracked.filter(r=>r.n>0&&r.n<=LOWAT&&!r.soon);
+  const owed=tracked.filter(r=>r.n<0&&!r.soon);
   const untracked=rows.length-tracked.length;
 
   const chip=r=>`${esc(r.p.name)} · ${esc(r.colour)} · ${esc(r.size)}`;
@@ -643,14 +653,16 @@ async function pInventory(){
       <span class="help" id="ivLowMsg" style="margin:0"></span>
     </div>
     <p class="help" style="margin:10px 0 0">Anything at or below this number shows in the reorder list.
-      Pre-order and Coming soon items are left out, since they are meant to have no stock yet.</p>
+      Coming soon items are left out, since they are not on sale yet. A pre-order piece is counted
+      like any other: it comes off the shelf when it sells, and can go below zero, which is how many
+      you owe.${owed.length?` You owe ${owed.reduce((a,r)=>a+Math.abs(r.n),0)} piece(s) right now.`:""}</p>
   </div>
 
   ${(out.length||low.length)?`<div class="card" style="margin-bottom:18px">
     <h2>Reorder</h2>
     ${out.length?`<p class="help" style="margin:0 0 6px"><b>Out of stock</b></p>
       <div class="row" style="flex-wrap:wrap;gap:6px;margin-bottom:12px">
-        ${out.map(r=>`<span class="pilltag bad">${chip(r)}</span>`).join("")}</div>`:""}
+        ${out.map(r=>`<span class="pilltag bad">${chip(r)}${r.n<0?` — ${Math.abs(r.n)} owed`:""}</span>`).join("")}</div>`:""}
     ${low.length?`<p class="help" style="margin:0 0 6px"><b>${LOWAT} or fewer left</b></p>
       <div class="row" style="flex-wrap:wrap;gap:6px">
         ${low.map(r=>`<span class="pilltag warn">${chip(r)} — ${r.n}</span>`).join("")}</div>`:""}
@@ -3081,6 +3093,7 @@ async function pSettings(){
 /* =============== boot =============== */
 function boot(){
   router();
+  lowBadge();   // so the reorder count is right the moment the admin opens
   setInterval(async()=>{if(document.hidden)return;try{const before=ORDERS.length?ORDERS[0].id:null;await loadOrders();const r=location.hash.replace(/^#\/?/,"").split("/")[0]||"home";
     if(ORDERS.length&&ORDERS[0].id!==before&&before!==null){toast("New order received");if(r==="home"||(r==="orders"&&!location.hash.split("/")[2]))router()}}catch(e){}},30000);
 }
