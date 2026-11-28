@@ -1721,7 +1721,7 @@ function renderAcct(view){
     b.innerHTML=`${w?`<div class="welcome-note">${esc(w)} — create an account to use it.</div>`:""}
       <div class="tabs"><button type="button" data-v="signin" aria-pressed="${view==="signin"}">Sign in</button><button type="button" data-v="signup" aria-pressed="${view==="signup"}">Create account</button></div>
       <form id="acctForm">
-        ${view==="signup"?acctField("acFirst","First name","text","",'autocomplete="given-name"'):""}
+        ${view==="signup"?`<div class="grid2">${acctField("acFirst","First name","text","",'autocomplete="given-name" required')}${acctField("acLast","Last name","text","",'autocomplete="family-name" required')}</div>`:""}
         ${acctField("acEmail","Email","email","",'autocomplete="email" required')}
         ${acctField("acPass","Password","password","",'autocomplete="'+(view==="signup"?"new-password":"current-password")+'" required minlength="8"')}
         ${view==="signup"?`<label class="check"><input type="checkbox" id="acNews" checked> Email me about new drops and offers</label>`:""}
@@ -1736,7 +1736,15 @@ function renderAcct(view){
       const email=$("#acEmail").value.trim(),password=$("#acPass").value;
       try{
         if(view==="signup"){
-          const {error}=await db.auth.signUp({email,password});
+          // The name travels with the sign-up itself. When the email has to be
+          // confirmed there is no session yet, so the call below never runs and
+          // anything typed here would be lost; Supabase keeps this and
+          // ensure_account reads it back the first time they sign in.
+          const first=$("#acFirst")?$("#acFirst").value.trim():"";
+          const last=$("#acLast")?$("#acLast").value.trim():"";
+          const news=$("#acNews")?$("#acNews").checked:true;
+          const {error}=await db.auth.signUp({email,password,
+            options:{data:{first_name:first,last_name:last,marketing_opt_in:news}}});
           if(error)throw error;
           const {data:{session}}=await db.auth.getSession();
           if(!session){
@@ -1746,7 +1754,7 @@ function renderAcct(view){
               <button type="button" class="px-add" id="acGoSignin"><span>Go to sign in</span><span aria-hidden="true">→</span></button>`;
             const g=document.getElementById("acGoSignin");if(g)g.onclick=()=>renderAcct("signin");
             btn.disabled=false;return}
-          await db.rpc("ensure_account",{p:{first_name:$("#acFirst")?$("#acFirst").value.trim():"",marketing_opt_in:$("#acNews")?$("#acNews").checked:true}});
+          await db.rpc("ensure_account",{p:{first_name:first,last_name:last,marketing_opt_in:news}});
           track("sign_up",{method:"email"});
         }else{
           const {error}=await db.auth.signInWithPassword({email,password});
